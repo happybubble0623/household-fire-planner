@@ -77,7 +77,8 @@
       "WebSearch",
       "Bash(curl -s -o /dev/null -w \"localhost:3000 -> %{http_code}\\\\n\" --max-time 4 http://localhost:3000/app/fire-path/tools/mortgage)",
       "Read(//Users/chongzha/Library/Caches/ms-playwright/**)",
-      "Bash(node scripts/calculator-seo-shots.mjs)"
+      "Bash(node scripts/calculator-seo-shots.mjs)",
+      "Bash(node scripts/auth-otp-shots.mjs)"
     ]
   }
 }
