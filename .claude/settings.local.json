@@ -107,7 +107,11 @@
       "Read(//private/tmp/**)",
       "Bash(echo \"=== 2\\) Email signup + OTP settings ===\"; jq -r ' *)",
       "Bash(node scripts/capture-signin-nav-shots.mjs)",
-      "Bash(cd \"/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Freedom Path\" && ls node_modules | grep -iE \"playwright|puppeteer|chrome\" ; ls node_modules/.bin | grep -iE \"playwright|puppeteer\"; echo \"---\"; ls \"/Applications\" | grep -i chrome)"
+      "Bash(cd \"/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Freedom Path\" && ls node_modules | grep -iE \"playwright|puppeteer|chrome\" ; ls node_modules/.bin | grep -iE \"playwright|puppeteer\"; echo \"---\"; ls \"/Applications\" | grep -i chrome)",
+      "Bash(node scripts/capture-about-screenshots.mjs http://localhost:3000 three-zone)",
+      "Bash(grep -rn \"Local mode\" --include=\"*.tsx\" --include=\"*.ts\" -l src)",
+      "Bash(grep -rn \"Update today\" --include=\"*.tsx\" -l src)",
+      "Bash(echo \"no assertions found \\(exit $?\\)\")"
     ]
   }
 }
