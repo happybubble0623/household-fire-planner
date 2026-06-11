@@ -1,4 +1,6 @@
 import { getSupabaseClient } from "@/lib/storage/supabase-sync";
+import { defaultPhase1Workbook } from "@/lib/phase1/default-workbook";
+import { normalizePhase1Workbook } from "@/lib/phase1/workbook";
 import type { Phase1Workbook } from "@/types/phase1";
 
 const USER_WORKBOOKS_TABLE = "user_workbooks";
@@ -76,26 +78,69 @@ export async function pushWorkbook(
   if (error) throw error;
 }
 
-export type WorkbookReconcileSource = "local-pushed" | "cloud" | "local";
+// Fields that change without the user editing anything (timestamps, transient
+// refresh/import status). They must be ignored when deciding whether a workbook
+// holds real user data or whether two workbooks meaningfully differ.
+const VOLATILE_FIELDS = ["updatedAt", "lastEodRefreshAt", "lastImportExportStatus"] as const;
 
-export type WorkbookReconcileResult = {
-  /** The winning workbook the caller should adopt. */
-  workbook: Phase1Workbook;
-  source: WorkbookReconcileSource;
-};
+// Stable, key-sorted serialization so two structurally-equal workbooks compare
+// equal regardless of property insertion order.
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const keys = Object.keys(record).sort();
+    return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
 
-function toTimestamp(value: string | undefined): number {
-  const parsed = Date.parse(value ?? "");
-  return Number.isNaN(parsed) ? 0 : parsed;
+function canonicalizeWorkbook(workbook: Phase1Workbook): string {
+  const copy: Record<string, unknown> = { ...normalizePhase1Workbook(workbook) };
+  for (const field of VOLATILE_FIELDS) {
+    delete copy[field];
+  }
+  return stableStringify(copy);
 }
 
 /**
- * Last-write-wins reconcile by updatedAt between the local workbook and the
- * cloud workbook for a user.
+ * True when the workbook holds meaningful user-entered data — i.e. it differs
+ * from the default/empty workbook in something other than a volatile field. A
+ * brand-new local default does NOT count as data.
+ */
+export function workbookHasData(workbook: Phase1Workbook): boolean {
+  return canonicalizeWorkbook(workbook) !== canonicalizeWorkbook(defaultPhase1Workbook);
+}
+
+/** True when two workbooks differ in any non-volatile (user-meaningful) field. */
+export function workbooksDiffer(a: Phase1Workbook, b: Phase1Workbook): boolean {
+  return canonicalizeWorkbook(a) !== canonicalizeWorkbook(b);
+}
+
+export type WorkbookReconcileResult =
+  // Local was adopted and pushed to the cloud (cloud was empty/default, or it
+  // is a first-time seed). Caller keeps its current local workbook.
+  | { status: "adopt-local"; workbook: Phase1Workbook }
+  // Cloud was adopted. Caller writes it into Dexie and renders it.
+  | { status: "adopt-cloud"; workbook: Phase1Workbook }
+  // Both sides are effectively identical — nothing to do.
+  | { status: "in-sync"; workbook: Phase1Workbook }
+  // Both sides hold meaningful data AND they differ. The caller MUST prompt the
+  // user to choose; nothing has been overwritten on either side.
+  | { status: "conflict"; local: Phase1Workbook; cloud: Phase1Workbook };
+
+/**
+ * Reconcile the local workbook with the user's cloud workbook on login, WITHOUT
+ * ever silently overwriting real data.
  *
- * - Cloud empty (first login): push the local workbook up, keep local.
- * - Cloud newer-or-equal: cloud wins (caller writes it into Dexie).
- * - Local newer: push the local workbook up, keep local.
+ * - Cloud empty/absent: push local up (adopt local). No prompt.
+ * - Cloud has data, local is empty/default: adopt cloud. No prompt.
+ * - Local has data, cloud is empty/default: push local up (adopt local). No prompt.
+ * - Effectively identical: nothing to do (in-sync). No prompt.
+ * - Both hold meaningful data and they differ: return a "conflict" for the
+ *   caller to resolve via resolveWorkbookConflict — no side is touched.
  */
 export async function reconcileWorkbook(
   userId: string,
@@ -105,15 +150,61 @@ export async function reconcileWorkbook(
   const supabase = resolveClient(client);
   const cloudWorkbook = await pullWorkbook(userId, supabase);
 
+  // No cloud row yet: seed it from local (whether local is real data or just a
+  // default — there is nothing in the cloud to lose).
   if (!cloudWorkbook) {
     await pushWorkbook(userId, localWorkbook, supabase);
-    return { workbook: localWorkbook, source: "local-pushed" };
+    return { status: "adopt-local", workbook: localWorkbook };
   }
 
-  if (toTimestamp(cloudWorkbook.updatedAt) >= toTimestamp(localWorkbook.updatedAt)) {
-    return { workbook: cloudWorkbook, source: "cloud" };
+  // Identical content: nothing to resolve, no write needed.
+  if (!workbooksDiffer(localWorkbook, cloudWorkbook)) {
+    return { status: "in-sync", workbook: cloudWorkbook };
   }
 
-  await pushWorkbook(userId, localWorkbook, supabase);
-  return { workbook: localWorkbook, source: "local" };
+  const localHasData = workbookHasData(localWorkbook);
+  const cloudHasData = workbookHasData(cloudWorkbook);
+
+  // Cloud has data, local is empty/default → safe to pull cloud down.
+  if (cloudHasData && !localHasData) {
+    return { status: "adopt-cloud", workbook: cloudWorkbook };
+  }
+
+  // Local has data, cloud is empty/default → safe to push local up.
+  if (localHasData && !cloudHasData) {
+    await pushWorkbook(userId, localWorkbook, supabase);
+    return { status: "adopt-local", workbook: localWorkbook };
+  }
+
+  // Both sides hold meaningful data and they differ → the user must choose.
+  return { status: "conflict", local: localWorkbook, cloud: cloudWorkbook };
+}
+
+export type WorkbookConflictChoice = "local" | "cloud";
+
+export type WorkbookConflictResolution = {
+  workbook: Phase1Workbook;
+  status: "adopt-local" | "adopt-cloud";
+};
+
+/**
+ * Apply the user's explicit choice from a sync conflict. "local" pushes the
+ * device's workbook up (replacing the cloud copy); "cloud" adopts the account's
+ * workbook (the caller writes it into Dexie, replacing the local copy).
+ */
+export async function resolveWorkbookConflict(
+  userId: string,
+  choice: WorkbookConflictChoice,
+  localWorkbook: Phase1Workbook,
+  cloudWorkbook: Phase1Workbook,
+  client: WorkbookSyncClient | null = null
+): Promise<WorkbookConflictResolution> {
+  const supabase = resolveClient(client);
+
+  if (choice === "local") {
+    await pushWorkbook(userId, localWorkbook, supabase);
+    return { workbook: localWorkbook, status: "adopt-local" };
+  }
+
+  return { workbook: cloudWorkbook, status: "adopt-cloud" };
 }
