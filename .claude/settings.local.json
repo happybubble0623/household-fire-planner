@@ -68,7 +68,9 @@
       "Bash(sed -n 220,235p src/components/planning/path-to-fire-panel.tsx)",
       "Bash(sed -n 1,30p src/app/sitemap.ts)",
       "Bash(git rm *)",
-      "Bash(node scripts/capture-about-screenshots.mjs)"
+      "Bash(node scripts/capture-about-screenshots.mjs)",
+      "Bash(sed -n 140,200p src/components/planning/path-to-fire-panel.tsx)",
+      "Bash(sed -n 1,20p src/app/app/fire-path/page.tsx)"
     ]
   }
 }
