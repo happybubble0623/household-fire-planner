@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
+import { StrategyCashFlowChart } from "@/components/charts/calculator-charts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { InfoPopover } from "@/components/ui/info-popover";
@@ -385,6 +386,8 @@ function InfoLabel({
   );
 }
 
+// KPI card (REDESIGN_SPEC §4): caption label, big tabular value, tone-colored
+// with a matching top accent so the result rail reads at a glance.
 function ResultCard({
   label,
   value,
@@ -396,17 +399,24 @@ function ResultCard({
 }) {
   const valueClass =
     tone === "success"
-      ? "text-[var(--primary)]"
+      ? "text-[var(--positive)]"
       : tone === "warning"
-        ? "text-[var(--danger)]"
+        ? "text-[var(--negative)]"
         : "text-gray-900";
 
   return (
-    <Card className="p-5">
-      <p className="text-sm leading-relaxed text-gray-500">
+    <Card
+      className={cn(
+        "border-t-2 p-5",
+        tone === "warning" ? "border-t-[var(--negative)]" : "border-t-[var(--primary)]"
+      )}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">
         <InfoLabel label={label} />
       </p>
-      <p className={cn("mt-2 text-2xl font-semibold tracking-tight", valueClass)}>{value}</p>
+      <p className={cn("mt-2 text-[28px] font-extrabold leading-9 tracking-tight tabular-nums", valueClass)}>
+        {value}
+      </p>
     </Card>
   );
 }
@@ -423,10 +433,10 @@ function ProgressBar({
   const boundedValue = Math.max(0, Math.min(100, value));
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-medium text-gray-700">{label}</p>
-        <p className="text-sm text-gray-500">{note}</p>
+        <p className="text-sm font-semibold text-gray-900">{label}</p>
+        <p className="text-sm text-gray-500 tabular-nums">{note}</p>
       </div>
       <div
         role="progressbar"
@@ -437,7 +447,7 @@ function ProgressBar({
         className="mt-4 h-3 overflow-hidden rounded-full bg-gray-100"
       >
         <div
-          className="h-full rounded-full bg-[var(--primary)]"
+          className="h-full rounded-full bg-gradient-to-r from-[var(--green-400)] to-[var(--primary)] transition-[width] duration-500"
           style={{ width: `${boundedValue}%` }}
         />
       </div>
@@ -473,13 +483,16 @@ function StrategyCalculatorLinks({ excludeInvestment }: { excludeInvestment: boo
             href={tool.href}
             target="_blank"
             rel="noreferrer"
-            className="group block rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            className="group block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
             <span className="block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
               {tool.title}
             </span>
             <span className="mt-2 block text-sm leading-relaxed text-gray-500">
               {tool.description}
+            </span>
+            <span className="mt-3 inline-block text-[13px] font-semibold text-[var(--primary-hover)]">
+              Explore &rarr;
             </span>
           </Link>
         ))}
@@ -705,9 +718,9 @@ export function FireStrategyPanel({
             href="/app/fire-path"
             className="text-sm font-medium text-gray-500 transition hover:text-gray-900"
           >
-            Back to Path to FIRE
+            &larr; Back to Path to FIRE
           </Link>
-          <h1 className="mt-3 text-4xl font-semibold leading-tight tracking-tight text-gray-900 md:text-5xl">
+          <h1 className="mt-3 text-4xl font-bold leading-tight tracking-[-0.02em] text-gray-900 md:text-5xl">
             {title}
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-500">{intro}</p>
@@ -1375,7 +1388,9 @@ export function FireStrategyPanel({
       <div
         className={cn(
           "flex flex-col gap-3 rounded-2xl border p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between",
-          resultsStale ? "border-amber-300 bg-amber-50" : "border-gray-200 bg-white"
+          resultsStale
+            ? "border-[var(--gold-border)] bg-[var(--gold-bg)]"
+            : "border-[var(--border)] bg-[var(--surface)]"
         )}
       >
         <p className="text-sm leading-relaxed text-gray-700">
@@ -1391,7 +1406,7 @@ export function FireStrategyPanel({
       {friendlyFireError ? (
         <div
           id={fireInputErrorId}
-          className="rounded-2xl border border-[var(--danger)] bg-white p-5 text-sm font-medium leading-relaxed text-[var(--danger)] shadow-sm"
+          className="rounded-2xl border border-[var(--negative)] bg-[var(--negative-bg)] p-5 text-sm font-medium leading-relaxed text-[var(--negative)] shadow-sm"
         >
           {friendlyFireError}
         </div>
@@ -1412,7 +1427,7 @@ export function FireStrategyPanel({
         />
       ) : null}
 
-      <p className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-500 shadow-sm">
+      <p className="rounded-2xl border border-[var(--border)] bg-[var(--soft)] p-5 text-sm leading-relaxed text-gray-500 shadow-sm">
         Planning estimates only. Not financial, tax, or legal advice.
       </p>
     </div>
@@ -1451,6 +1466,15 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
         value={progress}
         note={`${formatPercent(progress / 100)} of the assets needed at FIRE`}
       />
+      <section aria-label="Cash flow by age" className="space-y-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+          Money in vs. money out, year by year
+        </h2>
+        <StrategyCashFlowChart
+          rows={result.projectionRows}
+          fireAge={result.estimatedFireAge}
+        />
+      </section>
       <ProjectionTable
         label="Portfolio Drawdown FIRE projection"
         rows={result.projectionRows}
@@ -1555,7 +1579,7 @@ function PrincipalPreservingResults({
         />
       </div>
       {result.passes ? null : (
-        <div className="rounded-2xl border border-[var(--danger)] bg-white p-5 text-sm font-medium leading-relaxed text-[var(--danger)] shadow-sm">
+        <div className="rounded-2xl border border-[var(--negative)] bg-[var(--negative-bg)] p-5 text-sm font-medium leading-relaxed text-[var(--negative)] shadow-sm">
           Not reached under current assumptions. No age from now through life expectancy keeps income
           plus cash-generating return at or above expenses while preserving the principal floor. The
           projection below shows the retire-now scenario, where assets first dip below the floor at age{" "}
@@ -1651,7 +1675,7 @@ function ProjectionTable({
           <thead className="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-4 py-3">Year / Age</th>
-              <th className="px-4 py-3">
+              <th className="px-4 py-3 text-right">
                 <InfoLabel label="Starting FIRE assets" />
               </th>
               {showCashFlow ? (
@@ -1704,7 +1728,7 @@ function ProjectionTable({
                   <InfoLabel label="FIRE gap" />
                 </th>
               ) : null}
-              <th className="px-4 py-3">
+              <th className="px-4 py-3 text-right">
                 <InfoLabel label="Ending FIRE assets" />
               </th>
             </tr>
@@ -1716,72 +1740,76 @@ function ProjectionTable({
               return (
                 <tr
                   key={`${row.year}-${row.age}`}
-                  className={row.depleted || dipHighlight ? "bg-red-50/60" : undefined}
+                  className={
+                    row.depleted || dipHighlight
+                      ? "bg-[var(--negative-bg)]"
+                      : "odd:bg-white even:bg-gray-50 hover:bg-[var(--green-50)]"
+                  }
                 >
-                  <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900 tabular-nums">
                     {row.calendarYear} / {row.age}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                     {formatCurrency(row.startingAssets)}
                   </td>
                   {showCashFlow ? (
                     <td
                       className={cn(
-                        "whitespace-nowrap px-4 py-3 font-medium",
-                        row.cashFlow >= 0 ? "text-[var(--primary)]" : "text-[var(--danger)]"
+                        "whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums",
+                        row.cashFlow >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
                       )}
                     >
                       {formatSignedCurrency(row.cashFlow)}
                     </td>
                   ) : null}
                   {showInvestmentReturn ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-[var(--primary)]">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-[var(--positive)] tabular-nums">
                       {formatSignedCurrency(row.investmentReturn ?? 0)}
                     </td>
                   ) : null}
                   {showAnnualIncome ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                       {formatCurrency(row.annualIncome ?? 0)}
                     </td>
                   ) : null}
                   {showExpenses ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                       {formatCurrency(row.annualExpenses ?? 0)}
                     </td>
                   ) : null}
                   {showAssetsWithdrawn ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                       {formatCurrency(row.assetsWithdrawn ?? 0)}
                     </td>
                   ) : null}
                   {showCashGeneratingReturn ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                       {formatCurrency(row.cashGeneratingReturn ?? 0)}
                     </td>
                   ) : null}
                   {showFireTarget ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                       {formatCurrency(row.fireTarget ?? 0)}
                     </td>
                   ) : null}
                   {showIncomeCoverage ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                       {row.incomeCoverageRatio === undefined
                         ? "--"
                         : formatPercent(row.incomeCoverageRatio)}
                     </td>
                   ) : null}
                   {showPrincipalFloor ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                       {row.principalFloor === undefined ? "--" : formatCurrency(row.principalFloor)}
                     </td>
                   ) : null}
                   {showFireGap ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                       {formatCurrency(row.fireGap)}
                     </td>
                   ) : null}
-                  <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
+                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-gray-900 tabular-nums">
                     {formatCurrency(row.endingAssets)}
                   </td>
                 </tr>
@@ -1826,41 +1854,44 @@ function IncomeStreamProjectionTable({
           <thead className="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-4 py-3">Year / Age</th>
-              <th className="px-4 py-3">
+              <th className="px-4 py-3 text-right">
                 <InfoLabel label="Income" />
               </th>
-              <th className="px-4 py-3">
+              <th className="px-4 py-3 text-right">
                 <InfoLabel label="Expenses" />
               </th>
-              <th className="px-4 py-3">
+              <th className="px-4 py-3 text-right">
                 <InfoLabel label="Surplus / shortfall" />
               </th>
-              <th className="px-4 py-3">
+              <th className="px-4 py-3 text-right">
                 <InfoLabel label="Income coverage" />
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
             {rows.map((row) => (
-              <tr key={`${row.year}-${row.age}`}>
-                <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
+              <tr
+                key={`${row.year}-${row.age}`}
+                className="odd:bg-white even:bg-gray-50 hover:bg-[var(--green-50)]"
+              >
+                <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900 tabular-nums">
                   {row.calendarYear} / {row.age}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                   {formatCurrency(row.annualIncome ?? 0)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                   {formatCurrency(row.annualExpenses ?? 0)}
                 </td>
                 <td
                   className={cn(
-                    "whitespace-nowrap px-4 py-3 font-medium",
-                    row.cashFlow >= 0 ? "text-[var(--primary)]" : "text-[var(--danger)]"
+                    "whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums",
+                    row.cashFlow >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
                   )}
                 >
                   {formatSignedCurrency(row.cashFlow)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
                   {row.incomeCoverageRatio === undefined
                     ? "--"
                     : formatPercent(row.incomeCoverageRatio)}

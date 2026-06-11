@@ -135,7 +135,8 @@ const portfolioTableColumns: { id: PortfolioTableColumnId; label: string }[] = [
 ];
 const defaultPortfolioTableColumnIds = portfolioTableColumns.map((column) => column.id);
 const portfolioTableColumnsStorageKey = "freedom-path.portfolio-table-columns.v1";
-const allocationColors = ["#136f63", "#3f6f9f", "#c46c3f", "#7c6aa8", "#9c3f5f", "#5c6873"];
+// Brand-derived allocation palette (REDESIGN_SPEC §2 chart swatches).
+const allocationColors = ["#15803d", "#f5b301", "#0d9488", "#9333ea", "#34c77e", "#7c7b71"];
 const genericMarketDataWarning =
   "Market data may be delayed, stale, estimated, or manually entered. Check source and price date before relying on values.";
 
@@ -774,19 +775,19 @@ export function PortfolioPanel({
   return (
     <div className="space-y-6">
       <section className="space-y-5">
-        <div className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-white p-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-[var(--muted-foreground)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
               Understand Portfolio
             </p>
-            <h1 className="mt-1 text-2xl font-semibold text-[var(--foreground)]">
+            <h1 className="mt-1 text-3xl font-bold tracking-[-0.02em] text-gray-900">
               Portfolio assets and liabilities
             </h1>
           </div>
           <p className="text-sm text-[var(--muted-foreground)]">{status}</p>
         </div>
 
-        <div className="rounded-lg border border-[var(--border)] bg-[#fbfcf8] p-4">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--soft)] p-4 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h2 className="text-xl font-semibold text-[var(--foreground)]">
@@ -1008,7 +1009,7 @@ export function PortfolioPanel({
           </details>
           <button
             type="button"
-            className="min-h-11 rounded-md bg-[var(--foreground)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-11 rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isRefreshing}
             onClick={() => void handleRefreshEodPrices()}
           >
@@ -1028,7 +1029,7 @@ export function PortfolioPanel({
         setUiStatus={setUiStatus}
       />
 
-      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-[var(--foreground)]">
@@ -1046,7 +1047,7 @@ export function PortfolioPanel({
                 </span>
                 <button
                   type="button"
-                  className="min-h-11 rounded-md border border-red-200 px-3 text-sm font-semibold text-red-700 hover:bg-red-50"
+                  className="min-h-11 rounded-md border border-[var(--negative)]/30 px-3 text-sm font-semibold text-[var(--negative)] hover:bg-[var(--negative-bg)]"
                   onClick={handleDeleteSelectedItems}
                 >
                   Delete selected
@@ -1246,7 +1247,10 @@ export function PortfolioPanel({
                   );
 
                   return (
-                    <tr key={item.id} className="border-b border-[var(--border)]">
+                    <tr
+                      key={item.id}
+                      className="border-b border-[var(--border)] odd:bg-white even:bg-gray-50 hover:bg-[var(--green-50)]"
+                    >
                       <Td>
                         <input
                           type="checkbox"
@@ -1273,7 +1277,7 @@ export function PortfolioPanel({
                             </div>
                           ) : null}
                           {shouldShowRowPriceWarning(item.priceWarning) ? (
-                            <div className="mt-1 text-xs text-amber-700">{item.priceWarning}</div>
+                            <div className="mt-1 text-xs text-[var(--gold-text)]">{item.priceWarning}</div>
                           ) : null}
                         </Td>
                       ) : null}
@@ -1320,7 +1324,7 @@ export function PortfolioPanel({
                         </Td>
                       ) : null}
                       {visibleTableColumnSet.has("balance") ? (
-                        <Td className={balance < 0 ? "text-red-700" : undefined}>
+                        <Td className={balance < 0 ? "text-[var(--negative)]" : undefined}>
                           {formatCurrency(balance)}
                         </Td>
                       ) : null}
@@ -1354,7 +1358,7 @@ export function PortfolioPanel({
                           </button>
                           <button
                             type="button"
-                            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-[var(--border)] text-red-700 hover:bg-red-50"
+                            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-[var(--border)] text-[var(--negative)] hover:bg-[var(--negative-bg)]"
                             aria-label={`Delete ${item.name}`}
                             onClick={() => handleDeleteItem(item)}
                           >
@@ -1371,7 +1375,10 @@ export function PortfolioPanel({
         </div>
       </section>
 
-      <section ref={formRef} className="rounded-lg border border-[var(--border)] bg-white p-5">
+      <section
+        ref={formRef}
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm"
+      >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-[var(--foreground)]">
             {editingItemId ? "Edit portfolio row" : "Add asset or liability"}
@@ -1631,7 +1638,7 @@ export function PortfolioPanel({
         </div>
         <button
           type="button"
-          className="mt-4 min-h-11 rounded-md bg-[var(--foreground)] px-5 text-sm font-semibold text-white"
+          className="mt-4 min-h-11 rounded-md bg-[var(--primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
           onClick={handleAddOrSaveItem}
         >
           {editingItemId ? "Save Row" : "Add Portfolio Row"}
@@ -1656,19 +1663,21 @@ function Metric({
 }) {
   return (
     <div
-      className={`rounded-lg border border-[var(--border)] bg-white p-4 ${
-        featured ? "sm:col-span-2" : ""
-      }`}
+      className={`rounded-2xl border border-t-2 border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm ${
+        danger ? "border-t-[var(--negative)]" : "border-t-[var(--primary)]"
+      } ${featured ? "sm:col-span-2" : ""}`}
     >
-      <p className="text-sm text-[var(--muted-foreground)]">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--muted-foreground)]">
+        {label}
+      </p>
       <p
-        className={`mt-1 text-2xl font-semibold ${
-          danger ? "text-red-700" : "text-[var(--foreground)]"
-        }`}
+        className={`mt-1.5 font-extrabold tracking-tight tabular-nums ${
+          featured ? "text-4xl" : "text-[28px] leading-9"
+        } ${danger ? "text-[var(--negative)]" : "text-gray-900"}`}
       >
         {value}
       </p>
-      <p className="mt-1 text-xs text-[var(--muted-foreground)]">{note}</p>
+      <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">{note}</p>
     </div>
   );
 }
@@ -1689,7 +1698,7 @@ function PortfolioVisualSummary({
   return (
     <section
       aria-label={ariaLabel}
-      className="rounded-lg border border-[var(--border)] bg-white p-4"
+      className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -1698,7 +1707,7 @@ function PortfolioVisualSummary({
           </h3>
           <p className="text-sm text-[var(--muted-foreground)]">{subtitle}</p>
         </div>
-        <p className="rounded-full bg-[#e7f1ea] px-3 py-1 text-xs font-medium text-[#136f63]">
+        <p className="rounded-full bg-[var(--green-50)] px-3 py-1 text-xs font-semibold text-[var(--primary-hover)]">
           {segments.length || 0} slices
         </p>
       </div>
@@ -1737,7 +1746,7 @@ function PortfolioVisualSummary({
                     {formatPercent(segment.percent)}
                   </span>
                 </div>
-                <div className="mt-1 h-2 rounded-full bg-[#eef2e8]">
+                <div className="mt-1 h-2 rounded-full bg-gray-100">
                   <div
                     className="h-2 rounded-full"
                     style={{
@@ -1776,7 +1785,7 @@ function PortfolioLensBreakdown({
   return (
     <section
       aria-label="Portfolio lens breakdown"
-      className="mt-5 rounded-lg border border-[var(--border)] bg-white p-4"
+      className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
     >
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -1791,7 +1800,7 @@ function PortfolioLensBreakdown({
           type="button"
           className={`min-h-9 rounded-md border px-3 text-sm font-medium ${
             selectedFocus === "all"
-              ? "border-[var(--foreground)] bg-[var(--foreground)] text-white"
+              ? "border-[var(--primary)] bg-[var(--primary)] text-white"
               : "border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
           }`}
           onClick={() => onFocusChange("all")}
@@ -1808,7 +1817,7 @@ function PortfolioLensBreakdown({
               type="button"
               className={`rounded-lg border p-3 text-left transition ${
                 selectedFocus === segment.id
-                  ? "border-[var(--foreground)] bg-[#f3f6ef]"
+                  ? "border-[var(--primary)] bg-[var(--green-50)]"
                   : "border-[var(--border)] hover:bg-[var(--muted)]"
               }`}
               onClick={() => onFocusChange(selectedFocus === segment.id ? "all" : segment.id)}
@@ -1821,7 +1830,7 @@ function PortfolioLensBreakdown({
                   {formatPercent(segment.percent)}
                 </span>
               </div>
-              <div className="mt-2 h-2 rounded-full bg-[#eef2e8]">
+              <div className="mt-2 h-2 rounded-full bg-gray-100">
                 <div
                   className="h-2 rounded-full"
                   style={{
@@ -1856,7 +1865,11 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Th({ children }: { children: ReactNode }) {
-  return <th className="sticky top-0 z-10 bg-white px-3 py-3 font-medium">{children}</th>;
+  return (
+    <th className="sticky top-0 z-10 bg-gray-50 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+      {children}
+    </th>
+  );
 }
 
 function SortableTh({
@@ -1878,12 +1891,12 @@ function SortableTh({
       aria-sort={
         active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"
       }
-      className="sticky top-0 z-10 bg-white px-3 py-3 font-medium"
+      className="sticky top-0 z-10 bg-gray-50 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]"
     >
       <button
         type="button"
         aria-label={`Sort by ${label}`}
-        className="inline-flex min-h-9 items-center gap-1 rounded px-1 text-left font-medium hover:bg-[var(--muted)]"
+        className="inline-flex min-h-9 items-center gap-1 rounded px-1 text-left font-semibold uppercase hover:bg-gray-100"
         onClick={() => onSort(columnId)}
       >
         <span aria-hidden="true">{label}</span>
@@ -1907,7 +1920,7 @@ function Td({
   children: ReactNode;
   className?: string;
 }) {
-  return <td className={`px-3 py-3 align-top ${className ?? ""}`}>{children}</td>;
+  return <td className={`px-3 py-3 align-top tabular-nums ${className ?? ""}`}>{children}</td>;
 }
 
 function createDefaultDraft(type: Phase1AssetType): PortfolioDraft {
@@ -2308,7 +2321,7 @@ function getSelectedFocusLabel(focus: string, segments: PortfolioLensSegment[]) 
 }
 
 function buildConicGradient(segments: AllocationSegment[]) {
-  if (segments.length === 0) return "#eef2e8";
+  if (segments.length === 0) return "#eff0eb";
 
   let cursor = 0;
   const stops = segments.map((segment) => {

@@ -73,10 +73,11 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Callout({ tone, children }: { tone: "amber" | "gray"; children: ReactNode }) {
+  // "amber" = attention without alarm — the gold highlight tokens (spec §2).
   const className =
     tone === "amber"
-      ? "rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm leading-relaxed text-amber-900 shadow-sm"
-      : "rounded-2xl border border-gray-200 bg-white p-5 text-sm leading-relaxed text-gray-500 shadow-sm";
+      ? "rounded-2xl border border-[var(--gold-border)] bg-[var(--gold-bg)] p-5 text-sm leading-relaxed text-[var(--gold-text)] shadow-sm"
+      : "rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-sm leading-relaxed text-gray-500 shadow-sm";
   return <p className={className}>{children}</p>;
 }
 
@@ -598,15 +599,19 @@ export function HealthcareCostPanel() {
           <ResultCard
             label={`Lifetime net cost (${moneyLabel})`}
             value={formatCurrency(result.totalNetPortfolioCost)}
+            hero
+            context={`age ${committedInput.fireAge} through ${committedInput.planToAge}`}
           />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <ResultCard
               label={`Gap years total · ${result.acaYears} yrs`}
               value={formatCurrency(result.totalAcaCost)}
+              context="ACA coverage before Medicare"
             />
             <ResultCard
               label={`Medicare total · ${result.medicareYears} yrs`}
               value={formatCurrency(result.totalMedicareCost)}
+              context="from Medicare age on"
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -682,24 +687,32 @@ export function HealthcareCostPanel() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {result.rows.map((row) => (
-                <tr key={row.age}>
-                  <td className="px-3 py-2 text-left text-gray-700">
+                <tr key={row.age} className="odd:bg-white even:bg-gray-50 hover:bg-[var(--green-50)]">
+                  <td className="px-3 py-2 text-left font-medium text-gray-900 tabular-nums">
                     {row.year} / {row.age}
                   </td>
-                  <td className="px-3 py-2 text-left text-gray-500">
-                    {row.phase === "aca" ? "ACA" : "Medicare"}
+                  <td className="px-3 py-2 text-left">
+                    <span
+                      className={
+                        row.phase === "aca"
+                          ? "inline-flex rounded-full bg-[var(--gold-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gold-text)]"
+                          : "inline-flex rounded-full bg-[var(--green-50)] px-2 py-0.5 text-[11px] font-semibold text-[var(--primary-hover)]"
+                      }
+                    >
+                      {row.phase === "aca" ? "ACA" : "Medicare"}
+                    </span>
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(row.premium)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-[var(--primary)]">
+                  <td className="px-3 py-2 text-right tabular-nums text-[var(--positive)]">
                     {row.subsidy > 0 ? `-${formatCurrency(row.subsidy)}` : "—"}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {formatCurrency(row.outOfPocket)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-emerald-700">
+                  <td className="px-3 py-2 text-right tabular-nums text-[var(--positive)]">
                     {row.hsaDraw > 0 ? `-${formatCurrency(row.hsaDraw)}` : "—"}
                   </td>
-                  <td className="px-3 py-2 text-right font-semibold tabular-nums">
+                  <td className="px-3 py-2 text-right font-semibold tabular-nums text-gray-900">
                     {formatCurrency(row.netPortfolioCost)}
                   </td>
                 </tr>

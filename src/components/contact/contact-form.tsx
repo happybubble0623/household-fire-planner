@@ -17,7 +17,7 @@ function isValidPhone(value: string) {
 }
 
 const inputClassName =
-  "mt-2 min-h-12 w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-base font-medium text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]";
+  "mt-2 min-h-12 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-base font-medium text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]";
 
 export function ContactForm() {
   const [name, setName] = useState("");
@@ -92,9 +92,9 @@ export function ContactForm() {
     return (
       <div
         role="status"
-        className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm"
+        className="rounded-2xl border border-[var(--green-100)] bg-[var(--green-50)] p-8 text-center shadow-sm"
       >
-        <p className="text-xl font-semibold text-gray-900">Thank you!</p>
+        <p className="text-xl font-bold tracking-tight text-[var(--primary-hover)]">Thank you!</p>
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
           Your message has been sent. I read every piece of feedback and will reach out if you left
           a way to contact you.

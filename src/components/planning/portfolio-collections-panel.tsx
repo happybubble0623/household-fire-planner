@@ -210,7 +210,7 @@ export function PortfolioCollectionsPanel({
           </Field>
           <button
             type="button"
-            className="min-h-11 rounded-md bg-[var(--foreground)] px-4 text-sm font-semibold text-white"
+            className="min-h-11 rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
             onClick={handleCreateCollection}
           >
             Create Collection
@@ -283,7 +283,7 @@ export function PortfolioCollectionsPanel({
                       </button>
                       <button
                         type="button"
-                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-[var(--border)] text-red-700 hover:bg-red-50"
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-[var(--border)] text-[var(--negative)] hover:bg-[var(--negative-bg)]"
                         aria-label={`Delete collection ${collection.name}`}
                         onClick={() => handleDeleteCollection(collection)}
                       >
@@ -322,7 +322,7 @@ export function PortfolioCollectionsPanel({
                       </Field>
                       <button
                         type="button"
-                        className="min-h-11 rounded-md bg-[var(--foreground)] px-4 text-sm font-semibold text-white"
+                        className="min-h-11 rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
                         onClick={() => handleSaveCollection(collection.id)}
                       >
                         Save Collection

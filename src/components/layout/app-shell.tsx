@@ -27,33 +27,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <header className="sticky top-0 z-20 border-b border-gray-200 bg-white/90 px-4 shadow-sm backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-white/85 px-4 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/app/fire-path" className="inline-flex min-h-11 items-center gap-3">
             <span
               aria-hidden="true"
-              className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-[var(--primary)]"
+              className="grid h-8 w-8 flex-none place-items-center rounded-[9px] bg-[var(--primary)]"
             >
-              <svg viewBox="0 0 64 64" className="h-9 w-9" role="img" aria-label="Household FIRE Planner logo">
+              <svg viewBox="0 0 64 64" className="h-5 w-5" role="img" aria-label="Household FIRE Planner logo">
                 <path
                   d="M16 40 L32 18 L48 40"
                   fill="none"
                   stroke="#ffffff"
-                  strokeWidth="5"
+                  strokeWidth="6"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-                <path d="M20 48 L44 48" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
               </svg>
             </span>
             <span className="flex flex-col justify-center">
-              <span className="text-base font-semibold text-gray-900">Household FIRE Planner</span>
-              <span className="text-xs font-medium text-gray-500">
+              <span className="text-[15px] font-bold tracking-tight text-gray-900">
+                Household <span className="text-[var(--primary)]">FIRE</span> Planner
+              </span>
+              <span className="text-[11px] font-medium text-gray-500">
                 Your household&rsquo;s path to financial independence
               </span>
             </span>
           </Link>
-          <nav className="flex flex-wrap gap-2" aria-label="Primary navigation">
+          <nav className="flex flex-wrap gap-1.5" aria-label="Primary navigation">
             {navigation.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -62,8 +63,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "inline-flex min-h-11 items-center rounded-xl px-4 py-3 text-sm font-medium text-gray-500 transition-all duration-200",
-                    active && "bg-gray-100 text-gray-900 shadow-sm",
+                    "inline-flex min-h-11 items-center rounded-lg px-3.5 py-3 text-sm font-medium text-gray-500 transition-all duration-200",
+                    active && "bg-[var(--green-50)] font-semibold text-[var(--primary-hover)]",
                     !active && "hover:bg-gray-100 hover:text-gray-900"
                   )}
                   aria-current={active ? "page" : undefined}

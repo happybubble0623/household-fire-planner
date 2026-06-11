@@ -6,7 +6,13 @@ import { estimateSocialSecurityBenefit } from "@/lib/calculations/social-securit
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { InfoPopover } from "@/components/ui/info-popover";
-import { InvestmentChart, MortgageChart } from "@/components/charts/calculator-charts";
+import { cn } from "@/lib/utils";
+import {
+  ClaimAgeComparisonChart,
+  InvestmentChart,
+  MortgageChart,
+  MortgagePaymentDonut
+} from "@/components/charts/calculator-charts";
 import { HealthcareCostPanel } from "@/components/planning/healthcare-cost-panel";
 import { relatedPlanningTools, type PlanningTool } from "@/lib/data/planning-tools";
 
@@ -29,13 +35,13 @@ export function CalculateBar({ stale, onRecalculate }: { stale: boolean; onRecal
     <div
       className={
         stale
-          ? "flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed text-gray-700 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-          : "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 text-sm leading-relaxed text-gray-600 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+          ? "flex flex-col gap-3 rounded-2xl border border-[var(--gold-border)] bg-[var(--gold-bg)] p-4 text-sm leading-relaxed text-gray-700 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+          : "flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-relaxed text-gray-600 shadow-sm sm:flex-row sm:items-center sm:justify-between"
       }
     >
       <span>
         {stale
-          ? "Edit mode: you changed inputs. Click Calculate to update the results below."
+          ? "Edit mode: you changed an input. Hit Calculate to refresh the results below."
           : "Results below are up to date with your inputs."}
       </span>
       <Button type="button" onClick={onRecalculate} className="sm:flex-none">
@@ -321,14 +327,46 @@ function parseEditableNumber(value: string) {
   return Number(trimmedValue);
 }
 
-export function ResultCard({ label, value, help }: { label: string; value: string; help?: string }) {
+// KPI result card (REDESIGN_SPEC §4): caption label, big tabular value,
+// optional context line. `hero` bumps the value size for the headline number;
+// `highlight` swaps the accent to gold (e.g. the best claiming age).
+export function ResultCard({
+  label,
+  value,
+  help,
+  context,
+  hero = false,
+  highlight = false
+}: {
+  label: string;
+  value: string;
+  help?: string;
+  context?: string;
+  hero?: boolean;
+  highlight?: boolean;
+}) {
   return (
-    <Card className="p-5">
-      <p className="flex items-center gap-1.5 text-sm leading-relaxed text-gray-500">
+    <Card
+      className={cn(
+        "border-t-2 p-5",
+        highlight ? "border-t-[var(--gold)]" : "border-t-[var(--primary)]"
+      )}
+    >
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">
         <span>{label}</span>
         {help ? <InfoPopover label={label} content={help} /> : null}
       </p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-gray-900">{value}</p>
+      <p
+        className={cn(
+          "mt-2 font-extrabold tracking-tight text-gray-900 tabular-nums",
+          hero ? "text-4xl" : "text-[28px] leading-9"
+        )}
+      >
+        {value}
+      </p>
+      {context ? (
+        <p className="mt-1.5 text-xs font-semibold text-[var(--primary)]">{context}</p>
+      ) : null}
     </Card>
   );
 }
@@ -353,7 +391,9 @@ export function RelatedTools({ current }: { current: PlanningTool }) {
 
   return (
     <nav aria-label="More planning tools" className="space-y-3">
-      <h2 className="text-sm font-semibold text-gray-500">More planning tools</h2>
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+        More planning tools
+      </h2>
       <div className="grid gap-4 md:grid-cols-3">
         {tools.map((tool) => (
           <Link
@@ -361,11 +401,16 @@ export function RelatedTools({ current }: { current: PlanningTool }) {
             href={tool.href}
             target="_blank"
             rel="noreferrer"
-            className="block rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            className="group block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
-            <span className="block text-base font-semibold text-gray-900">{tool.title}</span>
+            <span className="block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
+              {tool.title}
+            </span>
             <span className="mt-2 block text-sm leading-relaxed text-gray-500">
               {tool.description}
+            </span>
+            <span className="mt-3 inline-block text-[13px] font-semibold text-[var(--primary-hover)]">
+              Explore &rarr;
             </span>
           </Link>
         ))}
@@ -392,16 +437,16 @@ export function ToolShell({
           href="/app/fire-path"
           className="text-sm font-medium text-gray-500 transition hover:text-gray-900"
         >
-          Back to Path to FIRE
+          &larr; Back to Path to FIRE
         </Link>
-        <h1 className="mt-3 text-4xl font-semibold leading-tight tracking-tight text-gray-900 md:text-5xl">
+        <h1 className="mt-3 text-4xl font-bold leading-tight tracking-[-0.02em] text-gray-900 md:text-5xl">
           {title}
         </h1>
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-500">{description}</p>
       </div>
       {children}
       <RelatedTools current={currentTool} />
-      <p className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm leading-relaxed text-gray-500 shadow-sm">
+      <p className="rounded-2xl border border-[var(--border)] bg-[var(--soft)] p-5 text-sm leading-relaxed text-gray-500 shadow-sm">
         Planning estimates only. Not financial, tax, or legal advice.
       </p>
     </div>
@@ -520,12 +565,26 @@ function MortgageCalculator() {
         </Card>
         <div className="grid gap-5">
           <CalculateBar stale={gate.stale} onRecalculate={gate.recalculate} />
-          <ResultCard label="Estimated monthly payment" value={formatCurrency(result.monthlyPayment, true)} />
+          <ResultCard
+            label="Estimated monthly payment"
+            value={formatCurrency(result.monthlyPayment, true)}
+            hero
+            context={includeFees ? "principal, interest, taxes & fees" : "principal & interest only"}
+          />
+          <MortgagePaymentDonut
+            principalInterest={result.monthlyPrincipalInterest}
+            taxesAndFees={includeFees ? result.monthlyTaxesAndFees : 0}
+            monthlyPayment={result.monthlyPayment}
+          />
           <ResultCard label="Principal & interest / mo" value={formatCurrency(result.monthlyPrincipalInterest, true)} />
           {includeFees ? (
             <ResultCard label="Taxes, insurance & fees / mo" value={formatCurrency(result.monthlyTaxesAndFees, true)} />
           ) : null}
-          <ResultCard label="Total interest" value={formatCurrency(result.totalInterest)} />
+          <ResultCard
+            label="Total interest"
+            value={formatCurrency(result.totalInterest)}
+            context={`over the ${termYears}-year term`}
+          />
         </div>
       </div>
       <MortgageChart data={result.schedule} />
@@ -567,9 +626,22 @@ function InvestmentCalculator() {
         </Card>
         <div className="grid gap-5">
           <CalculateBar stale={gate.stale} onRecalculate={gate.recalculate} />
-          <ResultCard label="Projected ending balance" value={formatCurrency(result.endingBalance)} />
+          <ResultCard
+            label="Projected ending balance"
+            value={formatCurrency(result.endingBalance)}
+            hero
+            context={`in ${years} years`}
+          />
           <ResultCard label="Total contributions" value={formatCurrency(result.totalContributions)} />
-          <ResultCard label="Investment growth" value={formatCurrency(result.investmentGrowth)} />
+          <ResultCard
+            label="Investment growth"
+            value={formatCurrency(result.investmentGrowth)}
+            context={
+              result.totalContributions > 0
+                ? `${Math.round((result.investmentGrowth / result.totalContributions) * 100)}% on top of what you put in`
+                : undefined
+            }
+          />
         </div>
       </div>
       <InvestmentChart data={result.schedule} />
@@ -746,15 +818,25 @@ function SocialSecurityCalculator() {
             value={`${baseResult.estimatedCredits} / ${baseResult.requiredCredits} credits`}
           />
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            <ResultCard label="At age 62" value={formatSocialSecurityBenefit(age62Result)} />
+            <ResultCard
+              label="At age 62"
+              value={formatSocialSecurityBenefit(age62Result)}
+              context="claim early, smaller check"
+            />
             <ResultCard
               label="At full retirement age"
               value={formatSocialSecurityBenefit(fullRetirementAgeResult)}
+              context="your unreduced benefit"
             />
-            <ResultCard label="At age 70" value={formatSocialSecurityBenefit(age70Result)} />
+            <ResultCard
+              label="At age 70"
+              value={formatSocialSecurityBenefit(age70Result)}
+              highlight={age70Result.retirementEligible}
+              context={age70Result.retirementEligible ? "largest monthly check" : undefined}
+            />
           </div>
           {!baseResult.retirementEligible ? (
-            <p className="rounded-2xl border border-[var(--danger)] bg-white p-5 text-sm font-medium leading-relaxed text-[var(--danger)] shadow-sm">
+            <p className="rounded-2xl border border-[var(--negative)] bg-[var(--negative-bg)] p-5 text-sm font-medium leading-relaxed text-[var(--negative)] shadow-sm">
               Needs 40 Social Security credits before retirement benefits can be estimated.
             </p>
           ) : null}
@@ -768,7 +850,30 @@ function SocialSecurityCalculator() {
           </p>
         </div>
       </div>
-      <details className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      {baseResult.retirementEligible ? (
+        <section aria-label="Claiming age comparison" className="mt-6 space-y-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+            Monthly benefit by claiming age
+          </h2>
+          <ClaimAgeComparisonChart
+            data={[
+              {
+                label: "Age 62",
+                monthly: age62Result.estimatedMonthlyBenefitTodayDollars
+              },
+              {
+                label: `Full retirement age (${formatNumber(baseResult.fullRetirementAge)})`,
+                monthly: fullRetirementAgeResult.estimatedMonthlyBenefitTodayDollars
+              },
+              {
+                label: "Age 70",
+                monthly: age70Result.estimatedMonthlyBenefitTodayDollars
+              }
+            ]}
+          />
+        </section>
+      ) : null}
+      <details className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
         <summary className="cursor-pointer text-base font-semibold text-gray-900">
           How this estimate works
         </summary>

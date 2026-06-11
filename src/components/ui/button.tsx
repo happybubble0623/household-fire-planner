@@ -10,7 +10,7 @@ const buttonVariants = cva(
         default:
           "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-sm hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-md",
         secondary:
-          "border border-gray-200 bg-white text-gray-800 shadow-sm hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md",
+          "border border-[var(--border)] bg-white text-gray-900 shadow-sm hover:-translate-y-0.5 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md",
         ghost: "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
       },
       size: {

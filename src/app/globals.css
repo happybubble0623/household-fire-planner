@@ -1,17 +1,66 @@
 @import "tailwindcss";
 
+/* Warm-neutral remap of Tailwind's gray ramp so every existing `gray-*`
+   utility picks up the aurora design system's warm greys (REDESIGN_SPEC §2,
+   anchored to the values the home page implements). */
+@theme {
+  --color-gray-50: #f7f8f5;
+  --color-gray-100: #eff0eb;
+  --color-gray-200: #e7e9e3;
+  --color-gray-300: #cdd1c9;
+  --color-gray-400: #a3a89d;
+  --color-gray-500: #6b7167;
+  --color-gray-600: #555b51;
+  --color-gray-700: #3c423b;
+  --color-gray-800: #2a2f29;
+  --color-gray-900: #101410;
+}
+
 :root {
   color-scheme: light;
-  --background: #f3f4f6;
-  --foreground: #1f2937;
-  --muted: #f9fafb;
-  --muted-foreground: #6b7280;
-  --border: #e5e7eb;
+
+  /* Surfaces */
+  --background: #fbfdfb;
+  --surface: #ffffff;
+  --soft: #f7f8f5;
+  --foreground: #2a2f29;
+  --muted: #f7f8f5;
+  --muted-foreground: #6b7167;
+  --border: #e7e9e3;
+
+  /* Brand green ramp */
+  --green-50: #ecfdf3;
+  --green-100: #d1fadf;
+  --green-400: #34c77e;
+  --green-500: #16a34a;
   --primary: #15803d;
   --primary-hover: #166534;
   --primary-foreground: #ffffff;
-  --ring: #86efac;
-  --danger: #9f4f46;
+  --ring: #6ee0a0;
+
+  /* Gold accent — milestones, highlights, "edited inputs" states */
+  --gold: #f5b301;
+  --gold-text: #b07d00;
+  --gold-bg: #fff8e6;
+  --gold-border: #fdecbf;
+
+  /* Semantic */
+  --positive: #15803d;
+  --positive-bg: #ecfdf3;
+  --negative: #c0392b;
+  --negative-bg: #fdecea;
+  --danger: #c0392b;
+
+  /* Chart palette (REDESIGN_SPEC §2) */
+  --chart-1: #15803d;
+  --chart-2: #34c77e;
+  --chart-3: #f5b301;
+  --chart-4: #0d9488;
+  --chart-5: #7c7b71;
+  --chart-6: #9333ea;
+  --chart-grid: #e7e9e3;
+  --chart-negative: #c0392b;
+  --chart-ink: #101410;
 }
 
 * {
@@ -28,7 +77,18 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-inter),
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  /* Tabular figures everywhere — money and tables must align (spec §3). */
+  font-feature-settings: "tnum" 1, "cv05" 1;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
