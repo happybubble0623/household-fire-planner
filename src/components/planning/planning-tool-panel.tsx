@@ -464,8 +464,11 @@ function MortgageCalculator() {
   const [annualInterestRatePercent, setAnnualInterestRatePercent] = useState(6.5);
   const [termYears, setTermYears] = useState(30);
   const [startYear, setStartYear] = useState(new Date().getFullYear());
-  const [propertyTaxAnnual, setPropertyTaxAnnual] = useState(3_000);
-  const [homeInsuranceAnnual, setHomeInsuranceAnnual] = useState(1_500);
+  // National-average starting points (see the visible basis notes at each field):
+  // property tax ≈ 0.9% of a $500k home (ATTOM 2025 national avg); insurance ≈
+  // the 2025 US average homeowner premium. Both vary widely and are editable.
+  const [propertyTaxAnnual, setPropertyTaxAnnual] = useState(4_500);
+  const [homeInsuranceAnnual, setHomeInsuranceAnnual] = useState(2_400);
   const [pmiAnnualPercent, setPmiAnnualPercent] = useState(0.5);
   const [monthlyHoa, setMonthlyHoa] = useState(0);
   const [loanType, setLoanType] = useState("conventional");
@@ -509,7 +512,14 @@ function MortgageCalculator() {
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <Card className="grid gap-4 p-6 sm:p-7">
-          <NumberInput id="mortgage-loan" label="Loan amount" value={loanAmount} onChange={setLoanAmount} step={1000} />
+          <NumberInput
+            id="mortgage-loan"
+            label="Loan amount"
+            value={loanAmount}
+            onChange={setLoanAmount}
+            step={1000}
+            note="Your number — the home price minus your down payment (not the price)."
+          />
           <NumberInput
             id="mortgage-rate"
             label="Annual interest rate"
@@ -517,8 +527,16 @@ function MortgageCalculator() {
             onChange={setAnnualInterestRatePercent}
             suffix="%"
             step={0.1}
+            note="Default 6.5% — near the mid-2026 average 30-yr fixed rate (Freddie Mac PMMS). Rates change daily — use your quote."
           />
-          <NumberInput id="mortgage-term" label="Loan term" value={termYears} onChange={setTermYears} suffix="years" />
+          <NumberInput
+            id="mortgage-term"
+            label="Loan term"
+            value={termYears}
+            onChange={setTermYears}
+            suffix="years"
+            note="Default 30 years — the most common term; 15-year cuts total interest sharply but raises the payment."
+          />
           <details className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3" open={includeFees}>
             <summary className="cursor-pointer text-sm font-medium text-gray-800">
               Taxes, insurance &amp; fees (optional)
@@ -535,10 +553,39 @@ function MortgageCalculator() {
               </label>
               {includeFees ? (
                 <>
-                  <NumberInput id="mortgage-property-tax" label="Property tax (per year)" value={propertyTaxAnnual} onChange={setPropertyTaxAnnual} step={100} />
-                  <NumberInput id="mortgage-home-insurance" label="Home insurance (per year)" value={homeInsuranceAnnual} onChange={setHomeInsuranceAnnual} step={100} />
-                  <NumberInput id="mortgage-pmi" label="PMI rate" value={pmiAnnualPercent} onChange={setPmiAnnualPercent} suffix="%" step={0.1} />
-                  <NumberInput id="mortgage-hoa" label="Monthly HOA" value={monthlyHoa} onChange={setMonthlyHoa} step={10} />
+                  <NumberInput
+                    id="mortgage-property-tax"
+                    label="Property tax (per year)"
+                    value={propertyTaxAnnual}
+                    onChange={setPropertyTaxAnnual}
+                    step={100}
+                    note="Default ≈ 0.9% of home value — the US average effective rate (ATTOM 2025). Varies widely by county; check the listing."
+                  />
+                  <NumberInput
+                    id="mortgage-home-insurance"
+                    label="Home insurance (per year)"
+                    value={homeInsuranceAnnual}
+                    onChange={setHomeInsuranceAnnual}
+                    step={100}
+                    note="Default ~$2,400/yr — near the 2025 US average premium (NerdWallet/Bankrate). Varies a lot by state & risk — use your quote."
+                  />
+                  <NumberInput
+                    id="mortgage-pmi"
+                    label="PMI rate"
+                    value={pmiAnnualPercent}
+                    onChange={setPmiAnnualPercent}
+                    suffix="%"
+                    step={0.1}
+                    note="Default 0.5%/yr — mid-range PMI (typically 0.3%–1.5% when under 20% down). Drops at 20% equity; set 0 for VA or 20%+ down."
+                  />
+                  <NumberInput
+                    id="mortgage-hoa"
+                    label="Monthly HOA"
+                    value={monthlyHoa}
+                    onChange={setMonthlyHoa}
+                    step={10}
+                    note="Default $0 — set your condo/community dues if any."
+                  />
                 </>
               ) : (
                 <p className="text-xs leading-relaxed text-gray-500">
@@ -565,7 +612,14 @@ function MortgageCalculator() {
                   <option value="va">VA (no PMI)</option>
                 </select>
               </div>
-              <NumberInput id="mortgage-start-year" label="Start year" value={startYear} onChange={setStartYear} step={1} />
+              <NumberInput
+                id="mortgage-start-year"
+                label="Start year"
+                value={startYear}
+                onChange={setStartYear}
+                step={1}
+                note="Defaults to this year — only shifts the year labels on the payoff chart."
+              />
             </div>
           </details>
         </Card>
@@ -618,8 +672,22 @@ function InvestmentCalculator() {
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <Card className="grid gap-4 p-6 sm:p-7">
-          <NumberInput id="investment-starting-balance" label="Starting balance" value={startingBalance} onChange={setStartingBalance} step={1000} />
-          <NumberInput id="investment-monthly-contribution" label="Monthly contribution" value={monthlyContribution} onChange={setMonthlyContribution} step={100} />
+          <NumberInput
+            id="investment-starting-balance"
+            label="Starting balance"
+            value={startingBalance}
+            onChange={setStartingBalance}
+            step={1000}
+            note="Your number — what's already invested today."
+          />
+          <NumberInput
+            id="investment-monthly-contribution"
+            label="Monthly contribution"
+            value={monthlyContribution}
+            onChange={setMonthlyContribution}
+            step={100}
+            note="Your number — what you add each month going forward."
+          />
           <NumberInput
             id="investment-return"
             label="Annual return"
@@ -627,8 +695,16 @@ function InvestmentCalculator() {
             onChange={setAnnualReturnPercent}
             suffix="%"
             step={0.1}
+            note="Default 7%/yr — ≈ the S&P 500's long-run real (after-inflation) return; nominal has averaged ~10% since 1926. An assumption, not a guarantee — try 5–6% too."
           />
-          <NumberInput id="investment-years" label="Time horizon" value={years} onChange={setYears} suffix="years" />
+          <NumberInput
+            id="investment-years"
+            label="Time horizon"
+            value={years}
+            onChange={setYears}
+            suffix="years"
+            note="Your number — how long the money stays invested."
+          />
         </Card>
         <div className="grid gap-5">
           <CalculateBar stale={gate.stale} onRecalculate={gate.recalculate} />
@@ -733,15 +809,34 @@ function SocialSecurityCalculator() {
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <Card className="grid gap-4 p-6 sm:p-7">
-          <NumberInput id="ss-birth-year" label="Birth year" value={birthYear} onChange={setBirthYear} />
-          <NumberInput id="ss-work-start" label="Work start year" value={workStartYear} onChange={setWorkStartYear} />
-          <NumberInput id="ss-work-end" label="Work end year" value={workEndYear} onChange={setWorkEndYear} />
+          <NumberInput
+            id="ss-birth-year"
+            label="Birth year"
+            value={birthYear}
+            onChange={setBirthYear}
+            note="Your number — sets your full retirement age (67 if born 1960 or later, per SSA) and eligibility year."
+          />
+          <NumberInput
+            id="ss-work-start"
+            label="Work start year"
+            value={workStartYear}
+            onChange={setWorkStartYear}
+            note="Your number — the first year you had Social Security-covered earnings."
+          />
+          <NumberInput
+            id="ss-work-end"
+            label="Work end year"
+            value={workEndYear}
+            onChange={setWorkEndYear}
+            note="Your number — the last year you expect covered earnings."
+          />
           <NumberInput
             id="ss-starting-earnings"
             label="Starting annual covered earnings"
             value={startingAnnualCoveredEarnings}
             onChange={setStartingAnnualCoveredEarnings}
             step={1000}
+            note="Your number — first-year wages; capped each year at the SSA taxable maximum ($184,500 in 2026)."
           />
           <NumberInput
             id="ss-earnings-growth"
@@ -750,6 +845,7 @@ function SocialSecurityCalculator() {
             onChange={setAnnualEarningsGrowthPercent}
             suffix="%"
             step={0.1}
+            note="Default 3%/yr — a conservative long-run wage-growth basis (SSA's 2025 Trustees intermediate projection is ~3.6%)."
           />
           <details className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
             <summary className="cursor-pointer font-semibold text-gray-800">
@@ -879,55 +975,12 @@ function SocialSecurityCalculator() {
           />
         </section>
       ) : null}
-      <details className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-        <summary className="cursor-pointer text-base font-semibold text-gray-900">
-          How this estimate works
-        </summary>
-        <div className="mt-4 space-y-4">
-          {socialSecurityFaq.map((item) => (
-            <div key={item.question}>
-              <p className="text-sm font-semibold text-gray-800">{item.question}</p>
-              <p className="mt-1 text-sm leading-relaxed text-gray-600">{item.answer}</p>
-            </div>
-          ))}
-        </div>
-      </details>
+      {/* The "How this estimate works" Q&A now lives server-rendered on the route
+          page (src/lib/data/social-security-faq.ts) so crawlers see it without JS
+          and it powers the FAQPage JSON-LD — not duplicated here in the client panel. */}
     </ToolShell>
   );
 }
-
-const socialSecurityFaq: Array<{ question: string; answer: string }> = [
-  {
-    question: "Does it use all of my working years?",
-    answer:
-      "No. Social Security only uses your highest 35 years of earnings. We sort your years from highest to lowest, keep the top 35, and ignore the rest. Working more than 35 years helps only when a new year is higher than one already in your top 35 — it then replaces the lowest one. If you have fewer than 35 years, the missing years count as $0, which lowers the average."
-  },
-  {
-    question: "What is AIME?",
-    answer:
-      "Average Indexed Monthly Earnings. We take your top 35 years (each capped at that year's Social Security taxable maximum and adjusted upward for wage growth through the year you turn 60), add them up, and divide by 420 months (35 years times 12)."
-  },
-  {
-    question: "How does the benefit formula (PIA) work?",
-    answer:
-      "Your AIME runs through a bend-point formula: 90% of the first slice, 32% of the next slice, and 15% above that. Lower earnings are replaced at a higher rate, so the benefit grows more slowly as earnings rise."
-  },
-  {
-    question: "How does my claiming age change the amount?",
-    answer:
-      "Your Full Retirement Age (FRA) depends on your birth year (67 for those born in 1960 or later). Claiming early — as soon as age 62 — permanently reduces the benefit (about 30% lower at 62 when FRA is 67). Waiting past FRA adds about 8% per year up to age 70."
-  },
-  {
-    question: "How many credits do I need?",
-    answer:
-      "You need 40 credits — roughly 10 years of work. You can earn up to 4 credits per year. Without 40 credits, no retirement benefit is payable."
-  },
-  {
-    question: "Is this my official Social Security amount?",
-    answer:
-      "No. This is an unofficial estimate based only on what you enter. It does not use your real SSA earnings record and never asks for your SSN. It uses projected wage-growth and 2026 figures, and shows results in today's dollars (it does not add future cost-of-living increases). Your official estimate at ssa.gov may differ."
-  }
-];
 
 function parseAnnualEarningsByYear(value: Record<string, string>) {
   const rows: Record<string, number> = {};
