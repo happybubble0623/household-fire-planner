@@ -32,7 +32,8 @@ function SelectField<T extends string>({
   value,
   onChange,
   options,
-  help
+  help,
+  note
 }: {
   id: string;
   label: string;
@@ -40,6 +41,8 @@ function SelectField<T extends string>({
   onChange: (value: T) => void;
   options: Array<{ value: T; label: string }>;
   help?: string;
+  // Always-visible basis/caption text under the field (see NumberInput's note).
+  note?: ReactNode;
 }) {
   return (
     <div>
@@ -59,6 +62,7 @@ function SelectField<T extends string>({
           </option>
         ))}
       </select>
+      {note ? <p className="mt-1.5 text-xs leading-relaxed text-gray-500">{note}</p> : null}
     </div>
   );
 }
@@ -85,39 +89,6 @@ function oopUsageValue(level: OopUsageLevel, custom: number): OopUsage {
   return custom > 0 ? { expectedAnnualOop: custom } : level;
 }
 
-const healthcareFaq: Array<{ question: string; answer: string }> = [
-  {
-    question: "How is the pre-65 ACA subsidy estimated?",
-    answer:
-      "Your premium tax credit equals the benchmark (second-lowest-cost silver) plan premium minus your required contribution, where the required contribution is your retirement MAGI times an applicable percentage from the 2026 table (2.10% under 150% of the Federal Poverty Level, rising to 9.96% at 300–400%). The credit is then applied to your chosen plan's premium. Source: Rev. Proc. 2025-25."
-  },
-  {
-    question: "What is the 400% FPL subsidy cliff?",
-    answer:
-      "The enhanced ARPA/IRA subsidies expired December 31, 2025, so for 2026 the original ACA structure returns: if your MAGI is at or above 400% of the Federal Poverty Level you get no premium tax credit at all and pay the full unsubsidized premium. Managing MAGI (Roth-conversion and capital-gain timing) below that line can be worth thousands per year."
-  },
-  {
-    question: "How are Medicare premiums and IRMAA modeled?",
-    answer:
-      "Everyone pays the 2026 standard Part B premium of $202.90/month. Higher earners pay an income-related surcharge (IRMAA) on Part B and Part D, set by MAGI from two years prior — we apply your entered retirement MAGI and show the implied tier. On top of Part B you add either a Medigap supplement plus a Part D plan, or a Medicare Advantage plan, plus typical out-of-pocket spend."
-  },
-  {
-    question: "How does the HSA drawdown work?",
-    answer:
-      "An HSA can pay qualified medical expenses (deductibles, copays, coinsurance) tax-free at any age, and at 65+ can also pay Medicare Part B, Part D, and Medicare Advantage premiums — but it can never pay Medigap premiums, and marketplace premiums generally are not HSA-eligible. The tool draws the HSA only against eligible expenses under your chosen strategy."
-  },
-  {
-    question: "What about travel and living abroad?",
-    answer:
-      "US marketplace plans are US-only, and Original Medicare covers almost nothing outside the US. Medigap plans C, D, F, G, M, and N add a foreign-travel emergency benefit (80% after a $250 deductible, $50,000 lifetime cap). If you are outside the US 330+ days/year the ACA coverage requirement doesn't apply. Travel mode lets you add a global/expat premium on top of (Supplement) or in place of (Replace) the US baseline; in Replace mode you still pay Part B at 65+ to avoid late-enrollment penalties."
-  },
-  {
-    question: "Are these official figures?",
-    answer:
-      "No. These are planning estimates built from public 2026 figures. Marketplace (SLCSP), Medigap, and Medicare Advantage prices vary by area and age and must be confirmed on healthcare.gov / medicare.gov. The Federal Poverty Levels used are for the 48 contiguous states — Alaska and Hawaii have higher guidelines this tool does not model."
-  }
-];
-
 export function HealthcareCostPanel() {
   const [household, setHousehold] = useState<HealthcareHousehold>("single");
   const [currentAge, setCurrentAge] = useState(50);
@@ -138,16 +109,16 @@ export function HealthcareCostPanel() {
   const [benchmarkSlcspMonthly, setBenchmarkSlcspMonthly] = useState(650);
   const [chosenPlanMonthly, setChosenPlanMonthly] = useState(600);
   const [acaDeductible, setAcaDeductible] = useState(5_000);
-  const [acaOutOfPocketMax, setAcaOutOfPocketMax] = useState(9_200);
+  const [acaOutOfPocketMax, setAcaOutOfPocketMax] = useState(10_600);
   const [acaUsage, setAcaUsage] = useState<OopUsageLevel>("moderate");
   const [acaCustomOop, setAcaCustomOop] = useState(0);
   const [acaInflationPercent, setAcaInflationPercent] = useState(5.5);
 
   // Medicare
   const [medicareCoverage, setMedicareCoverage] = useState<MedicareCoverage>("medigap");
-  const [medigapMonthly, setMedigapMonthly] = useState(170);
-  const [partDMonthly, setPartDMonthly] = useState(45);
-  const [advantageMonthly, setAdvantageMonthly] = useState(20);
+  const [medigapMonthly, setMedigapMonthly] = useState(155);
+  const [partDMonthly, setPartDMonthly] = useState(40);
+  const [advantageMonthly, setAdvantageMonthly] = useState(15);
   const [medicareOutOfPocketMax, setMedicareOutOfPocketMax] = useState(6_000);
   const [medicareUsage, setMedicareUsage] = useState<OopUsageLevel>("moderate");
   const [medicareCustomOop, setMedicareCustomOop] = useState(0);
@@ -284,6 +255,7 @@ export function HealthcareCostPanel() {
             value={currentAge}
             onChange={setCurrentAge}
             help="Used as the base year for inflating costs. Costs are projected from today to each future age."
+            note="Starting example — set to your age."
           />
           <NumberInput
             id="hc-fire-age"
@@ -291,6 +263,7 @@ export function HealthcareCostPanel() {
             value={fireAge}
             onChange={setFireAge}
             help="The age employer coverage ends and the ACA gap-year phase begins. If at or above the Medicare age, the ACA phase is skipped."
+            note="Starting example — set to the age you'd stop working."
           />
           <NumberInput
             id="hc-medicare-age"
@@ -298,6 +271,7 @@ export function HealthcareCostPanel() {
             value={medicareAge}
             onChange={setMedicareAge}
             help="The age Medicare begins — 65 for almost everyone. Editable only for rare edge cases."
+            note="Default 65 — Medicare eligibility age (CMS). Leave as-is unless you have a special case."
           />
           <NumberInput
             id="hc-plan-to-age"
@@ -305,6 +279,7 @@ export function HealthcareCostPanel() {
             value={planToAge}
             onChange={setPlanToAge}
             help="The final age in the projection (life expectancy)."
+            note="Default 90 — a conservative longevity horizon (above the ~mid-80s U.S. life expectancy at 65, SSA)."
           />
           <NumberInput
             id="hc-magi"
@@ -313,6 +288,7 @@ export function HealthcareCostPanel() {
             onChange={setAnnualMagi}
             step={1000}
             help="Modified adjusted gross income in retirement (Roth conversions, dividends, capital gains, any earned income). Drives both the ACA subsidy and the Medicare IRMAA tier."
+            note="Starting example — set to your planned retirement income. Drives both the ACA subsidy and the IRMAA tier."
           />
           <SelectField
             id="hc-display-mode"
@@ -351,6 +327,7 @@ export function HealthcareCostPanel() {
                     { value: "gold", label: "Gold — highest premium, lowest deductible" }
                   ]}
                   help="Marketplace plans come in metal tiers. Bronze ≈ 80% of the benchmark premium with a ~$7,500 deductible; Silver ≈ the benchmark with ~$5,000; Gold ≈ 120% with ~$1,500. Pick Silver if unsure."
+                  note="Default Silver — the most-chosen tier and the one ACA subsidies are benchmarked to (KFF)."
                 />
                 <SelectField
                   id="hc-region-cost"
@@ -363,6 +340,7 @@ export function HealthcareCostPanel() {
                     { value: "high", label: "Higher-cost area (≈ +25%)" }
                   ]}
                   help="Premiums vary by rating area. Large metro areas with hospital competition often run lower; rural areas and some states run higher. Pick Average if unsure."
+                  note="Default Average — premiums vary roughly ±25% by rating area (KFF/CMS)."
                 />
                 <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-relaxed text-gray-600">
                   <p className="font-medium text-gray-800">Estimated from your inputs</p>
@@ -392,6 +370,7 @@ export function HealthcareCostPanel() {
                   onChange={setBenchmarkSlcspMonthly}
                   step={10}
                   help="The full (unsubsidized) monthly price of the second-cheapest Silver plan for your household. This sets your subsidy size — it isn't necessarily the plan you buy."
+                  note="Example only — look up your exact SLCSP on HealthCare.gov (it sets your subsidy size)."
                 />
                 <NumberInput
                   id="hc-chosen-premium"
@@ -400,6 +379,7 @@ export function HealthcareCostPanel() {
                   onChange={setChosenPlanMonthly}
                   step={10}
                   help="The full pre-subsidy monthly price of the plan you'd actually buy. Your subsidy is subtracted from this."
+                  note="Example only — enter the full price of the plan you'd actually buy."
                 />
                 <NumberInput
                   id="hc-aca-deductible"
@@ -408,6 +388,7 @@ export function HealthcareCostPanel() {
                   onChange={setAcaDeductible}
                   step={100}
                   help="What you pay for care each year before the plan starts paying. Shown for plan comparison — the cost estimate uses the out-of-pocket maximum below."
+                  note="Example only — a mid-range Silver deductible; use your plan's figure."
                 />
                 <NumberInput
                   id="hc-aca-oop-max"
@@ -415,7 +396,8 @@ export function HealthcareCostPanel() {
                   value={acaOutOfPocketMax}
                   onChange={setAcaOutOfPocketMax}
                   step={100}
-                  help="The legal cap on what you pay for covered care in a year (2025 cap: $9,200 single / $18,400 family). Your expected spend is estimated as a share of this."
+                  help="The legal cap on what you pay for covered care in a year. Your expected spend is estimated as a share of this."
+                  note="Default $10,600 — the 2026 ACA cap for self-only coverage ($21,200 family); HHS revised limits. Lower it to your plan's max."
                 />
               </>
             )}
@@ -443,10 +425,18 @@ export function HealthcareCostPanel() {
               suffix="%"
               step={0.1}
               help="How fast premiums and care costs grow per year. Marketplace premiums have averaged ~5–6%/yr; lower it to ~4% for a conservative-cost view."
+              note="Default 5.5%/yr — recent marketplace premium trend (KFF). Lower to ~4% for a conservative view."
             />
           </Section>
 
           <Section title="Medicare years (65+)">
+            <p className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-xs leading-relaxed text-gray-600">
+              <span className="font-medium text-gray-800">Part B is automatic and added for you.</span>{" "}
+              Everyone pays the 2026 standard Part B premium of $202.90/mo per person (plus a $283
+              annual deductible), per the CMS 2026 Parts A &amp; B fact sheet. Higher income adds an
+              IRMAA surcharge — your tier is shown in the results. The fields below are the coverage you
+              add on top of Part B.
+            </p>
             <SelectField
               id="hc-coverage"
               label="Coverage type"
@@ -467,6 +457,7 @@ export function HealthcareCostPanel() {
                   onChange={setMedigapMonthly}
                   step={10}
                   help="Monthly Medigap supplement premium per person. Varies by plan letter (G, N, etc.), age, and area."
+                  note="Default ~$155/mo — 2025 national-average Medigap Plan G; varies by state, age & plan letter. Edit to your premium."
                 />
                 <NumberInput
                   id="hc-partd"
@@ -475,6 +466,7 @@ export function HealthcareCostPanel() {
                   onChange={setPartDMonthly}
                   step={5}
                   help="Standalone Part D drug plan premium per person (before any IRMAA surcharge)."
+                  note="Default ~$40/mo — near the 2026 national base Part D premium ($38.99, CMS); plans range widely. Edit to yours."
                 />
               </>
             ) : (
@@ -485,6 +477,7 @@ export function HealthcareCostPanel() {
                 onChange={setAdvantageMonthly}
                 step={5}
                 help="Monthly MA plan premium per person. Many MA plans are $0 premium but still require the Part B premium."
+                note="Default ~$15/mo — near the 2026 average MA premium (~$11, KFF/CMS). Many plans are $0; you still pay Part B."
               />
             )}
             <NumberInput
@@ -494,6 +487,7 @@ export function HealthcareCostPanel() {
               onChange={setMedicareOutOfPocketMax}
               step={100}
               help="Estimated yearly out-of-pocket ceiling per person — low for Medigap, the plan maximum for Advantage. Expected spend is a share of this."
+              note="Default $6,000 — about the 2026 average Medicare Advantage in-network out-of-pocket (~$5,400; legal cap $9,250, KFF). Medigap users usually pay far less."
             />
             <SelectField
               id="hc-medicare-usage"
@@ -519,6 +513,7 @@ export function HealthcareCostPanel() {
               suffix="%"
               step={0.1}
               help="Annual growth of Medicare premiums and out-of-pocket costs."
+              note="Default 5%/yr — long-run Medicare per-capita cost trend (CMS National Health Expenditure data)."
             />
             <NumberInput
               id="hc-general-inflation"
@@ -528,6 +523,7 @@ export function HealthcareCostPanel() {
               suffix="%"
               step={0.1}
               help="Overall price inflation (~3%). Medical costs growing faster than this is why healthcare takes a bigger bite over time — the gap between the two is what today's-dollar mode shows."
+              note="Default 3%/yr — roughly the long-run U.S. CPI and the Fed's ~2% target plus headroom."
             />
           </Section>
 
@@ -548,6 +544,7 @@ export function HealthcareCostPanel() {
               suffix="%"
               step={0.1}
               help="How fast the HSA grows until spent. Use your portfolio return (~5–7%) if it's invested, or ~0–2% if it sits in cash."
+              note="Default 4%/yr — a conservative invested-HSA return. Use ~5–7% if fully invested, ~0–2% if held in cash."
             />
             <SelectField
               id="hc-hsa-strategy"
@@ -643,8 +640,8 @@ export function HealthcareCostPanel() {
           {result.medicareYears > 0 ? (
             <Callout tone={result.irmaaTierIndex > 0 ? "amber" : "gray"}>
               {result.irmaaTierIndex > 0
-                ? `Your MAGI puts you in IRMAA tier ${result.irmaaTierIndex} — Part B is ${formatCurrency(result.partBMonthlyPerPerson, true)}/month per person plus a Part D surcharge.`
-                : `Standard Part B premium of ${formatCurrency(result.partBMonthlyPerPerson, true)}/month per person (no IRMAA surcharge at your MAGI).`}
+                ? `Your MAGI puts you in IRMAA tier ${result.irmaaTierIndex} — Part B rises to ${formatCurrency(result.partBMonthlyPerPerson, true)}/month per person plus a Part D surcharge.`
+                : "At your MAGI there's no IRMAA surcharge, so each person pays the standard Part B premium noted in the Medicare inputs above."}
             </Callout>
           ) : null}
 
@@ -719,20 +716,6 @@ export function HealthcareCostPanel() {
               ))}
             </tbody>
           </table>
-        </div>
-      </details>
-
-      <details className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <summary className="cursor-pointer text-base font-semibold text-gray-900">
-          How this estimate works
-        </summary>
-        <div className="mt-4 space-y-4">
-          {healthcareFaq.map((item) => (
-            <div key={item.question}>
-              <p className="text-sm font-semibold text-gray-800">{item.question}</p>
-              <p className="mt-1 text-sm leading-relaxed text-gray-600">{item.answer}</p>
-            </div>
-          ))}
         </div>
       </details>
     </ToolShell>
