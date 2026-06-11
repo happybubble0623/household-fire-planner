@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PlanningToolPanel } from "@/components/planning/planning-tool-panel";
+import { FaqAccordion } from "@/components/planning/faq-accordion";
 import { investmentFaq, investmentIntroParagraphs } from "@/lib/data/investment-faq";
 
 export const metadata: Metadata = {
@@ -63,17 +64,7 @@ export default function InvestmentToolPage() {
           <h2 id="investment-qa-heading" className="text-2xl font-bold tracking-tight text-gray-900">
             Questions &amp; answers
           </h2>
-          <dl className="space-y-5">
-            {investmentFaq.map((item) => (
-              <div
-                key={item.question}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm"
-              >
-                <dt className="text-base font-semibold text-gray-900">{item.question}</dt>
-                <dd className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-600">{item.answer}</dd>
-              </div>
-            ))}
-          </dl>
+          <FaqAccordion items={investmentFaq} />
         </div>
       </section>
     </section>
