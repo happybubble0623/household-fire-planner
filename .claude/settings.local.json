@@ -106,7 +106,8 @@
       "Bash(curl -s -o /tmp/sb_auth_cfg.json -w '%{http_code}' -H 'Authorization: Bearer __CMDSUB_OUTPUT__' https://api.supabase.com/v1/projects/riyprnpgeccjypodrabb/config/auth)",
       "Read(//private/tmp/**)",
       "Bash(echo \"=== 2\\) Email signup + OTP settings ===\"; jq -r ' *)",
-      "Bash(node scripts/capture-signin-nav-shots.mjs)"
+      "Bash(node scripts/capture-signin-nav-shots.mjs)",
+      "Bash(cd \"/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Freedom Path\" && ls node_modules | grep -iE \"playwright|puppeteer|chrome\" ; ls node_modules/.bin | grep -iE \"playwright|puppeteer\"; echo \"---\"; ls \"/Applications\" | grep -i chrome)"
     ]
   }
 }
