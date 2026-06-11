@@ -51,14 +51,15 @@ on price_cache
 for select
 using (true);
 
+-- Feedback: only the message is required. Name, email, and phone are all
+-- optional so a visitor can leave a comment without any contact details.
 create table if not exists feedback_messages (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
+  name text,
   email text,
   phone text,
   message text not null,
-  created_at timestamptz not null default now(),
-  constraint feedback_contact_required check (email is not null or phone is not null)
+  created_at timestamptz not null default now()
 );
 
 alter table feedback_messages enable row level security;

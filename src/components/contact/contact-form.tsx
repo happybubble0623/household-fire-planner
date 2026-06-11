@@ -31,31 +31,22 @@ export function ContactForm() {
     event.preventDefault();
     setError(null);
 
-    if (!name.trim()) {
-      setError("Please enter your name.");
-      return;
-    }
-
+    const hasName = name.trim().length > 0;
     const hasEmail = email.trim().length > 0;
     const hasPhone = phone.trim().length > 0;
 
-    if (!hasEmail) {
-      setError("Please enter your email address so I can reach you back.");
+    if (!message.trim()) {
+      setError("Please write a short message.");
       return;
     }
 
-    if (!isValidEmail(email)) {
+    if (hasEmail && !isValidEmail(email)) {
       setError("That email address doesn't look right — please double-check it.");
       return;
     }
 
     if (hasPhone && !isValidPhone(phone)) {
       setError("That phone number doesn't look right — please double-check it.");
-      return;
-    }
-
-    if (!message.trim()) {
-      setError("Please write a short message.");
       return;
     }
 
@@ -71,7 +62,7 @@ export function ContactForm() {
     setState("submitting");
 
     const { error: insertError } = await supabase.from("feedback_messages").insert({
-      name: name.trim(),
+      name: hasName ? name.trim() : null,
       email: hasEmail ? email.trim() : null,
       phone: hasPhone ? phone.trim() : null,
       message: message.trim()
@@ -107,14 +98,13 @@ export function ContactForm() {
     <form onSubmit={handleSubmit} noValidate className="grid gap-4">
       <div>
         <label htmlFor="contact-name" className="text-sm font-medium text-gray-800">
-          Your name <span aria-hidden="true" className="text-[var(--danger)]">*</span>
+          Your name <span className="font-normal text-gray-400">(optional)</span>
         </label>
         <input
           id="contact-name"
           name="name"
           type="text"
           autoComplete="name"
-          required
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Jane Doe"
@@ -124,14 +114,13 @@ export function ContactForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="contact-email" className="text-sm font-medium text-gray-800">
-            Email address <span aria-hidden="true" className="text-[var(--danger)]">*</span>
+            Email address <span className="font-normal text-gray-400">(optional)</span>
           </label>
           <input
             id="contact-email"
             name="email"
             type="email"
             autoComplete="email"
-            required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="you@example.com"
@@ -155,7 +144,7 @@ export function ContactForm() {
         </div>
       </div>
       <p className="text-xs leading-relaxed text-gray-500">
-        Optional — email is all I need to reply.
+        Leave your email or phone number if you would like me to follow up
       </p>
       <div>
         <label htmlFor="contact-message" className="text-sm font-medium text-gray-800">

@@ -88,7 +88,11 @@
       "Bash(node -e \"const l=require\\('lucide-react'\\); ['RefreshCw','Layers','SlidersHorizontal','ShieldCheck','Cloud','CalendarClock','HardDrive','TrendingUp','LineChart'].forEach\\(n=>console.log\\(n, typeof l[n]\\)\\)\")",
       "Bash(grep -n \"const defaultDraft = createDefaultDraft\\\\|Understand Portfolio\\\\|Portfolio assets and liabilities\\\\|<p className=\\\\\"text-sm text-\\\\[var\\(--muted-foreground\\)\\\\]\\\\\">{status}</p>\\\\|className=\\\\\"mt-5 flex flex-col gap-3 border-t\\\\|flex flex-wrap items-center gap-2\\\\\">\\\\$\\\\|{lastEodLabel}\\\\|{visibleRowsLabel}\\\\|Refreshing EOD Prices\" src/components/planning/portfolio-panel.tsx)",
       "Bash(node scripts/portfolio-header-shots.mjs)",
-      "Bash(echo \"lint exit: $?\")"
+      "Bash(echo \"lint exit: $?\")",
+      "Bash(node scripts/capture-about-screenshots.mjs http://localhost:3000 before)",
+      "Bash(grep -rln \"ContactForm\\\\|contact-form\\\\|email is all I need\\\\|Please enter your email\\\\|Leave your name and email\\\\|feedback_messages\\\\|isValidEmail\\\\|share feedback\" src/tests)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(node scripts/capture-about-screenshots.mjs http://localhost:3000 after)"
     ]
   }
 }

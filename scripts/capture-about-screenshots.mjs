@@ -1,8 +1,10 @@
 // Capture About page screenshots for design verification.
-// Usage: node scripts/capture-about-screenshots.mjs [baseUrl]
+// Usage: node scripts/capture-about-screenshots.mjs [baseUrl] [label]
+//   label is an optional filename tag, e.g. "before" or "after".
 import { chromium } from "playwright-core";
 
 const baseUrl = process.argv[2] ?? "http://localhost:3000";
+const label = process.argv[3] ? `-${process.argv[3]}` : "";
 
 const viewports = [
   { slug: "desktop-1280", width: 1280, height: 800 },
@@ -18,7 +20,7 @@ for (const viewport of viewports) {
   const page = await context.newPage();
   await page.goto(`${baseUrl}/about`, { waitUntil: "networkidle" });
   await page.waitForTimeout(400);
-  const file = `screenshots/about-${viewport.slug}.png`;
+  const file = `screenshots/about-${viewport.slug}${label}.png`;
   await page.screenshot({ path: file, fullPage: true });
   console.log(`saved ${file}`);
   await context.close();
