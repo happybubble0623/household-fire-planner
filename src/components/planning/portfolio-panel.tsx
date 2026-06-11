@@ -836,6 +836,10 @@ export function PortfolioPanel({
           </div>
           <div className="flex shrink-0 flex-col gap-2 sm:items-end">
             <div className="flex items-center gap-1.5">
+              <InfoPopover
+                label="Update today's prices"
+                content="Fetches the latest published end-of-day (closing) market prices for every holding that has a ticker symbol, then updates each row's unit price and value. Prices are end-of-day, so a date — not a time — is shown."
+              />
               <button
                 type="button"
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
@@ -850,10 +854,6 @@ export function PortfolioPanel({
                 />
                 {isRefreshing ? "Updating prices..." : "Update today's prices"}
               </button>
-              <InfoPopover
-                label="Update today's prices"
-                content="Fetches the latest published end-of-day (closing) market prices for every holding that has a ticker symbol, then updates each row's unit price and value. Prices are end-of-day, so a date — not a time — is shown."
-              />
             </div>
             <p className="text-[11px] text-[var(--muted-foreground)] sm:text-right">{lastEodLabel}</p>
             {visibleSyncStatus ? (
