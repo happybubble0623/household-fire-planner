@@ -23,9 +23,9 @@ export default function AboutPage() {
           </h1>
         </div>
 
-        <div className="mt-8 grid items-start gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="relative mt-8 grid items-start gap-6 lg:grid-cols-2 lg:gap-8">
           <section aria-labelledby="why-this-exists">
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex items-end justify-between gap-4 lg:h-24">
               <h2
                 id="why-this-exists"
                 className="flex items-center gap-3 text-2xl font-bold tracking-[-0.01em] text-gray-900"
@@ -42,7 +42,7 @@ export default function AboutPage() {
                 width={256}
                 height={256}
                 priority
-                className="h-24 w-24 flex-none rounded-full object-cover shadow-sm ring-1 ring-[var(--border)]"
+                className="h-24 w-24 flex-none rounded-full object-cover shadow-sm ring-1 ring-[var(--border)] lg:absolute lg:left-1/2 lg:-top-28 lg:h-44 lg:w-44 lg:-translate-x-1/2"
               />
             </div>
             <article className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
@@ -76,10 +76,10 @@ export default function AboutPage() {
           </section>
 
           <section aria-labelledby="share-feedback">
-            <div className="lg:flex lg:h-24 lg:items-end">
+            <div className="lg:flex lg:h-24 lg:items-end lg:justify-end">
               <h2
                 id="share-feedback"
-                className="text-2xl font-bold tracking-[-0.01em] text-gray-900"
+                className="text-2xl font-bold tracking-[-0.01em] text-gray-900 lg:text-right"
               >
                 Share feedback or an idea
               </h2>
