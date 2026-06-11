@@ -25,15 +25,7 @@ export default function AboutPage() {
 
         <div className="mt-8 grid items-start gap-6 lg:grid-cols-2 lg:gap-8">
           <section aria-labelledby="why-this-exists">
-            <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
-              <Image
-                src="/about-photo.png"
-                alt="Photo of the maker's dog by the lake"
-                width={256}
-                height={256}
-                priority
-                className="mb-6 h-28 w-28 rounded-full object-cover shadow-sm ring-1 ring-[var(--border)]"
-              />
+            <div className="flex items-end justify-between gap-4">
               <h2
                 id="why-this-exists"
                 className="flex items-center gap-3 text-2xl font-bold tracking-[-0.01em] text-gray-900"
@@ -44,7 +36,17 @@ export default function AboutPage() {
                 />
                 Why this exists
               </h2>
-              <div className="mt-5 space-y-4 text-lg leading-relaxed text-gray-700">
+              <Image
+                src="/about-photo.png"
+                alt="Photo of the maker's dog by the lake"
+                width={256}
+                height={256}
+                priority
+                className="h-24 w-24 flex-none rounded-full object-cover shadow-sm ring-1 ring-[var(--border)]"
+              />
+            </div>
+            <article className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
+              <div className="space-y-4 text-lg leading-relaxed text-gray-700">
                 <p>
                   I got a little obsessed with the numbers behind retiring early — running
                   scenarios, tweaking assumptions, asking &ldquo;what if?&rdquo;
@@ -74,12 +76,14 @@ export default function AboutPage() {
           </section>
 
           <section aria-labelledby="share-feedback">
-            <h2
-              id="share-feedback"
-              className="text-2xl font-bold tracking-[-0.01em] text-gray-900"
-            >
-              Share feedback or an idea
-            </h2>
+            <div className="lg:flex lg:h-24 lg:items-end">
+              <h2
+                id="share-feedback"
+                className="text-2xl font-bold tracking-[-0.01em] text-gray-900"
+              >
+                Share feedback or an idea
+              </h2>
+            </div>
             <p className="mt-3 text-base leading-relaxed text-gray-500">
               Found a bug, have a feature idea, or something in the calculators didn&rsquo;t make
               sense? Your feedback is very appreciated
