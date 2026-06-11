@@ -49,7 +49,8 @@ export default function AboutPage() {
                 you&rsquo;re looking at instead of needing to be an expert first. Run the numbers
                 yourself, at your own pace, with a little guidance where it helps — and get a
                 clearer, wiser view of your path to financial independence and early retirement.
-                Your data stays yours.
+                Your data stays yours — it lives locally on your device by default, and only
+                syncs to the cloud if you choose to create an optional account.
               </p>
               <p>
                 If it helps you plan with a little more confidence, that&rsquo;s the whole point.
