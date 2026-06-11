@@ -44,6 +44,23 @@ export async function savePhase1Workbook(workbook: Phase1Workbook) {
   return updatedWorkbook;
 }
 
+/**
+ * Persist a workbook into Dexie *preserving* its updatedAt. Used when adopting
+ * a cloud workbook during sync reconcile — we must not bump the timestamp, or
+ * the freshly pulled cloud copy would look newer than itself on the next push.
+ */
+export async function persistPhase1Workbook(workbook: Phase1Workbook) {
+  const normalizedWorkbook = normalizePhase1Workbook(workbook);
+
+  await getPhase1Db().workbooks.put({
+    id: normalizedWorkbook.id,
+    updatedAt: normalizedWorkbook.updatedAt,
+    data: normalizedWorkbook
+  });
+
+  return normalizedWorkbook;
+}
+
 export async function loadPhase1Workbook(id = defaultPhase1Workbook.id) {
   const stored = await getPhase1Db().workbooks.get(id);
   return stored ? normalizePhase1Workbook(stored.data) : null;

@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { PlanDocument } from "@/types/plan";
 
 type SupabaseLikeClient = {
@@ -17,7 +17,18 @@ type SupabaseLikeClient = {
   };
 };
 
+// Singleton client. A single instance per browser tab is required for auth:
+// it owns the persisted session (localStorage) and the onAuthStateChange
+// subscription, and detectSessionInUrl lets a magic-link return auto-establish
+// the session. Reused by the contact form, the auth panel, the session hook,
+// and the workbook sync layer.
+let supabaseClient: SupabaseClient | null = null;
+
 export function getSupabaseClient() {
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -25,7 +36,14 @@ export function getSupabaseClient() {
     return null;
   }
 
-  return createClient(url, anonKey);
+  supabaseClient = createClient(url, anonKey, {
+    auth: {
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  });
+
+  return supabaseClient;
 }
 
 export async function saveCloudPlan(plan: PlanDocument) {
