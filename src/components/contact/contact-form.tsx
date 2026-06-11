@@ -144,7 +144,7 @@ export function ContactForm() {
         </div>
       </div>
       <p className="text-xs leading-relaxed text-gray-500">
-        Leave your email or phone number if you would like me to follow up
+        Leave your email or phone number if you would like me to follow up.
       </p>
       <div>
         <label htmlFor="contact-message" className="text-sm font-medium text-gray-800">

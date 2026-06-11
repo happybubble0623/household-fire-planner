@@ -92,7 +92,9 @@
       "Bash(node scripts/capture-about-screenshots.mjs http://localhost:3000 before)",
       "Bash(grep -rln \"ContactForm\\\\|contact-form\\\\|email is all I need\\\\|Please enter your email\\\\|Leave your name and email\\\\|feedback_messages\\\\|isValidEmail\\\\|share feedback\" src/tests)",
       "Bash(echo \"EXIT=$?\")",
-      "Bash(node scripts/capture-about-screenshots.mjs http://localhost:3000 after)"
+      "Bash(node scripts/capture-about-screenshots.mjs http://localhost:3000 after)",
+      "Bash([ -r \"$SRC\" ])",
+      "Bash(cp '/Users/chongzha/Library/Application Support/Claude/local-agent-mode-sessions/221062c5-38f8-40a9-9300-20823445bd6e/fcaacbab-33e5-40a6-8b8c-69d4e08d48dd/agent/local_ditto_fcaacbab-33e5-40a6-8b8c-69d4e08d48dd/uploads/7fc2349f-ChatGPT_Image_Jun_11_2026_05_11_06_PM.png' '/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Freedom Path/public/about-photo.png')"
     ]
   }
 }

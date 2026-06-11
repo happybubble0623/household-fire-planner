@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { ContactForm } from "@/components/contact/contact-form";
 import { AppShell } from "@/components/layout/app-shell";
 
@@ -25,6 +26,14 @@ export default function AboutPage() {
         <div className="mt-8 grid items-start gap-6 lg:grid-cols-2 lg:gap-8">
           <section aria-labelledby="why-this-exists">
             <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
+              <Image
+                src="/about-photo.png"
+                alt="Photo of the maker's dog by the lake"
+                width={256}
+                height={256}
+                priority
+                className="mb-6 h-28 w-28 rounded-full object-cover shadow-sm ring-1 ring-[var(--border)]"
+              />
               <h2
                 id="why-this-exists"
                 className="flex items-center gap-3 text-2xl font-bold tracking-[-0.01em] text-gray-900"
@@ -73,7 +82,7 @@ export default function AboutPage() {
             </h2>
             <p className="mt-3 text-base leading-relaxed text-gray-500">
               Found a bug, have a feature idea, or something in the calculators didn&rsquo;t make
-              sense? Leave your comments
+              sense? Your feedback is very appreciated
             </p>
             <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
               <ContactForm />
