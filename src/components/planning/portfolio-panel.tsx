@@ -356,6 +356,10 @@ export function PortfolioPanel({
   const lastEodLabel = workbook.lastEodRefreshAt
     ? `Showing EOD prices for ${formatEodDate(workbook.lastEodRefreshAt)}`
     : "EOD prices not refreshed yet";
+  // "Local mode…" statuses duplicate the "Saved locally, sync optional" chip on
+  // the left of this card, so they are hidden here. Signed-in sync statuses
+  // ("Synced to your account.", "Saving to your account...") still render.
+  const visibleSyncStatus = status.startsWith("Local mode") ? null : status;
   useEffect(() => {
     savePortfolioTableColumnPreferences(visibleTableColumnIds);
   }, [visibleTableColumnIds]);
@@ -802,7 +806,7 @@ export function PortfolioPanel({
   return (
     <div className="space-y-6">
       <section className="space-y-5">
-        <div className="flex flex-col gap-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
               Understand Portfolio
@@ -852,7 +856,11 @@ export function PortfolioPanel({
               />
             </div>
             <p className="text-[11px] text-[var(--muted-foreground)] sm:text-right">{lastEodLabel}</p>
-            <p className="text-sm text-[var(--muted-foreground)] sm:text-right">{status}</p>
+            {visibleSyncStatus ? (
+              <p className="text-sm text-[var(--muted-foreground)] sm:text-right">
+                {visibleSyncStatus}
+              </p>
+            ) : null}
           </div>
         </div>
 
