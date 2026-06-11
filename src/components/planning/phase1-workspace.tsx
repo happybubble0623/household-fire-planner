@@ -5,7 +5,13 @@ import { calculatePhase1Fire } from "@/lib/phase1/fire";
 import { defaultPhase1Workbook } from "@/lib/phase1/default-workbook";
 import { normalizePhase1Workbook } from "@/lib/phase1/workbook";
 import { summarizePhase1Portfolio } from "@/lib/phase1/portfolio";
-import { ensurePhase1Workbook, savePhase1Workbook } from "@/lib/storage/phase1-store";
+import {
+  ensurePhase1Workbook,
+  persistPhase1Workbook,
+  savePhase1Workbook
+} from "@/lib/storage/phase1-store";
+import { pushWorkbook, reconcileWorkbook } from "@/lib/storage/workbook-sync";
+import { useSession } from "@/lib/auth/use-session";
 import type { Phase1Workbook } from "@/types/phase1";
 import { PathToFirePanel } from "@/components/planning/path-to-fire-panel";
 import { FireStrategyPanel } from "@/components/planning/fire-strategy-panel";
@@ -26,6 +32,7 @@ export type Phase1PanelProps = {
 };
 
 export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1WorkspaceProps) {
+  const { user } = useSession();
   const [workbook, setWorkbook] = useState<Phase1Workbook>(defaultPhase1Workbook);
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("Local mode. Loading saved workbook...");
@@ -34,6 +41,9 @@ export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1Workspac
   const mountedRef = useRef(true);
   const saveInFlightRef = useRef(false);
   const saveQueuedRef = useRef(false);
+  // Kept in a ref (not a dep) so the stable flush callback can branch on the
+  // signed-in user without being recreated on every auth change.
+  const userIdRef = useRef<string | null>(null);
 
   const handleWorkbookChange: Phase1PanelProps["onChange"] = (nextWorkbook) => {
     setWorkbook((currentWorkbook) => {
@@ -80,20 +90,42 @@ export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1Workspac
         while (shouldContinue) {
           saveQueuedRef.current = false;
           const workbookToSave = latestWorkbookRef.current;
+          const userId = userIdRef.current;
 
           if (updateStatus && mountedRef.current) {
-            setStatus("Local mode. Saving...");
+            setStatus(userId ? "Saving to your account..." : "Local mode. Saving...");
           }
 
           try {
-            await savePhase1Workbook(workbookToSave);
+            // Always persist locally first — Dexie is the source of truth and
+            // the anonymous experience must never depend on the network.
+            const savedWorkbook = await savePhase1Workbook(workbookToSave);
+
+            let cloudFailed = false;
+            if (userId) {
+              try {
+                await pushWorkbook(userId, savedWorkbook);
+              } catch {
+                cloudFailed = true;
+              }
+            }
 
             if (updateStatus && mountedRef.current && !saveQueuedRef.current) {
-              setStatus("Local mode. Saved on this device.");
+              if (!userId) {
+                setStatus("Local mode. Saved on this device.");
+              } else if (cloudFailed) {
+                setStatus("Saved on this device. Cloud sync unavailable.");
+              } else {
+                setStatus("Synced to your account.");
+              }
             }
           } catch {
             if (updateStatus && mountedRef.current && !saveQueuedRef.current) {
-              setStatus("Local mode. Autosave failed.");
+              setStatus(
+                userId
+                  ? "Saved on this device. Cloud sync unavailable."
+                  : "Local mode. Autosave failed."
+              );
             }
           }
 
@@ -134,6 +166,50 @@ export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1Workspac
       }
     };
   }, [flushLatestWorkbook]);
+
+  // Cross-device sync. Once the local workbook is loaded and a user is signed
+  // in, reconcile (last-write-wins) with their cloud workbook before they keep
+  // editing. Anonymous / signed-out users never reach the network — the status
+  // stays "Local mode" and Dexie remains the only store. Keyed on user?.id so
+  // it re-runs on sign-in and account switch.
+  useEffect(() => {
+    userIdRef.current = user?.id ?? null;
+
+    if (!ready) return;
+
+    if (!user) {
+      if (mountedRef.current) setStatus("Local mode. Autosave ready.");
+      return;
+    }
+
+    let cancelled = false;
+    if (mountedRef.current) setStatus("Syncing with your account...");
+
+    void (async () => {
+      try {
+        const result = await reconcileWorkbook(user.id, latestWorkbookRef.current);
+        if (cancelled || !mountedRef.current) return;
+
+        if (result.source === "cloud") {
+          // Cloud copy wins — adopt it locally, preserving its timestamp.
+          await persistPhase1Workbook(result.workbook);
+          if (cancelled || !mountedRef.current) return;
+          latestWorkbookRef.current = result.workbook;
+          setWorkbook(result.workbook);
+        }
+
+        if (!cancelled && mountedRef.current) setStatus("Synced to your account.");
+      } catch {
+        if (!cancelled && mountedRef.current) {
+          setStatus("Saved on this device. Cloud sync unavailable.");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, user]);
 
   useEffect(() => {
     if (!ready) return;
