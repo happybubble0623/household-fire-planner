@@ -27,7 +27,7 @@ function typeEmail(value = "saver@example.com") {
 }
 
 describe("AuthPanel OTP flow", () => {
-  it("step 1 emails a 6-digit code with shouldCreateUser and reveals the code input", async () => {
+  it("step 1 emails a verification code with shouldCreateUser and reveals the code input", async () => {
     render(<AuthPanel mode="login" />);
 
     typeEmail();
@@ -45,20 +45,40 @@ describe("AuthPanel OTP flow", () => {
       "emailRedirectTo"
     );
 
-    expect(await screen.findByLabelText(/6-digit code/i)).toBeInTheDocument();
-    expect(screen.getByText(/emailed a 6-digit code/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/verification code/i)).toBeInTheDocument();
+    expect(screen.getByText(/emailed a verification code/i)).toBeInTheDocument();
   });
 
-  it("step 2 verifies the typed code via verifyOtp and signs the user in", async () => {
+  it("step 2 verifies an 8-digit code via verifyOtp un-truncated and signs the user in", async () => {
     render(<AuthPanel mode="login" />);
 
     typeEmail();
     fireEvent.click(screen.getByRole("button", { name: /email me a code/i }));
 
-    const codeInput = await screen.findByLabelText(/6-digit code/i);
+    const codeInput = await screen.findByLabelText(/verification code/i);
     expect(codeInput).toHaveAttribute("autocomplete", "one-time-code");
     expect(codeInput).toHaveAttribute("inputmode", "numeric");
 
+    fireEvent.change(codeInput, { target: { value: "12345678" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify code/i }));
+
+    await waitFor(() =>
+      expect(verifyOtp).toHaveBeenCalledWith({
+        email: "saver@example.com",
+        token: "12345678",
+        type: "email"
+      })
+    );
+
+    expect(await screen.findByText(/you're signed in/i)).toBeInTheDocument();
+  });
+
+  it("still accepts a 6-digit code and passes it to verifyOtp as-is", async () => {
+    render(<AuthPanel mode="login" />);
+    typeEmail();
+    fireEvent.click(screen.getByRole("button", { name: /email me a code/i }));
+
+    const codeInput = await screen.findByLabelText(/verification code/i);
     fireEvent.change(codeInput, { target: { value: "123456" } });
     fireEvent.click(screen.getByRole("button", { name: /verify code/i }));
 
@@ -69,18 +89,34 @@ describe("AuthPanel OTP flow", () => {
         type: "email"
       })
     );
-
-    expect(await screen.findByText(/you're signed in/i)).toBeInTheDocument();
   });
 
-  it("strips non-numeric input and caps the code at 6 digits", async () => {
+  it("strips non-numeric input and caps the code at 8 digits", async () => {
     render(<AuthPanel mode="login" />);
     typeEmail();
     fireEvent.click(screen.getByRole("button", { name: /email me a code/i }));
 
-    const codeInput = await screen.findByLabelText(/6-digit code/i);
-    fireEvent.change(codeInput, { target: { value: "12ab34cd5678" } });
-    expect((codeInput as HTMLInputElement).value).toBe("123456");
+    const codeInput = await screen.findByLabelText(/verification code/i);
+    fireEvent.change(codeInput, { target: { value: "12ab34cd56ef78gh90" } });
+    expect((codeInput as HTMLInputElement).value).toBe("12345678");
+  });
+
+  it("disables the verify button until the code is a plausible length", async () => {
+    render(<AuthPanel mode="login" />);
+    typeEmail();
+    fireEvent.click(screen.getByRole("button", { name: /email me a code/i }));
+
+    const codeInput = await screen.findByLabelText(/verification code/i);
+    const verifyButton = screen.getByRole("button", { name: /verify code/i });
+
+    fireEvent.change(codeInput, { target: { value: "12345" } });
+    expect(verifyButton).toBeDisabled();
+
+    fireEvent.change(codeInput, { target: { value: "123456" } });
+    expect(verifyButton).toBeEnabled();
+
+    fireEvent.change(codeInput, { target: { value: "12345678" } });
+    expect(verifyButton).toBeEnabled();
   });
 
   it("surfaces an invalid/expired code error and stays on the code step", async () => {
@@ -92,7 +128,7 @@ describe("AuthPanel OTP flow", () => {
     typeEmail();
     fireEvent.click(screen.getByRole("button", { name: /email me a code/i }));
 
-    const codeInput = await screen.findByLabelText(/6-digit code/i);
+    const codeInput = await screen.findByLabelText(/verification code/i);
     fireEvent.change(codeInput, { target: { value: "000000" } });
     fireEvent.click(screen.getByRole("button", { name: /verify code/i }));
 
@@ -100,7 +136,7 @@ describe("AuthPanel OTP flow", () => {
       /expired or is invalid/i
     );
     // Still on the code step so the user can retry.
-    expect(screen.getByLabelText(/6-digit code/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/verification code/i)).toBeInTheDocument();
   });
 
   it("surfaces a send error (e.g. rate limit) and stays on the email step", async () => {
@@ -115,7 +151,7 @@ describe("AuthPanel OTP flow", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /rate limit/i
     );
-    expect(screen.queryByLabelText(/6-digit code/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/verification code/i)).not.toBeInTheDocument();
   });
 
   it("resend re-requests a code and change-email returns to step 1", async () => {
@@ -123,14 +159,14 @@ describe("AuthPanel OTP flow", () => {
     typeEmail();
     fireEvent.click(screen.getByRole("button", { name: /email me a code/i }));
 
-    await screen.findByLabelText(/6-digit code/i);
+    await screen.findByLabelText(/verification code/i);
     expect(signInWithOtp).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: /resend/i }));
     await waitFor(() => expect(signInWithOtp).toHaveBeenCalledTimes(2));
 
     fireEvent.click(screen.getByRole("button", { name: /change email/i }));
-    expect(screen.queryByLabelText(/6-digit code/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/verification code/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /email me a code/i })).toBeInTheDocument();
   });
 

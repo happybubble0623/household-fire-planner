@@ -17,7 +17,7 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Step 1: email the 6-digit code. We intentionally do NOT pass
+  // Step 1: email the verification code. We intentionally do NOT pass
   // emailRedirectTo — the code flow establishes the session in-page via
   // verifyOtp + the singleton client's onAuthStateChange, so it never relies on
   // detectSessionInUrl / a redirect callback (which was landing users back in
@@ -46,7 +46,7 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
     }
 
     setStatus(
-      `We emailed a 6-digit code to ${targetEmail}. Enter it below to finish signing in.`
+      `We emailed a verification code to ${targetEmail}. Enter it below to finish signing in.`
     );
     return true;
   }
@@ -130,7 +130,7 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
             />
           </label>
           <p className="text-sm text-[var(--muted-foreground)]">
-            No password needed — we&apos;ll email you a 6-digit code.
+            No password needed — we&apos;ll email you a verification code.
           </p>
           <button
             className="rounded-lg border border-[var(--border)] px-4 py-2 font-semibold text-gray-700 transition-colors hover:bg-[var(--soft)] disabled:opacity-60"
@@ -143,18 +143,18 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
       ) : (
         <form className="mt-5 grid gap-3" onSubmit={submitCode}>
           <label className="grid gap-2 text-sm font-medium">
-            6-digit code
+            Verification code
             <input
               className="rounded-lg border border-[var(--border)] px-3 py-2 tracking-[0.4em]"
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              maxLength={6}
+              maxLength={8}
               value={code}
               onChange={(event) =>
-                setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                setCode(event.target.value.replace(/\D/g, "").slice(0, 8))
               }
-              placeholder="123456"
+              placeholder="12345678"
               autoComplete="one-time-code"
               autoFocus
               required
@@ -163,7 +163,7 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
           <button
             className="rounded-lg border border-[var(--border)] px-4 py-2 font-semibold text-gray-700 transition-colors hover:bg-[var(--soft)] disabled:opacity-60"
             type="submit"
-            disabled={busy}
+            disabled={busy || code.length < 6}
           >
             {busy ? "Verifying…" : "Verify Code & Sign In"}
           </button>
