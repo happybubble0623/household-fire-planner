@@ -2,8 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
-import { Download, Info, Pencil, Settings, Trash2, Upload, X } from "lucide-react";
+import {
+  CalendarClock,
+  Cloud,
+  Download,
+  Info,
+  Layers,
+  Pencil,
+  RefreshCw,
+  Settings,
+  ShieldCheck,
+  SlidersHorizontal,
+  Trash2,
+  Upload,
+  X
+} from "lucide-react";
 import { PortfolioCollectionsPanel } from "@/components/planning/portfolio-collections-panel";
+import { InfoPopover } from "@/components/ui/info-popover";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
 import { getCollectionLabelsForItem } from "@/lib/phase1/collections";
 import {
@@ -175,6 +190,15 @@ type PortfolioLensGroup = {
 
 const defaultDraft = createDefaultDraft("stock");
 
+// Benefit chips for the value-prop header. Kept short so the header stays clean.
+const portfolioValueProps = [
+  { icon: Layers, label: "Consolidated household view" },
+  { icon: SlidersHorizontal, label: "Scope, lens, focus & collections" },
+  { icon: ShieldCheck, label: "No login required" },
+  { icon: Cloud, label: "Saved locally, sync optional" },
+  { icon: CalendarClock, label: "Daily end-of-day prices" }
+] as const;
+
 export function PortfolioPanel({
   workbook,
   status,
@@ -330,7 +354,7 @@ export function PortfolioPanel({
   const importExportStatus = uiStatus ?? getVisibleWorkbookStatus(workbook.lastImportExportStatus);
   const statusPresentation = getPortfolioStatusPresentation(importExportStatus);
   const lastEodLabel = workbook.lastEodRefreshAt
-    ? `EOD prices updated ${formatDateTime(workbook.lastEodRefreshAt)}`
+    ? `Showing EOD prices for ${formatEodDate(workbook.lastEodRefreshAt)}`
     : "EOD prices not refreshed yet";
   useEffect(() => {
     savePortfolioTableColumnPreferences(visibleTableColumnIds);
@@ -496,19 +520,22 @@ export function PortfolioPanel({
       return;
     }
 
-    const message = editingItemId
-      ? "Updated portfolio row."
+    // Editing a row updates it visibly in the table, so the old "Updated
+    // portfolio row." confirmation was redundant noise — adds still report a
+    // status, but edits surface none (message stays null).
+    const message: string | null = editingItemId
+      ? null
       : planOnlyMarketEntrySelected
         ? "Added plan-only holding. EOD refresh will skip this row."
         : isMarketPricedType(item.type) && item.unitPrice === undefined
-        ? "Added market holding. Use Refresh EOD Prices to fill unit price."
+        ? "Added market holding. Use Update today's prices to fill unit price."
         : "Added portfolio item.";
 
     onChange((currentWorkbook) => ({
       ...currentWorkbook,
       updatedAt: new Date().toISOString(),
       portfolioItems: upsertPhase1PortfolioItem(currentWorkbook.portfolioItems, item),
-      lastImportExportStatus: message
+      ...(message ? { lastImportExportStatus: message } : {})
     }));
     setDraft(createStickyDefaultDraft(draft));
     setEditingItemId(null);
@@ -775,16 +802,58 @@ export function PortfolioPanel({
   return (
     <div className="space-y-6">
       <section className="space-y-5">
-        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm sm:flex-row sm:items-start sm:justify-between">
-          <div>
+        <div className="flex flex-col gap-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
               Understand Portfolio
             </p>
             <h1 className="mt-1 text-3xl font-bold tracking-[-0.02em] text-gray-900">
-              Portfolio assets and liabilities
+              Your whole household portfolio, in one private view
             </h1>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">
+              Bring every account and holding together, slice it by owner, tax bucket, or
+              goal, and keep values current with one-click end-of-day prices.
+            </p>
+            <ul className="mt-4 flex flex-wrap gap-2" aria-label="Portfolio features">
+              {portfolioValueProps.map((prop) => (
+                <li
+                  key={prop.label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--soft)] px-3 py-1 text-xs font-medium text-[var(--foreground)]"
+                >
+                  <prop.icon
+                    aria-hidden="true"
+                    size={14}
+                    className="text-[var(--muted-foreground)]"
+                  />
+                  {prop.label}
+                </li>
+              ))}
+            </ul>
           </div>
-          <p className="text-sm text-[var(--muted-foreground)]">{status}</p>
+          <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isRefreshing}
+                onClick={() => void handleRefreshEodPrices()}
+                title="Fetches the latest end-of-day market prices for your holdings with ticker symbols."
+              >
+                <RefreshCw
+                  aria-hidden="true"
+                  size={16}
+                  className={isRefreshing ? "animate-spin" : undefined}
+                />
+                {isRefreshing ? "Updating prices..." : "Update today's prices"}
+              </button>
+              <InfoPopover
+                label="Update today's prices"
+                content="Fetches the latest published end-of-day (closing) market prices for every holding that has a ticker symbol, then updates each row's unit price and value. Prices are end-of-day, so a date — not a time — is shown."
+              />
+            </div>
+            <p className="text-[11px] text-[var(--muted-foreground)] sm:text-right">{lastEodLabel}</p>
+            <p className="text-sm text-[var(--muted-foreground)] sm:text-right">{status}</p>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--soft)] p-4 shadow-sm">
@@ -928,95 +997,6 @@ export function PortfolioPanel({
                 </p>
               ) : null}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-          <input
-            ref={csvInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={(event) => void handleCsvImport(event.target.files?.[0])}
-          />
-          <input
-            ref={xlsxInputRef}
-            type="file"
-            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            className="hidden"
-            onChange={(event) => void handleXlsxImport(event.target.files?.[0])}
-          />
-          <details className="relative">
-            <summary
-              aria-label="Import portfolio"
-              className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-transparent text-[var(--muted-foreground)] hover:border-[var(--border)] hover:bg-white [&::-webkit-details-marker]:hidden"
-              title="Import portfolio"
-            >
-              <Upload aria-hidden="true" size={18} />
-              <span className="sr-only">Import portfolio</span>
-            </summary>
-            <div className="absolute right-0 z-10 mt-2 w-32 rounded-md border border-[var(--border)] bg-white p-1 shadow-lg">
-              <button
-                type="button"
-                className="min-h-11 w-full rounded px-3 text-left text-sm hover:bg-[var(--muted)]"
-                onClick={(event) => {
-                  closeFileMenu(event);
-                  csvInputRef.current?.click();
-                }}
-              >
-                CSV
-              </button>
-              <button
-                type="button"
-                className="min-h-11 w-full rounded px-3 text-left text-sm hover:bg-[var(--muted)]"
-                onClick={(event) => {
-                  closeFileMenu(event);
-                  xlsxInputRef.current?.click();
-                }}
-              >
-                XLSX
-              </button>
-            </div>
-          </details>
-          <details className="relative">
-            <summary
-              aria-label="Export portfolio"
-              className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-transparent text-[var(--muted-foreground)] hover:border-[var(--border)] hover:bg-white [&::-webkit-details-marker]:hidden"
-              title="Export portfolio"
-            >
-              <Download aria-hidden="true" size={18} />
-              <span className="sr-only">Export portfolio</span>
-            </summary>
-            <div className="absolute right-0 z-10 mt-2 w-32 rounded-md border border-[var(--border)] bg-white p-1 shadow-lg">
-              <button
-                type="button"
-                className="min-h-11 w-full rounded px-3 text-left text-sm hover:bg-[var(--muted)]"
-                onClick={(event) => {
-                  closeFileMenu(event);
-                  handleExportCsv();
-                }}
-              >
-                CSV
-              </button>
-              <button
-                type="button"
-                className="min-h-11 w-full rounded px-3 text-left text-sm hover:bg-[var(--muted)]"
-                onClick={(event) => {
-                  closeFileMenu(event);
-                  handleExportXlsx();
-                }}
-              >
-                XLSX
-              </button>
-            </div>
-          </details>
-          <button
-            type="button"
-            className="min-h-11 rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isRefreshing}
-            onClick={() => void handleRefreshEodPrices()}
-          >
-            {isRefreshing ? "Refreshing EOD Prices..." : "Refresh EOD Prices"}
-          </button>
-          <p className="w-full text-[11px] text-[var(--muted-foreground)]">{lastEodLabel}</p>
-            </div>
           </div>
         </div>
       </section>
@@ -1093,6 +1073,84 @@ export function PortfolioPanel({
                 </div>
               ) : null}
             </div>
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(event) => void handleCsvImport(event.target.files?.[0])}
+            />
+            <input
+              ref={xlsxInputRef}
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              className="hidden"
+              onChange={(event) => void handleXlsxImport(event.target.files?.[0])}
+            />
+            <details className="relative">
+              <summary
+                aria-label="Import portfolio"
+                className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--muted)] [&::-webkit-details-marker]:hidden"
+                title="Import portfolio"
+              >
+                <Upload aria-hidden="true" size={17} />
+                <span className="sr-only">Import portfolio</span>
+              </summary>
+              <div className="absolute right-0 z-20 mt-2 w-32 rounded-md border border-[var(--border)] bg-white p-1 shadow-lg">
+                <button
+                  type="button"
+                  className="min-h-11 w-full rounded px-3 text-left text-sm hover:bg-[var(--muted)]"
+                  onClick={(event) => {
+                    closeFileMenu(event);
+                    csvInputRef.current?.click();
+                  }}
+                >
+                  CSV
+                </button>
+                <button
+                  type="button"
+                  className="min-h-11 w-full rounded px-3 text-left text-sm hover:bg-[var(--muted)]"
+                  onClick={(event) => {
+                    closeFileMenu(event);
+                    xlsxInputRef.current?.click();
+                  }}
+                >
+                  XLSX
+                </button>
+              </div>
+            </details>
+            <details className="relative">
+              <summary
+                aria-label="Export portfolio"
+                className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--muted)] [&::-webkit-details-marker]:hidden"
+                title="Export portfolio"
+              >
+                <Download aria-hidden="true" size={17} />
+                <span className="sr-only">Export portfolio</span>
+              </summary>
+              <div className="absolute right-0 z-20 mt-2 w-32 rounded-md border border-[var(--border)] bg-white p-1 shadow-lg">
+                <button
+                  type="button"
+                  className="min-h-11 w-full rounded px-3 text-left text-sm hover:bg-[var(--muted)]"
+                  onClick={(event) => {
+                    closeFileMenu(event);
+                    handleExportCsv();
+                  }}
+                >
+                  CSV
+                </button>
+                <button
+                  type="button"
+                  className="min-h-11 w-full rounded px-3 text-left text-sm hover:bg-[var(--muted)]"
+                  onClick={(event) => {
+                    closeFileMenu(event);
+                    handleExportXlsx();
+                  }}
+                >
+                  XLSX
+                </button>
+              </div>
+            </details>
             <p className="text-sm text-[var(--muted-foreground)]">{visibleRowsLabel}</p>
           </div>
         </div>
@@ -2772,16 +2830,15 @@ function formatPercent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
-function formatDateTime(value: string) {
+// EOD prices are end-of-day figures, so we show the date only (no time).
+function formatEodDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  return date.toLocaleString(undefined, {
+  return date.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
+    year: "numeric"
   });
 }
 

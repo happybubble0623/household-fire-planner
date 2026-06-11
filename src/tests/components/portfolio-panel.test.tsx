@@ -175,7 +175,7 @@ describe("PortfolioPanel", () => {
     expect(within(holdingRow!).getByText("$12,345")).toBeInTheDocument();
 
     vi.mocked(fetch).mockClear();
-    fireEvent.click(screen.getByRole("button", { name: "Refresh EOD Prices" }));
+    fireEvent.click(screen.getByRole("button", { name: "Update today's prices" }));
 
     expect(fetch).not.toHaveBeenCalled();
     expect(
@@ -980,7 +980,7 @@ describe("PortfolioPanel", () => {
 
     render(<RefreshWarningHarness />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh EOD Prices" }));
+    fireEvent.click(screen.getByRole("button", { name: "Update today's prices" }));
 
     expect(await screen.findByText("3 prices updated")).toBeInTheDocument();
     expect(
@@ -1188,7 +1188,7 @@ describe("PortfolioPanel", () => {
 
     render(<BalanceOnlyMarketHarness />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh EOD Prices" }));
+    fireEvent.click(screen.getByRole("button", { name: "Update today's prices" }));
 
     expect(fetch).not.toHaveBeenCalled();
     expect(
