@@ -242,7 +242,7 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
               independence — privately, with no brokerage login required.
             </p>
             <p className="hgloss">
-              New to FIRE? It just means{" "}
+              New to <strong>FIRE</strong>? It just means{" "}
               <strong>Financial Independence, Retire Early</strong>.
             </p>
             <div className="cta">
