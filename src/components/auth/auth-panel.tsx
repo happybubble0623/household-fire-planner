@@ -19,10 +19,17 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
       return;
     }
 
-    const { error } =
-      mode === "signup"
-        ? await supabase.auth.signInWithOtp({ email })
-        : await supabase.auth.signInWithOtp({ email });
+    // Land the magic-link return back in the app. detectSessionInUrl (set on
+    // the singleton client) then establishes the session automatically.
+    const emailRedirectTo =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/app/fire-path`
+        : undefined;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: emailRedirectTo ? { emailRedirectTo } : undefined
+    });
 
     setStatus(
       error
@@ -51,19 +58,28 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
             required
           />
         </label>
-        <button className="rounded-lg bg-[var(--primary)] px-4 py-2 font-semibold text-white" type="submit">
+        <button
+          className="rounded-lg border border-[var(--border)] px-4 py-2 font-semibold text-gray-700 transition-colors hover:bg-[var(--soft)]"
+          type="submit"
+        >
           Send Sign-In Link
         </button>
       </form>
       <p className="mt-4 rounded-lg bg-[var(--muted)] p-3 text-sm leading-6 text-[var(--muted-foreground)]">
         {status}
       </p>
-      <div className="mt-5 flex gap-3">
-        <Link href="/app/freedom-map" className="rounded-lg border border-[var(--border)] px-4 py-2 font-semibold">
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Link
+          href="/app/fire-path"
+          className="rounded-lg bg-[var(--primary)] px-4 py-2 text-center font-semibold text-white transition-colors hover:bg-[var(--primary-hover)]"
+        >
           Continue as Guest
         </Link>
-        <Link href={mode === "signup" ? "/login" : "/signup"} className="rounded-lg border border-[var(--border)] px-4 py-2 font-semibold">
-          {mode === "signup" ? "Back to Login" : "Sign Up"}
+        <Link
+          href={mode === "signup" ? "/login" : "/signup"}
+          className="text-sm font-medium text-[var(--muted-foreground)] underline-offset-4 hover:underline"
+        >
+          {mode === "signup" ? "Back to sign in" : "Create an optional account"}
         </Link>
       </div>
     </section>
