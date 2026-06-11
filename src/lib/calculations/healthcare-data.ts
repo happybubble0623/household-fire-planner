@@ -89,18 +89,24 @@ export const REGION_MULTIPLIERS = {
 
 export type RegionCostLevel = keyof typeof REGION_MULTIPLIERS;
 
+// Statutory ACA maximum out-of-pocket, 2026 plan year (revised methodology):
+// $10,600 self-only / $21,200 other-than-self-only. Source: HHS revised 2026
+// cost-sharing limits (CMS, July 2025) — supersedes the earlier $10,150/$20,300.
+export const ACA_OOP_MAX_2026_SELF_ONLY = 10_600;
+
 // Typical plan economics per metal tier, relative to the benchmark silver
-// premium, with representative deductibles and the statutory out-of-pocket cap
-// ($9,200 single for 2025 plan years; family limits are double).
-// Sources: KFF metal-tier average premium & deductible analyses; ACA statutory
-// out-of-pocket maximum.
+// premium, with representative deductibles and per-person out-of-pocket maxima.
+// Bronze plans typically sit at (or near) the statutory cap; silver and gold
+// run progressively lower. Family limits are these per-person figures doubled.
+// Sources: KFF metal-tier average premium & deductible analyses; HHS 2026
+// statutory out-of-pocket maximum.
 export type MetalTier = "bronze" | "silver" | "gold";
 
 export const METAL_TIER_PRESETS: Record<
   MetalTier,
   { premiumVsBenchmark: number; deductiblePerPerson: number; oopMaxPerPerson: number }
 > = {
-  bronze: { premiumVsBenchmark: 0.8, deductiblePerPerson: 7_500, oopMaxPerPerson: 9_200 },
+  bronze: { premiumVsBenchmark: 0.8, deductiblePerPerson: 7_500, oopMaxPerPerson: 10_600 },
   silver: { premiumVsBenchmark: 1.0, deductiblePerPerson: 5_000, oopMaxPerPerson: 8_500 },
   gold: { premiumVsBenchmark: 1.2, deductiblePerPerson: 1_500, oopMaxPerPerson: 6_500 }
 };

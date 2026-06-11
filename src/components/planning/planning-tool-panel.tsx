@@ -249,7 +249,8 @@ export function NumberInput({
   onChange,
   suffix,
   step = 1,
-  help
+  help,
+  note
 }: {
   id: string;
   label: string;
@@ -258,6 +259,10 @@ export function NumberInput({
   suffix?: string;
   step?: number;
   help?: string;
+  // Short, always-visible basis/caption text shown under the field (e.g. the
+  // source and year for a sourced default). Unlike `help` (tooltip-only), this
+  // stays visible so users can immediately trust and edit a prefilled default.
+  note?: ReactNode;
 }) {
   const [draftValue, setDraftValue] = useState(() => String(value));
   const [isEditing, setIsEditing] = useState(false);
@@ -317,6 +322,7 @@ export function NumberInput({
         />
         {suffix ? <span className="pl-2 text-sm font-medium text-gray-500">{suffix}</span> : null}
       </div>
+      {note ? <p className="mt-1.5 text-xs leading-relaxed text-gray-500">{note}</p> : null}
     </div>
   );
 }
