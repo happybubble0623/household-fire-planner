@@ -78,7 +78,17 @@
       "Bash(curl -s -o /dev/null -w \"localhost:3000 -> %{http_code}\\\\n\" --max-time 4 http://localhost:3000/app/fire-path/tools/mortgage)",
       "Read(//Users/chongzha/Library/Caches/ms-playwright/**)",
       "Bash(node scripts/calculator-seo-shots.mjs)",
-      "Bash(node scripts/auth-otp-shots.mjs)"
+      "Bash(node scripts/auth-otp-shots.mjs)",
+      "Bash(node scripts/faq-collapse-shots.mjs)",
+      "Bash(npx eslint *)",
+      "Bash(sed -n '495,525p' src/components/planning/portfolio-panel.tsx)",
+      "Bash(sed -n '2775,2800p' src/components/planning/portfolio-panel.tsx)",
+      "Bash(sed -n '2320,2365p' src/components/planning/portfolio-panel.tsx)",
+      "Bash(sed -n '2720,2740p' src/components/planning/portfolio-panel.tsx)",
+      "Bash(node -e \"const l=require\\('lucide-react'\\); ['RefreshCw','Layers','SlidersHorizontal','ShieldCheck','Cloud','CalendarClock','HardDrive','TrendingUp','LineChart'].forEach\\(n=>console.log\\(n, typeof l[n]\\)\\)\")",
+      "Bash(grep -n \"const defaultDraft = createDefaultDraft\\\\|Understand Portfolio\\\\|Portfolio assets and liabilities\\\\|<p className=\\\\\"text-sm text-\\\\[var\\(--muted-foreground\\)\\\\]\\\\\">{status}</p>\\\\|className=\\\\\"mt-5 flex flex-col gap-3 border-t\\\\|flex flex-wrap items-center gap-2\\\\\">\\\\$\\\\|{lastEodLabel}\\\\|{visibleRowsLabel}\\\\|Refreshing EOD Prices\" src/components/planning/portfolio-panel.tsx)",
+      "Bash(node scripts/portfolio-header-shots.mjs)",
+      "Bash(echo \"lint exit: $?\")"
     ]
   }
 }
