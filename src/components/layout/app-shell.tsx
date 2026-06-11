@@ -63,7 +63,7 @@ function Brand() {
           Household <span className="text-[var(--primary)]">FIRE</span> Planner
         </span>
         <span className="text-[11px] font-medium text-gray-500">
-          Your household&rsquo;s path to financial independence
+          Your private workspace for early retirement
         </span>
       </span>
     </Link>

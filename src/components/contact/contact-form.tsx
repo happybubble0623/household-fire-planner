@@ -155,7 +155,7 @@ export function ContactForm() {
         </div>
       </div>
       <p className="text-xs leading-relaxed text-gray-500">
-        I&rsquo;ll reply by email — add a phone number only if you prefer a call.
+        Optional — email is all I need to reply.
       </p>
       <div>
         <label htmlFor="contact-message" className="text-sm font-medium text-gray-800">

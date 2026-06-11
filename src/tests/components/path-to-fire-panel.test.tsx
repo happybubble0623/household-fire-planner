@@ -92,11 +92,11 @@ describe("PathToFirePanel", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /A guided workspace for household early retirement planning/i
+        name: /Plan your path to early retirement — together, and privately/i
       })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Three ways to reach financial independence" })
+      screen.getByRole("heading", { name: "Three paths to reach early retirement" })
     ).toBeInTheDocument();
 
     // Each FIRE mode is reachable (from a strategy card and from the nav
@@ -125,13 +125,13 @@ describe("PathToFirePanel", () => {
     expect(screen.getByRole("button", { name: /Calculators/i })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Start planning/i })).not.toBeInTheDocument();
 
-    // "Build your plan" scrolls to the three-strategy section on this page.
-    expect(screen.getByRole("link", { name: /Build your plan/i })).toHaveAttribute(
+    // "Map your path" scrolls to the three-strategy section on this page.
+    expect(screen.getByRole("link", { name: /Map your path/i })).toHaveAttribute(
       "href",
       "#strategies"
     );
     // The portfolio CTA routes to the portfolio page.
-    expect(screen.getByRole("link", { name: /Track your portfolio daily/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Track your whole portfolio/i })).toHaveAttribute(
       "href",
       "/app/portfolio-lab"
     );

@@ -98,7 +98,7 @@ const auroraCss = `
 .aurora-home .htitle{font-size:62px;line-height:1.05;font-weight:800;color:var(--n900);margin:18px 0 0;letter-spacing:-.03em}
 .aurora-home .htitle .gold{color:var(--gold6)}
 .aurora-home .hsub{font-size:20px;line-height:1.55;color:var(--n500);margin:22px auto 0;max-width:720px}
-.aurora-home .hgloss{font-size:14.5px;color:var(--n500);margin:16px auto 0;max-width:640px}
+.aurora-home .hgloss{font-size:20px;line-height:1.55;color:var(--n500);opacity:.78;margin:16px auto 0;max-width:680px}
 .aurora-home .hgloss strong{color:var(--n700);font-weight:600}
 .aurora-home .cta{display:flex;gap:12px;margin-top:28px;justify-content:center;flex-wrap:wrap}
 .aurora-home .floatkpi{max-width:780px;margin:40px auto 0;padding:6px}
@@ -175,7 +175,7 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
                 <b>
                   Household <span style={{ color: "var(--g600)" }}>FIRE</span> Planner
                 </b>
-                <small>Your household&rsquo;s path to financial independence</small>
+                <small>Your private workspace for early retirement</small>
               </span>
             </Link>
             <div className="navlinks">
@@ -234,8 +234,8 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
           <div className="hcenter">
             <span className="tag">● Private, transparent planning — for households</span>
             <h1 className="htitle">
-              A guided workspace for household{" "}
-              <span className="gold">early retirement</span> planning.
+              Plan your path to <span className="gold">early retirement</span> — together, and
+              privately
             </h1>
             <p className="hsub">
               Map every account, income, and assumption to one clear path to financial
@@ -247,10 +247,10 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
             </p>
             <div className="cta">
               <a href="#strategies" className="btn p lg">
-                Build your plan →
+                Map your path →
               </a>
               <Link href="/app/portfolio-lab" className="btn g lg">
-                Track your portfolio daily
+                Track your whole portfolio
               </Link>
             </div>
             <div className="glass floatkpi">
@@ -297,7 +297,7 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
         </div>
 
         <section className="sec" id="strategies">
-          <h2>Three ways to reach financial independence</h2>
+          <h2>Three paths to reach early retirement</h2>
           <p className="sub">
             Pick how you&rsquo;ll live off your money in early retirement — from most cautious to
             most flexible.
@@ -324,7 +324,7 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
         </section>
 
         <section className="sec softsec" id="calculators">
-          <h2>Free calculators that sharpen your plan</h2>
+          <h2>Free calculators that sharpen every assumption</h2>
           <p className="sub">
             Estimate Social Security, health insurance through Medicare, mortgage, and investment
             growth — then feed each result straight back into your numbers.
