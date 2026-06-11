@@ -73,7 +73,11 @@
       "Bash(sed -n 1,20p src/app/app/fire-path/page.tsx)",
       "Bash(node -e \"try{require\\('playwright'\\);console.log\\('playwright OK'\\)}catch\\(e\\){try{require\\('playwright-core'\\);console.log\\('playwright-core OK'\\)}catch\\(e2\\){console.log\\('none'\\)}}\")",
       "Bash(ls ~/Library/Caches/ms-playwright/ 2>/dev/null | head; echo \"--- chromium exec ---\"; find ~/Library/Caches/ms-playwright -maxdepth 3 -name \"Chromium*\" -path \"*MacOS*\" 2>/dev/null | head -2; find ~/Library/Caches/ms-playwright -maxdepth 2 -iname \"chrome*\" 2>/dev/null | head -3)",
-      "Bash(node scripts/healthcare-seo-shots.mjs)"
+      "Bash(node scripts/healthcare-seo-shots.mjs)",
+      "WebSearch",
+      "Bash(curl -s -o /dev/null -w \"localhost:3000 -> %{http_code}\\\\n\" --max-time 4 http://localhost:3000/app/fire-path/tools/mortgage)",
+      "Read(//Users/chongzha/Library/Caches/ms-playwright/**)",
+      "Bash(node scripts/calculator-seo-shots.mjs)"
     ]
   }
 }
