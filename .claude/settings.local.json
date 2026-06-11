@@ -111,7 +111,8 @@
       "Bash(node scripts/capture-about-screenshots.mjs http://localhost:3000 three-zone)",
       "Bash(grep -rn \"Local mode\" --include=\"*.tsx\" --include=\"*.ts\" -l src)",
       "Bash(grep -rn \"Update today\" --include=\"*.tsx\" -l src)",
-      "Bash(echo \"no assertions found \\(exit $?\\)\")"
+      "Bash(echo \"no assertions found \\(exit $?\\)\")",
+      "Bash(node scripts/portfolio-header-centered-shots.mjs)"
     ]
   }
 }
