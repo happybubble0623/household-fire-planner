@@ -19,9 +19,10 @@ type SupabaseLikeClient = {
 
 // Singleton client. A single instance per browser tab is required for auth:
 // it owns the persisted session (localStorage) and the onAuthStateChange
-// subscription, and detectSessionInUrl lets a magic-link return auto-establish
-// the session. Reused by the contact form, the auth panel, the session hook,
-// and the workbook sync layer.
+// subscription. The OTP code flow establishes the session in-page via
+// verifyOtp (no redirect callback), so it does not depend on
+// detectSessionInUrl — that option is left on but harmless. Reused by the
+// contact form, the auth panel, the session hook, and the workbook sync layer.
 let supabaseClient: SupabaseClient | null = null;
 
 export function getSupabaseClient() {
