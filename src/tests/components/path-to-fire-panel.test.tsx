@@ -87,55 +87,57 @@ function FireStrategyPanelHarness({
 }
 
 describe("PathToFirePanel", () => {
-  it("presents Path to FIRE as a strategy and tools home page", () => {
+  it("presents the Aurora home hub with strategy cards, tools, and primary CTAs", () => {
     render(<PathToFirePanelHarness />);
 
     expect(
-      screen.getByRole("heading", { name: "A guided workspace for household FIRE planning" })
+      screen.getByRole("heading", {
+        name: /A guided workspace for household early retirement planning/i
+      })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Which FIRE fits you?" })
+      screen.getByRole("heading", { name: "Three ways to reach financial independence" })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /Portfolio Drawdown FIRE/i })
-    ).toHaveAttribute("href", "/app/fire-path/withdrawal-rate");
-    expect(
-      screen.getByRole("link", { name: /Principal-Preserving FIRE/i })
-    ).toHaveAttribute("href", "/app/fire-path/principal-preserving");
-    expect(
-      screen.getByRole("link", { name: /Income Stream FIRE/i })
-    ).toHaveAttribute("href", "/app/fire-path/income-stream");
-    expect(
-      screen.getByRole("link", { name: /Portfolio Drawdown FIRE/i })
-    ).toHaveAttribute("target", "_blank");
-    expect(
-      screen.getByRole("link", { name: /Portfolio Drawdown FIRE/i })
-    ).toHaveAttribute("rel", "noreferrer");
-    expect(
-      screen.getByRole("link", { name: /Principal-Preserving FIRE/i })
-    ).toHaveAttribute("target", "_blank");
-    expect(
-      screen.getByRole("link", { name: /Income Stream FIRE/i })
-    ).toHaveAttribute("rel", "noreferrer");
-    const socialSecurityToolLink = screen.getByRole("link", {
-      name: /Social Security benefit calculator/i
-    });
-    const mortgageToolLink = screen.getByRole("link", { name: /Mortgage calculator/i });
-    const investmentToolLink = screen.getByRole("link", { name: /Investment calculator/i });
-    const healthcareToolLink = screen.getByRole("link", {
-      name: /Retirement healthcare cost calculator/i
-    });
 
-    expect(socialSecurityToolLink).toHaveAttribute("href", "/app/fire-path/tools/social-security");
-    expect(socialSecurityToolLink).toHaveAttribute("target", "_blank");
-    expect(socialSecurityToolLink).toHaveAttribute("rel", "noreferrer");
-    expect(mortgageToolLink).toHaveAttribute("href", "/app/fire-path/tools/mortgage");
-    expect(mortgageToolLink).toHaveAttribute("target", "_blank");
-    expect(investmentToolLink).toHaveAttribute("href", "/app/fire-path/tools/investment");
-    expect(investmentToolLink).toHaveAttribute("target", "_blank");
-    expect(healthcareToolLink).toHaveAttribute("href", "/app/fire-path/tools/healthcare");
-    expect(healthcareToolLink).toHaveAttribute("target", "_blank");
-    expect(healthcareToolLink).toHaveAttribute("rel", "noreferrer");
+    // Each FIRE mode is reachable (from a strategy card and from the nav
+    // dropdown) — every matching link opens the right route in a new tab.
+    const expectNewTabLink = (name: RegExp, href: string) => {
+      const links = screen.getAllByRole("link", { name });
+      const match = links.find((link) => link.getAttribute("href") === href);
+      expect(match).toBeTruthy();
+      expect(match).toHaveAttribute("target", "_blank");
+      expect(match).toHaveAttribute("rel", "noreferrer");
+    };
+
+    expectNewTabLink(/Portfolio Drawdown/i, "/app/fire-path/withdrawal-rate");
+    expectNewTabLink(/Principal-Preserving/i, "/app/fire-path/principal-preserving");
+    expectNewTabLink(/Income Stream FIRE/i, "/app/fire-path/income-stream");
+
+    // Calculators are reachable from the cards and the nav dropdown.
+    expectNewTabLink(/Social Security/i, "/app/fire-path/tools/social-security");
+    expectNewTabLink(/Mortgage/i, "/app/fire-path/tools/mortgage");
+    expectNewTabLink(/Investment/i, "/app/fire-path/tools/investment");
+    expectNewTabLink(/Healthcare/i, "/app/fire-path/tools/healthcare");
+
+    // Nav exposes Strategies and Calculators as dropdown triggers, and the
+    // old "Start planning" button is gone.
+    expect(screen.getByRole("button", { name: /Strategies/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Calculators/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Start planning/i })).not.toBeInTheDocument();
+
+    // "Build your plan" scrolls to the three-strategy section on this page.
+    expect(screen.getByRole("link", { name: /Build your plan/i })).toHaveAttribute(
+      "href",
+      "#strategies"
+    );
+    // The portfolio CTA routes to the portfolio page.
+    expect(screen.getByRole("link", { name: /Track your portfolio daily/i })).toHaveAttribute(
+      "href",
+      "/app/portfolio-lab"
+    );
+    // Top bar exposes Contact (in place of Pricing).
+    expect(screen.getByRole("link", { name: "Contact" })).toHaveAttribute("href", "/contact");
+
     expect(screen.queryByLabelText("Current age")).not.toBeInTheDocument();
   });
 

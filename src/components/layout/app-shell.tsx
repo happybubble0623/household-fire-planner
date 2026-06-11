@@ -13,6 +13,18 @@ const navigation = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
+  // The home hub renders the full-bleed Aurora landing with its own top nav,
+  // so the global app header is hidden there to avoid a duplicate top bar.
+  const isHome = pathname === "/app/fire-path";
+
+  if (isHome) {
+    return (
+      <div className="min-h-screen bg-[var(--background)]">
+        <main>{children}</main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <header className="sticky top-0 z-20 border-b border-gray-200 bg-white/90 px-4 shadow-sm backdrop-blur">

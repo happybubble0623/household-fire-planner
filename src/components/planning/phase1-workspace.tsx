@@ -170,9 +170,14 @@ export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1Workspac
     );
   }
 
+  // The home hub uses the full-bleed Aurora landing (its own nav + backdrop),
+  // so it renders outside the constrained workspace section.
+  if (activeTab === "fire" && fireView === "home") {
+    return <PathToFirePanel {...panelProps} />;
+  }
+
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {activeTab === "fire" && fireView === "home" ? <PathToFirePanel {...panelProps} /> : null}
       {activeTab === "fire" && fireView === "withdrawal" ? (
         <FireStrategyPanel {...panelProps} mode="withdrawal_rate" />
       ) : null}

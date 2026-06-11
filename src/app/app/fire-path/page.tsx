@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Phase1Workspace } from "@/components/planning/phase1-workspace";
 
 export const metadata: Metadata = {
-  title: "Path to FIRE",
+  title: "Early Retirement & FIRE Calculator",
   description:
-    "Compare three FIRE strategies — portfolio drawdown, principal-preserving, and income-stream — to find your earliest financial-independence age.",
+    "A private, guided workspace to plan early retirement and financial independence across your whole household — every account, no brokerage login, nothing leaves your device.",
   alternates: { canonical: "/app/fire-path" }
 };
 
