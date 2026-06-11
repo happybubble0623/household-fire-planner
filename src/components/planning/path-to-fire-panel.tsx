@@ -3,34 +3,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
+import { FIRE_STRATEGIES } from "@/lib/data/fire-strategies";
 import { PLANNING_TOOLS, type PlanningTool } from "@/lib/data/planning-tools";
 
-const strategyCards = [
-  {
-    href: "/app/fire-path/income-stream",
-    eyebrow: "Most cautious",
-    title: "Income Stream FIRE",
-    navLabel: "Income Stream FIRE",
-    description: "Live on guaranteed income alone — Social Security, pension, or rental.",
-    featured: false
-  },
-  {
-    href: "/app/fire-path/principal-preserving",
-    eyebrow: "Keep your nest egg",
-    title: "Principal-Preserving",
-    navLabel: "Principal-Preserving FIRE",
-    description: "Live off income and earnings, never touching your principal.",
-    featured: false
-  },
-  {
-    href: "/app/fire-path/withdrawal-rate",
-    eyebrow: "Most flexible · popular",
-    title: "Portfolio Drawdown",
-    navLabel: "Portfolio Drawdown FIRE",
-    description: "Spend down savings to retire at the earliest possible age.",
-    featured: true
-  }
-];
+const strategyCards = FIRE_STRATEGIES;
 
 const toolIcons: Record<PlanningTool, ReactNode> = {
   "social-security": (

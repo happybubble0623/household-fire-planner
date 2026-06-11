@@ -61,7 +61,10 @@
       "Read(//Applications/Google Chrome.app/Contents/MacOS/**)",
       "Bash(npm i *)",
       "Bash(node tmp-capture-screenshots.mjs)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(node scripts/capture-nav-screenshots.mjs before)",
+      "Bash(node scripts/capture-nav-screenshots.mjs after)",
+      "Bash(echo \"ALL_DONE_EXIT=$?\")"
     ]
   }
 }
