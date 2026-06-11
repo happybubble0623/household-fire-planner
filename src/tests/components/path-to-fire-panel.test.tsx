@@ -137,6 +137,9 @@ describe("PathToFirePanel", () => {
     );
     // Top bar exposes About (in place of Pricing).
     expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+    // The low-key account affordance is present in the hub nav: signed out
+    // (Supabase unconfigured in tests) it renders a quiet "Sign in" link.
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
 
     expect(screen.queryByLabelText("Current age")).not.toBeInTheDocument();
   });

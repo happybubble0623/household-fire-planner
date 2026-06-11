@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { AccountNav } from "@/components/layout/account-nav";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
 import { FIRE_STRATEGIES } from "@/lib/data/fire-strategies";
 import { PLANNING_TOOLS, type PlanningTool } from "@/lib/data/planning-tools";
@@ -82,6 +83,8 @@ const auroraCss = `
 .aurora-home .navitem:hover .navtrigger .chev,.aurora-home .navitem:focus-within .navtrigger .chev{transform:rotate(180deg)}
 .aurora-home .navlink{display:inline-flex;align-items:center;padding:8px 11px;border-radius:8px;color:var(--n500);cursor:pointer;transition:.15s}
 .aurora-home .navlink:hover{color:var(--n900);background:rgba(16,40,24,.05)}
+.aurora-home .navright{display:flex;align-items:center;gap:6px}
+.aurora-home .navdivider{width:1px;height:20px;background:var(--n200);margin:0 4px}
 .aurora-home .dropdown{position:absolute;top:100%;left:0;min-width:248px;background:#fff;border:1px solid var(--n200);border-radius:12px;box-shadow:0 18px 40px rgba(16,40,24,.14);padding:6px;opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s,transform .15s,visibility .15s;z-index:30}
 .aurora-home .navitem:hover .dropdown,.aurora-home .navitem:focus-within .dropdown{opacity:1;visibility:visible;transform:translateY(0)}
 .aurora-home .dropdown a{display:block;padding:9px 11px;border-radius:8px;color:var(--n700);font-size:13.5px;font-weight:600;white-space:nowrap}
@@ -134,6 +137,7 @@ const auroraCss = `
 @media(max-width:880px){
 .aurora-home .htitle{font-size:40px}
 .aurora-home .navlinks{display:none}
+.aurora-home .navdivider{display:none}
 .aurora-home .grid3,.aurora-home .grid4,.aurora-home .stripe,.aurora-home .kpis{grid-template-columns:1fr}
 }
 `;
@@ -178,56 +182,60 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
                 <small>Your private workspace for early retirement</small>
               </span>
             </Link>
-            <div className="navlinks">
-              <div className="navitem">
-                <button type="button" className="navtrigger" aria-haspopup="true">
-                  Strategies
-                  <svg className="chev" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                    <path d="M3 4.5 6 7.5 9 4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                <div className="dropdown" role="menu">
-                  {strategyCards.map((card) => (
-                    <Link
-                      key={card.href}
-                      href={card.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      role="menuitem"
-                    >
-                      {card.navLabel}
-                      <small>{card.eyebrow}</small>
-                    </Link>
-                  ))}
+            <div className="navright">
+              <div className="navlinks">
+                <div className="navitem">
+                  <button type="button" className="navtrigger" aria-haspopup="true">
+                    Strategies
+                    <svg className="chev" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                      <path d="M3 4.5 6 7.5 9 4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <div className="dropdown" role="menu">
+                    {strategyCards.map((card) => (
+                      <Link
+                        key={card.href}
+                        href={card.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        role="menuitem"
+                      >
+                        {card.navLabel}
+                        <small>{card.eyebrow}</small>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="navitem">
-                <button type="button" className="navtrigger" aria-haspopup="true">
-                  Calculators
-                  <svg className="chev" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                    <path d="M3 4.5 6 7.5 9 4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                <div className="dropdown" role="menu">
-                  {PLANNING_TOOLS.map((tool) => (
-                    <Link
-                      key={tool.slug}
-                      href={tool.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      role="menuitem"
-                    >
-                      {tool.title}
-                    </Link>
-                  ))}
+                <div className="navitem">
+                  <button type="button" className="navtrigger" aria-haspopup="true">
+                    Calculators
+                    <svg className="chev" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                      <path d="M3 4.5 6 7.5 9 4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <div className="dropdown" role="menu">
+                    {PLANNING_TOOLS.map((tool) => (
+                      <Link
+                        key={tool.slug}
+                        href={tool.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        role="menuitem"
+                      >
+                        {tool.title}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
+                <Link href="/app/portfolio-lab" className="navlink">
+                  Portfolio
+                </Link>
+                <Link href="/about" className="navlink">
+                  About
+                </Link>
+                <span aria-hidden="true" className="navdivider" />
               </div>
-              <Link href="/app/portfolio-lab" className="navlink">
-                Portfolio
-              </Link>
-              <Link href="/about" className="navlink">
-                About
-              </Link>
+              <AccountNav variant="desktop" />
             </div>
           </nav>
 
