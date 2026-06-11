@@ -4,6 +4,15 @@ const nextConfig: NextConfig = {
   experimental: {},
   turbopack: {
     root: __dirname
+  },
+  async redirects() {
+    return [
+      {
+        source: "/contact",
+        destination: "/about",
+        permanent: true
+      }
+    ];
   }
 };
 

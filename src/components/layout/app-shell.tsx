@@ -177,11 +177,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Portfolio
             </Link>
             <Link
-              href="/contact"
-              className={cn(navItemClass, navItemHoverClass, isActive("/contact") && navItemActiveClass)}
-              aria-current={isActive("/contact") ? "page" : undefined}
+              href="/about"
+              className={cn(navItemClass, navItemHoverClass, isActive("/about") && navItemActiveClass)}
+              aria-current={isActive("/about") ? "page" : undefined}
             >
-              Contact
+              About
             </Link>
           </nav>
 
@@ -259,14 +259,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 Portfolio
               </Link>
               <Link
-                href="/contact"
+                href="/about"
                 className={cn(
                   mobileLinkClass,
-                  isActive("/contact") && navItemActiveClass
+                  isActive("/about") && navItemActiveClass
                 )}
-                aria-current={isActive("/contact") ? "page" : undefined}
+                aria-current={isActive("/about") ? "page" : undefined}
               >
-                Contact
+                About
               </Link>
             </div>
           </nav>

@@ -135,8 +135,8 @@ describe("PathToFirePanel", () => {
       "href",
       "/app/portfolio-lab"
     );
-    // Top bar exposes Contact (in place of Pricing).
-    expect(screen.getByRole("link", { name: "Contact" })).toHaveAttribute("href", "/contact");
+    // Top bar exposes About (in place of Pricing).
+    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
 
     expect(screen.queryByLabelText("Current age")).not.toBeInTheDocument();
   });

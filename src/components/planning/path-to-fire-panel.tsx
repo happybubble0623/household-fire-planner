@@ -225,8 +225,8 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
               <Link href="/app/portfolio-lab" className="navlink">
                 Portfolio
               </Link>
-              <Link href="/contact" className="navlink">
-                Contact
+              <Link href="/about" className="navlink">
+                About
               </Link>
             </div>
           </nav>
