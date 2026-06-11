@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+build/
+dist/
+coverage/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log
+pnpm-debug.log*
+yarn-debug.log*
+
+# Deploy / tooling caches
+.vercel/
+.turbo/
+
+# OS cruft
+.DS_Store

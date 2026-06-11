@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Freedom Path — Home (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .hero{position:relative;border-radius:28px;overflow:hidden;padding:56px 56px 130px;color:#fff;
+    background:
+      radial-gradient(130% 120% at 100% -10%, rgba(245,179,1,.20), transparent 45%),
+      radial-gradient(120% 120% at 0% 120%, rgba(110,224,160,.30), transparent 50%),
+      linear-gradient(135deg,#0f3d22 0%,#15803d 58%,#1f9b50 100%);
+    box-shadow:var(--shadow-lg)}
+  .hero .eyebrow{color:var(--green-100)}
+  .hero h1{font-family:'Fraunces',serif;font-weight:600;font-size:54px;line-height:1.05;letter-spacing:-.02em;max-width:760px;margin:14px 0 0}
+  .hero h1 .fire{color:var(--gold-400)}
+  .hero p{max-width:560px;color:rgba(255,255,255,.85);font-size:18px;margin:18px 0 0}
+  .chips{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+  .gchip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(4px);
+    border-radius:12px;padding:10px 14px;font-size:13px;font-weight:500}
+  .floatcard{position:absolute;right:56px;bottom:-46px;width:300px;background:var(--surface);border:1px solid var(--n200);
+    border-radius:18px;box-shadow:var(--shadow-lg);padding:18px 20px}
+  .floatcard .lbl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--n500)}
+  .floatcard .big{font-size:40px;font-weight:700;color:var(--n900);letter-spacing:-.02em;line-height:1.1}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .scard{background:var(--surface);border:1px solid var(--n200);border-radius:18px;box-shadow:var(--shadow-sm);
+    padding:24px;position:relative;transition:.2s}
+  .scard .ico{width:44px;height:44px;border-radius:13px;background:var(--green-50);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .scard h3{font-size:21px}
+  .scard p{color:var(--n600);font-size:14px;margin:10px 0 18px}
+  .scard .go{font-size:13px;font-weight:600;color:var(--green-700)}
+  .badge{position:absolute;top:18px;right:18px;background:var(--gold-50);color:var(--gold-600);font-size:11px;font-weight:700;
+    padding:4px 10px;border-radius:999px;display:flex;align-items:center;gap:4px}
+  .tcard{background:var(--surface);border:1px solid var(--n200);border-radius:16px;box-shadow:var(--shadow-sm);padding:18px}
+  .tcard .ico{width:36px;height:36px;border-radius:10px;background:var(--green-50);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+  .tcard h4{font-size:15px;font-weight:600;color:var(--n900);margin:0}
+  .tcard p{font-size:13px;color:var(--n500);margin:6px 0 0}
+  .sect{margin:44px 0 0}
+  .sect .h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+  .sect h2{font-size:28px}
+</style>
+</head>
+<body>
+<header class="appbar"><div class="bar" style="max-width:1200px;margin:0 auto;width:100%">
+  <a class="brand">
+    <span class="mark"><svg viewBox="0 0 64 64" width="22" height="22"><path d="M16 40 L32 18 L48 40" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 48 L44 48" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></span>
+    <span class="brandtext"><b>Household <span style="color:var(--green-600)">FIRE</span> Planner</b><small>Your household’s path to financial independence</small></span>
+  </a>
+  <nav class="nav"><a class="active">Path to FIRE</a><a>Understand Portfolio</a></nav>
+</div></header>
+
+<div class="wrap" style="padding-top:32px">
+  <section class="hero">
+    <div class="eyebrow">PRIVATE, TRANSPARENT FIRE PLANNING</div>
+    <h1>A guided workspace for household
+      <span class="fire">FIRE</span><svg width="34" height="40" viewBox="0 0 24 28" style="vertical-align:-4px;margin-left:4px"><path d="M12 1c1 4 5 5 5 10a5 5 0 1 1-10 0c0-2 1-3 1-5 0 2 1 3 2 3 1 0 1-1 1-3 0-3 0-4 0-5z" fill="#f5b301"/><path d="M12 9c.6 2 2.4 2.6 2.4 5a2.4 2.4 0 1 1-4.8 0c0-1.4 1.2-2 1.2-4 .4 1 .8 1 1.2-1z" fill="#fff" opacity=".55"/></svg>
+      planning</h1>
+    <p>Start with simple assumptions, then sharpen the plan as you add household accounts, future income, inflation, taxes, and real portfolio assets.</p>
+    <div class="chips">
+      <span class="gchip">No brokerage login required</span>
+      <span class="gchip">Built for household accounts</span>
+      <span class="gchip">Local workbook · saved on this device</span>
+    </div>
+    <div class="floatcard">
+      <div class="lbl">Projected FIRE age</div>
+      <div class="big tnum">52</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+        <span class="chip pos">▲ 3 yrs earlier</span>
+        <span class="muted" style="font-size:12px">vs last plan</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="sect" style="margin-top:74px">
+    <div class="h">
+      <div><h2>Which FIRE fits you?</h2>
+      <p class="muted" style="margin:6px 0 0;font-size:14px">From most cautious (live on income) to most flexible (spend it down).</p></div>
+    </div>
+    <div class="grid3">
+      <div class="scard">
+        <div class="ico"><svg width="22" height="22" fill="none" stroke="#15803d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16h16M7 14l3-4 3 2 4-6"/></svg></div>
+        <div class="muted" style="font-size:12px;font-weight:600">MOST CAUTIOUS</div>
+        <h3>Income Stream FIRE</h3>
+        <p>Live on guaranteed income alone — Social Security, pension, or rental — and never rely on investments.</p>
+        <span class="go">Open strategy →</span>
+      </div>
+      <div class="scard">
+        <div class="ico"><svg width="22" height="22" fill="none" stroke="#15803d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13M9 21v-7h6v7"/></svg></div>
+        <div class="muted" style="font-size:12px;font-weight:600">KEEP YOUR NEST EGG</div>
+        <h3>Principal-Preserving FIRE</h3>
+        <p>Live off income and earnings, but never touch your principal — for safety or legacy.</p>
+        <span class="go">Open strategy →</span>
+      </div>
+      <div class="scard" style="border-color:var(--gold-400);box-shadow:var(--shadow-md)">
+        <div class="badge">★ Recommended</div>
+        <div class="ico" style="background:var(--gold-50)"><svg width="22" height="22" fill="none" stroke="#b07d00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M5 9l7-5 7 5M5 15l7 5 7-5"/></svg></div>
+        <div class="muted" style="font-size:12px;font-weight:600">MOST FLEXIBLE</div>
+        <h3>Portfolio Drawdown FIRE</h3>
+        <p>Spend down savings as long as they last your lifetime — the earliest possible retirement age.</p>
+        <span class="go">Open strategy →</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="sect">
+    <div class="h"><div><h2>Refine your estimate with these calculators</h2>
+      <p class="muted" style="margin:6px 0 0;font-size:14px">Open a calculator to fine-tune an assumption, then bring the number back into your plan.</p></div></div>
+    <div class="grid4">
+      <a class="tcard"><div class="ico"><svg width="20" height="20" fill="none" stroke="#15803d" stroke-width="2" stroke-linecap="round"><path d="M12 1v22M5 5h10a3 3 0 0 1 0 6H7a3 3 0 0 0 0 6h11"/></svg></div><h4>Social Security benefit</h4><p>Compare estimates at 62, full retirement age, and 70.</p></a>
+      <a class="tcard"><div class="ico"><svg width="20" height="20" fill="none" stroke="#15803d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10z"/></svg></div><h4>Retirement healthcare cost</h4><p>ACA gap years + Medicare, subsidies, IRMAA, HSA.</p></a>
+      <a class="tcard"><div class="ico"><svg width="20" height="20" fill="none" stroke="#15803d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></div><h4>Mortgage calculator</h4><p>Monthly principal, interest, taxes & payoff cost.</p></a>
+      <a class="tcard"><div class="ico"><svg width="20" height="20" fill="none" stroke="#15803d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 8-9M21 6v5h-5"/></svg></div><h4>Investment calculator</h4><p>Project a balance from assets, contributions & time.</p></a>
+    </div>
+  </section>
+
+  <div class="disclaimer">Planning estimates only. Not financial, tax, or legal advice.</div>
+</div>
+</body>
+</html>

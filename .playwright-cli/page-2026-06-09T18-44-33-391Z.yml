@@ -1,0 +1,79 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Freedom Path" [ref=e5] [cursor=pointer]:
+          - /url: /app/fire-path
+        - navigation "Primary navigation" [ref=e6]:
+          - link "Path to FIRE" [ref=e7] [cursor=pointer]:
+            - /url: /app/fire-path
+          - link "Understand Portfolio" [ref=e8] [cursor=pointer]:
+            - /url: /app/portfolio-lab
+    - main [ref=e9]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - link "Back to Path to FIRE" [ref=e13] [cursor=pointer]:
+            - /url: /app/fire-path
+          - heading "Social Security benefit calculator" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Estimate an unofficial Social Security benefit from covered earnings and claiming assumptions.
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - generic [ref=e18]:
+              - generic [ref=e19]:
+                - generic [ref=e20]: Birth year
+                - button "About Birth year" [ref=e21]:
+                  - img [ref=e22]
+              - spinbutton "Birth year" [ref=e25]: "1985"
+            - generic [ref=e26]:
+              - generic [ref=e27]:
+                - generic [ref=e28]: Claiming age
+                - button "About Claiming age" [ref=e29]:
+                  - img [ref=e30]
+              - spinbutton "Claiming age" [ref=e33]: "67"
+            - generic [ref=e34]:
+              - generic [ref=e35]:
+                - generic [ref=e36]: Work start year
+                - button "About Work start year" [ref=e37]:
+                  - img [ref=e38]
+              - spinbutton "Work start year" [ref=e41]: "2010"
+            - generic [ref=e42]:
+              - generic [ref=e43]:
+                - generic [ref=e44]: Work end year
+                - button "About Work end year" [ref=e45]:
+                  - img [ref=e46]
+              - spinbutton "Work end year" [ref=e49]: "2052"
+            - generic [ref=e50]:
+              - generic [ref=e51]:
+                - generic [ref=e52]: Starting annual covered earnings
+                - button "About Starting annual covered earnings" [ref=e53]:
+                  - img [ref=e54]
+              - spinbutton "Starting annual covered earnings" [ref=e57]: "80000"
+            - generic [ref=e58]:
+              - generic [ref=e59]:
+                - generic [ref=e60]: Annual earnings growth
+                - button "About Annual earnings growth" [ref=e61]:
+                  - img [ref=e62]
+              - generic [ref=e64]:
+                - spinbutton "Annual earnings growth" [ref=e65]: "3"
+                - generic [ref=e66]: "%"
+            - generic [ref=e67]:
+              - generic [ref=e68]:
+                - generic [ref=e69]: Wage growth assumption
+                - button "About Wage growth assumption" [ref=e70]:
+                  - img [ref=e71]
+              - generic [ref=e73]:
+                - spinbutton "Wage growth assumption" [ref=e74]: "3"
+                - generic [ref=e75]: "%"
+          - generic [ref=e76]:
+            - generic [ref=e77]:
+              - paragraph [ref=e78]: Estimated monthly benefit
+              - paragraph [ref=e79]: $6,545.86
+            - generic [ref=e80]:
+              - paragraph [ref=e81]: Estimated annual benefit
+              - paragraph [ref=e82]: $78,550
+            - generic [ref=e83]:
+              - paragraph [ref=e84]: Full retirement age
+              - paragraph [ref=e85]: "67"
+            - paragraph [ref=e86]: This is an unofficial estimate based on the information you entered. It does not access your SSA earnings record and may differ from your official Social Security estimate.
+        - paragraph [ref=e87]: Planning estimates only. Not financial, tax, or legal advice.
+  - alert [ref=e88]

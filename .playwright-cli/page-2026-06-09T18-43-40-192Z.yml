@@ -1,0 +1,54 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Freedom Path" [ref=e5] [cursor=pointer]:
+          - /url: /app/fire-path
+        - navigation "Primary navigation" [ref=e6]:
+          - link "Path to FIRE" [ref=e7] [cursor=pointer]:
+            - /url: /app/fire-path
+          - link "Understand Portfolio" [ref=e8] [cursor=pointer]:
+            - /url: /app/portfolio-lab
+    - main [ref=e9]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - link "Back to Path to FIRE" [ref=e13] [cursor=pointer]:
+            - /url: /app/fire-path
+          - heading "Mortgage calculator" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Estimate principal-and-interest payments for a mortgage assumption.
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - generic [ref=e18]:
+              - generic [ref=e19]:
+                - generic [ref=e20]: Loan amount
+                - button "About Loan amount" [ref=e21]:
+                  - img [ref=e22]
+              - spinbutton "Loan amount" [ref=e25]: "500000"
+            - generic [ref=e26]:
+              - generic [ref=e27]:
+                - generic [ref=e28]: Annual interest rate
+                - button "About Annual interest rate" [ref=e29]:
+                  - img [ref=e30]
+              - generic [ref=e32]:
+                - spinbutton "Annual interest rate" [ref=e33]: "6.5"
+                - generic [ref=e34]: "%"
+            - generic [ref=e35]:
+              - generic [ref=e36]:
+                - generic [ref=e37]: Loan term
+                - button "About Loan term" [ref=e38]:
+                  - img [ref=e39]
+              - generic [ref=e41]:
+                - spinbutton "Loan term" [ref=e42]: "30"
+                - generic [ref=e43]: years
+          - generic [ref=e44]:
+            - generic [ref=e45]:
+              - paragraph [ref=e46]: Estimated monthly payment
+              - paragraph [ref=e47]: $3,160.34
+            - generic [ref=e48]:
+              - paragraph [ref=e49]: Total interest
+              - paragraph [ref=e50]: $637,722
+            - generic [ref=e51]:
+              - paragraph [ref=e52]: Total paid
+              - paragraph [ref=e53]: $1,137,722
+        - paragraph [ref=e54]: Planning estimates only. Not financial, tax, or legal advice.
+  - alert [ref=e55]

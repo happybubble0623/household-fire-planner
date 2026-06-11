@@ -1,0 +1,242 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1260" viewBox="0 0 1680 1260">
+  <defs>
+    <style>
+      .bg { fill: #f6f7fb; }
+      .panel { fill: #ffffff; stroke: #dfe4ec; stroke-width: 1.5; }
+      .panel-title { font: 700 25px Arial, sans-serif; fill: #172033; }
+      .panel-note { font: 400 16px Arial, sans-serif; fill: #637083; }
+      .label { font: 600 15px Arial, sans-serif; fill: #435064; }
+      .small { font: 400 13px Arial, sans-serif; fill: #6e7a8e; }
+      .tiny { font: 400 12px Arial, sans-serif; fill: #7c8797; }
+      .value { font: 700 22px Arial, sans-serif; fill: #172033; }
+      .card { fill: #fbfcfe; stroke: #e2e7ef; stroke-width: 1.2; }
+      .chip { fill: #eef4ff; stroke: #cbdcf7; stroke-width: 1.2; }
+      .chip2 { fill: #f5f7fa; stroke: #dde3eb; stroke-width: 1.2; }
+      .accent { fill: #2f6fed; }
+      .accent2 { fill: #20a079; }
+      .accent3 { fill: #f4a62a; }
+      .accent4 { fill: #d75f7a; }
+      .muted { fill: #d8dee8; }
+      .line { stroke: #e4e9f1; stroke-width: 1; }
+      .bar-bg { fill: #ecf0f6; }
+      .bar-a { fill: #2f6fed; }
+      .bar-b { fill: #20a079; }
+      .bar-c { fill: #f4a62a; }
+      .bar-d { fill: #d75f7a; }
+      .dark { fill: #172033; }
+      .warn { fill: #fff7e8; stroke: #f0d4a0; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1680" height="1260"/>
+  <text x="54" y="58" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#172033">Portfolio Overview Filter Mockup Options</text>
+  <text x="54" y="88" font-family="Arial, sans-serif" font-size="17" fill="#637083">Goal: stats, group allocation, and specific holding allocation all respond to the same selected lens and scope.</text>
+
+  <!-- Option A -->
+  <rect class="panel" x="48" y="120" width="774" height="515" rx="18"/>
+  <text class="panel-title" x="76" y="162">Option A: Guided Lens Bar</text>
+  <text class="panel-note" x="76" y="187">One control row: choose scope, lens, and allocation view.</text>
+
+  <rect class="chip2" x="76" y="214" width="152" height="38" rx="12"/>
+  <text class="label" x="94" y="238">Scope: FIRE only</text>
+  <rect class="chip" x="240" y="214" width="218" height="38" rx="12"/>
+  <text class="label" x="258" y="238">Analyze by: Owner</text>
+  <rect class="chip2" x="470" y="214" width="156" height="38" rx="12"/>
+  <text class="label" x="488" y="238">Holdings</text>
+  <rect class="chip" x="628" y="214" width="150" height="38" rx="12"/>
+  <text class="label" x="646" y="238">Compare</text>
+
+  <rect class="card" x="76" y="274" width="158" height="82" rx="14"/>
+  <text class="small" x="96" y="301">Total Balance</text>
+  <text class="value" x="96" y="331">$833k</text>
+  <rect class="card" x="250" y="274" width="158" height="82" rx="14"/>
+  <text class="small" x="270" y="301">FIRE Assets</text>
+  <text class="value" x="270" y="331">$716k</text>
+  <rect class="card" x="424" y="274" width="158" height="82" rx="14"/>
+  <text class="small" x="444" y="301">Top Holding</text>
+  <text class="value" x="444" y="331">VTI 40%</text>
+  <rect class="card" x="598" y="274" width="180" height="82" rx="14"/>
+  <text class="small" x="618" y="301">Largest Holding</text>
+  <text class="value" x="618" y="331">VTI</text>
+
+  <rect class="card" x="76" y="378" width="330" height="205" rx="16"/>
+  <text class="label" x="98" y="407">Holding allocation in selected owner</text>
+  <circle cx="204" cy="484" r="61" fill="none" stroke="#ecf0f6" stroke-width="24"/>
+  <circle cx="204" cy="484" r="61" fill="none" stroke="#2f6fed" stroke-width="24" stroke-dasharray="210 383" stroke-dashoffset="-30" transform="rotate(-90 204 484)"/>
+  <circle cx="204" cy="484" r="61" fill="none" stroke="#20a079" stroke-width="24" stroke-dasharray="82 383" stroke-dashoffset="-240" transform="rotate(-90 204 484)"/>
+  <circle cx="204" cy="484" r="61" fill="none" stroke="#f4a62a" stroke-width="24" stroke-dasharray="48 383" stroke-dashoffset="-322" transform="rotate(-90 204 484)"/>
+  <text class="small" x="294" y="458">VTI 40%</text>
+  <rect class="bar-a" x="270" y="448" width="13" height="13" rx="3"/>
+  <text class="small" x="294" y="486">TSLA 15%</text>
+  <rect class="bar-b" x="270" y="476" width="13" height="13" rx="3"/>
+  <text class="small" x="294" y="514">BTC 10%</text>
+  <rect class="bar-c" x="270" y="504" width="13" height="13" rx="3"/>
+  <text class="small" x="294" y="542">Other 35%</text>
+  <rect class="muted" x="270" y="532" width="13" height="13" rx="3"/>
+
+  <rect class="card" x="428" y="378" width="350" height="205" rx="16"/>
+  <text class="label" x="450" y="407">Breakdown chips</text>
+  <rect class="chip" x="450" y="430" width="143" height="52" rx="14"/>
+  <text class="label" x="469" y="454">User 1</text>
+  <text class="tiny" x="469" y="472">$420k | VTI 40%</text>
+  <rect class="chip2" x="610" y="430" width="143" height="52" rx="14"/>
+  <text class="label" x="629" y="454">User 2</text>
+  <text class="tiny" x="629" y="472">$310k | FSKAX 35%</text>
+  <rect class="chip2" x="450" y="496" width="143" height="52" rx="14"/>
+  <text class="label" x="469" y="520">Joint</text>
+  <text class="tiny" x="469" y="538">$95k | Cash 35%</text>
+  <rect class="chip2" x="610" y="496" width="143" height="52" rx="14"/>
+  <text class="label" x="629" y="520">Child</text>
+  <text class="tiny" x="629" y="538">$8k | VTI 100%</text>
+  <text class="tiny" x="450" y="570">Best default: simple, powerful, low navigation burden.</text>
+
+  <!-- Option B -->
+  <rect class="panel" x="858" y="120" width="774" height="515" rx="18"/>
+  <text class="panel-title" x="886" y="162">Option B: Comparison Board</text>
+  <text class="panel-note" x="886" y="187">Best for comparing specific holding allocation across owners, accounts, or tax buckets.</text>
+
+  <rect class="chip" x="886" y="214" width="196" height="38" rx="12"/>
+  <text class="label" x="904" y="238">Compare by: Owner</text>
+  <rect class="chip2" x="1094" y="214" width="166" height="38" rx="12"/>
+  <text class="label" x="1112" y="238">Scope: FIRE only</text>
+  <rect class="chip2" x="1272" y="214" width="214" height="38" rx="12"/>
+  <text class="label" x="1290" y="238">Allocation: Holdings</text>
+
+  <rect class="card" x="886" y="276" width="165" height="174" rx="16"/>
+  <text class="label" x="910" y="306">User 1</text>
+  <text class="value" x="910" y="337">$420k</text>
+  <rect class="bar-bg" x="910" y="357" width="112" height="12" rx="6"/>
+  <rect class="bar-a" x="910" y="357" width="72" height="12" rx="6"/>
+  <rect class="bar-b" x="982" y="357" width="24" height="12" rx="6"/>
+  <rect class="bar-c" x="1006" y="357" width="16" height="12" rx="6"/>
+  <text class="tiny" x="910" y="392">VTI 40%</text>
+  <text class="tiny" x="910" y="414">TSLA 15%</text>
+  <text class="tiny" x="910" y="436">BTC 10%</text>
+
+  <rect class="card" x="1070" y="276" width="165" height="174" rx="16"/>
+  <text class="label" x="1094" y="306">User 2</text>
+  <text class="value" x="1094" y="337">$310k</text>
+  <rect class="bar-bg" x="1094" y="357" width="112" height="12" rx="6"/>
+  <rect class="bar-a" x="1094" y="357" width="56" height="12" rx="6"/>
+  <rect class="bar-b" x="1150" y="357" width="35" height="12" rx="6"/>
+  <rect class="bar-d" x="1185" y="357" width="21" height="12" rx="6"/>
+  <text class="tiny" x="1094" y="392">FSKAX 35%</text>
+  <text class="tiny" x="1094" y="414">AAPL 18%</text>
+  <text class="tiny" x="1094" y="436">BTC 6%</text>
+
+  <rect class="card" x="1254" y="276" width="165" height="174" rx="16"/>
+  <text class="label" x="1278" y="306">Joint</text>
+  <text class="value" x="1278" y="337">$95k</text>
+  <rect class="bar-bg" x="1278" y="357" width="112" height="12" rx="6"/>
+  <rect class="bar-c" x="1278" y="357" width="42" height="12" rx="6"/>
+  <rect class="bar-a" x="1320" y="357" width="34" height="12" rx="6"/>
+  <rect class="muted" x="1354" y="357" width="36" height="12" rx="6"/>
+  <text class="tiny" x="1278" y="392">Cash 35%</text>
+  <text class="tiny" x="1278" y="414">VTI 28%</text>
+  <text class="tiny" x="1278" y="436">Home 30%</text>
+
+  <rect class="card" x="1438" y="276" width="150" height="174" rx="16"/>
+  <text class="label" x="1462" y="306">Child</text>
+  <text class="value" x="1462" y="337">$8k</text>
+  <rect class="bar-bg" x="1462" y="357" width="92" height="12" rx="6"/>
+  <rect class="bar-a" x="1462" y="357" width="92" height="12" rx="6"/>
+  <text class="tiny" x="1462" y="392">VTI 100%</text>
+
+  <rect class="card" x="886" y="472" width="702" height="111" rx="16"/>
+  <text class="label" x="908" y="501">Selected comparison insight</text>
+  <text class="small" x="908" y="528">User 1 has BTC 10% and TSLA 15%. User 2 has BTC 6% and AAPL 18%.</text>
+  <line class="line" x1="908" y1="548" x2="1564" y2="548"/>
+  <text class="tiny" x="908" y="570">Best later: very useful, but denser than the guided lens bar.</text>
+
+  <!-- Option C -->
+  <rect class="panel" x="48" y="680" width="774" height="515" rx="18"/>
+  <text class="panel-title" x="76" y="722">Option C: Progressive Drilldown</text>
+  <text class="panel-note" x="76" y="747">Start with household, then drill into the exact holdings behind one owner or account.</text>
+
+  <rect class="chip2" x="76" y="774" width="282" height="38" rx="12"/>
+  <text class="label" x="94" y="798">Household &gt; User 1 &gt; Roth IRA</text>
+  <rect class="chip" x="370" y="774" width="150" height="38" rx="12"/>
+  <text class="label" x="388" y="798">Back</text>
+
+  <rect class="card" x="76" y="834" width="330" height="304" rx="16"/>
+  <text class="label" x="98" y="864">Click-to-drill list</text>
+  <text class="small" x="98" y="895">Household allocation by owner</text>
+  <text class="label" x="98" y="928">User 1</text>
+  <rect class="bar-bg" x="184" y="916" width="172" height="16" rx="8"/>
+  <rect class="bar-a" x="184" y="916" width="136" height="16" rx="8"/>
+  <text class="small" x="98" y="958">User 2</text>
+  <rect class="bar-bg" x="184" y="946" width="172" height="16" rx="8"/>
+  <rect class="bar-b" x="184" y="946" width="101" height="16" rx="8"/>
+  <text class="small" x="98" y="988">Joint</text>
+  <rect class="bar-bg" x="184" y="976" width="172" height="16" rx="8"/>
+  <rect class="bar-c" x="184" y="976" width="38" height="16" rx="8"/>
+  <text class="small" x="98" y="1018">Child</text>
+  <rect class="bar-bg" x="184" y="1006" width="172" height="16" rx="8"/>
+  <rect class="bar-d" x="184" y="1006" width="12" height="16" rx="8"/>
+  <line class="line" x1="98" y1="1048" x2="384" y2="1048"/>
+  <text class="tiny" x="98" y="1074">Best for new users: fewer controls, more guided.</text>
+
+  <rect class="card" x="428" y="834" width="350" height="304" rx="16"/>
+  <text class="label" x="450" y="864">Current drilldown result</text>
+  <text class="value" x="450" y="900">User 1 Roth IRA</text>
+  <text class="small" x="450" y="928">$128k FIRE assets | holding allocation</text>
+  <rect class="bar-bg" x="450" y="956" width="282" height="16" rx="8"/>
+  <rect class="bar-a" x="450" y="956" width="176" height="16" rx="8"/>
+  <rect class="bar-b" x="626" y="956" width="66" height="16" rx="8"/>
+  <rect class="bar-c" x="692" y="956" width="40" height="16" rx="8"/>
+  <text class="tiny" x="450" y="991">VTI 45% | TSLA 18% | BTC 12% | Other 25%</text>
+  <rect class="chip2" x="450" y="1022" width="120" height="36" rx="11"/>
+  <text class="small" x="469" y="1045">Holdings</text>
+  <rect class="chip2" x="582" y="1022" width="150" height="36" rx="11"/>
+  <text class="small" x="601" y="1045">Compare peers</text>
+  <text class="tiny" x="450" y="1092">Tradeoff: simple navigation, less instant side-by-side comparison.</text>
+
+  <!-- Option D -->
+  <rect class="panel" x="858" y="680" width="774" height="515" rx="18"/>
+  <text class="panel-title" x="886" y="722">Option D: Saved Views / Smart Filters</text>
+  <text class="panel-note" x="886" y="747">Power-user pattern: save repeated views like BTC, TSLA, or taxable assets.</text>
+
+  <text class="label" x="886" y="795">Saved views</text>
+  <rect class="chip" x="886" y="814" width="178" height="38" rx="12"/>
+  <text class="label" x="904" y="838">Household FIRE</text>
+  <rect class="chip2" x="1076" y="814" width="164" height="38" rx="12"/>
+  <text class="label" x="1094" y="838">User 1 View</text>
+  <rect class="chip2" x="1252" y="814" width="162" height="38" rx="12"/>
+  <text class="label" x="1270" y="838">BTC + TSLA</text>
+  <rect class="chip2" x="1426" y="814" width="120" height="38" rx="12"/>
+  <text class="label" x="1444" y="838">+ New</text>
+
+  <rect class="card" x="886" y="878" width="300" height="260" rx="16"/>
+  <text class="label" x="908" y="908">Current view filters</text>
+  <text class="small" x="908" y="942">Scope</text>
+  <rect class="chip" x="990" y="920" width="142" height="32" rx="10"/>
+  <text class="tiny" x="1008" y="941">FIRE included</text>
+  <text class="small" x="908" y="982">Owner</text>
+  <rect class="chip2" x="990" y="960" width="142" height="32" rx="10"/>
+  <text class="tiny" x="1008" y="981">All</text>
+  <text class="small" x="908" y="1022">Account type</text>
+  <rect class="chip2" x="990" y="1000" width="142" height="32" rx="10"/>
+  <text class="tiny" x="1008" y="1021">Taxable</text>
+  <text class="small" x="908" y="1062">Collection</text>
+  <rect class="chip2" x="990" y="1040" width="142" height="32" rx="10"/>
+  <text class="tiny" x="1008" y="1061">Core Growth</text>
+  <text class="tiny" x="908" y="1102">Best for repeated analysis, but adds setup work.</text>
+
+  <rect class="card" x="1212" y="878" width="376" height="260" rx="16"/>
+  <text class="label" x="1234" y="908">Stats and allocation for saved view</text>
+  <rect class="card" x="1234" y="930" width="140" height="74" rx="13"/>
+  <text class="tiny" x="1252" y="957">View balance</text>
+  <text class="value" x="1252" y="984">$286k</text>
+  <rect class="card" x="1390" y="930" width="152" height="74" rx="13"/>
+  <text class="tiny" x="1408" y="957">Drift flag</text>
+  <text class="value" x="1408" y="984">High</text>
+  <rect class="bar-bg" x="1234" y="1032" width="294" height="18" rx="9"/>
+  <rect class="bar-a" x="1234" y="1032" width="140" height="18" rx="9"/>
+  <rect class="bar-b" x="1374" y="1032" width="84" height="18" rx="9"/>
+  <rect class="bar-c" x="1458" y="1032" width="70" height="18" rx="9"/>
+  <text class="small" x="1234" y="1080">BTC 10% | TSLA 15% | Other selected 75%</text>
+  <rect class="warn" x="1234" y="1100" width="294" height="30" rx="10"/>
+  <text class="tiny" x="1250" y="1120">Good later, not ideal as the first default.</text>
+
+  <text x="54" y="1232" font-family="Arial, sans-serif" font-size="16" fill="#637083">Recommendation: Option A first, with Allocation View = Group or Holdings. Add Option B when comparison becomes the main workflow.</text>
+</svg>

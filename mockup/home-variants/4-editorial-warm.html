@@ -1,0 +1,106 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=1280">
+<title>Home — Editorial Warm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,400;9..144,0,500;9..144,0,600;9..144,1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#2a2418;--soft:#6f6552;--g600:#2f7d4f;--g700:#1f5e3a;--gold:#e0a226;--cream:#faf6ee;--peach:#f3e7d6;--line:#e7ddcc}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,sans-serif;font-feature-settings:"tnum" 1;-webkit-font-smoothing:antialiased;line-height:1.55;background:var(--cream);color:var(--soft)}
+.tnum{font-variant-numeric:tabular-nums}a{color:inherit;text-decoration:none}.wrap{max-width:1080px;margin:0 auto;padding:0 34px}
+.serif{font-family:Fraunces,serif}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:26px 0}
+.brand{font-family:Fraunces,serif;font-weight:600;font-size:21px;color:var(--ink);display:flex;align-items:center;gap:11px}
+.logo{width:32px;height:32px;border-radius:50%;background:var(--g600);display:grid;place-items:center}
+.navlinks{display:flex;gap:30px;font-size:14.5px;color:var(--soft)}
+.btn{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 22px;border-radius:999px;font-weight:600;font-size:15px}
+.btn.p{background:var(--ink);color:var(--cream)}.btn.o{border:1px solid var(--ink);color:var(--ink)}
+.herowrap{background:radial-gradient(120% 120% at 90% 0%,rgba(224,162,38,.20),transparent 48%),linear-gradient(180deg,var(--peach),var(--cream));border-radius:0 0 36px 36px}
+.hero{display:grid;grid-template-columns:1.15fr 0.85fr;gap:50px;align-items:center;padding:54px 0 80px}
+.kick{font-family:Fraunces,serif;font-style:italic;font-size:19px;color:var(--g700)}
+.hero h1{font-family:Fraunces,serif;font-weight:500;font-size:66px;line-height:1.02;color:var(--ink);letter-spacing:-.015em;margin:14px 0 0}
+.hero p{font-size:18px;max-width:440px;margin:24px 0 0}
+.cta{display:flex;gap:14px;margin-top:32px;align-items:center}
+/* Trusti circular icon trio */
+.badges{display:flex;gap:-10px;margin-bottom:6px}
+.bdg{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;margin-left:-12px;border:3px solid var(--cream)}
+.bdg:first-child{margin-left:0}.b1{background:#fbe6b0}.b2{background:#cfe8d6}.b3{background:#cfe9e4}
+/* warm photo-feel block */
+.photo{margin-top:34px;height:170px;border-radius:22px;position:relative;overflow:hidden;
+  background:linear-gradient(120deg,#e9d9be,#cbe0cb 60%,#bcd6cf);box-shadow:inset 0 0 0 1px var(--line)}
+.photo::after{content:"";position:absolute;right:-30px;bottom:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#fff8,transparent 70%)}
+.pcap{position:absolute;left:22px;bottom:18px;right:90px;font-family:Fraunces,serif;font-style:italic;font-size:17px;color:#3a3322}
+/* Trusti savings-schedule card */
+.sched{background:linear-gradient(165deg,#2f7d4f,#1f5e3a);color:#fff;border-radius:24px;padding:28px;box-shadow:0 24px 50px rgba(31,94,58,.22)}
+.schhd{font-family:Fraunces,serif;font-weight:600;font-size:20px}
+.tabs{display:flex;gap:5px;background:rgba(255,255,255,.14);border-radius:11px;padding:4px;margin:16px 0 6px}
+.tabs span{flex:1;text-align:center;font-size:12.5px;font-weight:600;padding:7px;border-radius:8px;color:rgba(255,255,255,.8)}
+.tabs .on{background:#fff;color:#1f5e3a}
+.schbig{margin:14px 0 4px}.schbig span{font-family:Fraunces,serif;font-size:46px;font-weight:600}.schbig small{font-size:14px;color:rgba(255,255,255,.8);margin-left:6px}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid rgba(255,255,255,.16);font-size:14px;color:rgba(255,255,255,.85)}
+.srow b{font-family:Fraunces,serif;color:#fff;font-size:19px}
+.schbtn{display:block;text-align:center;margin-top:16px;background:var(--gold);color:#3a2a06;font-weight:700;border-radius:999px;padding:12px;font-size:14px}
+.sec{padding:72px 0}
+.sec h2{font-family:Fraunces,serif;font-weight:500;font-size:40px;color:var(--ink);margin:0;max-width:620px;letter-spacing:-.01em}
+.sec .lead{font-size:16px;margin:14px 0 0;max-width:520px}
+.rows{margin-top:40px;border-top:1px solid var(--line)}
+.row3{display:grid;grid-template-columns:130px 1fr auto;gap:24px;align-items:center;padding:26px 0;border-bottom:1px solid var(--line)}
+.row3 .n{font-family:Fraunces,serif;font-size:15px;color:var(--g700);font-style:italic}
+.row3 h3{font-family:Fraunces,serif;font-weight:500;font-size:24px;color:var(--ink);margin:0}
+.row3 p{font-size:14.5px;margin:6px 0 0;max-width:460px}
+.row3 .go{font-size:14px;color:var(--g700);font-weight:600;white-space:nowrap}
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:36px}
+.tool{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}
+.tool .ic{width:40px;height:40px;border-radius:50%;background:var(--peach);display:grid;place-items:center;margin-bottom:14px}
+.tool h4{font-family:Fraunces,serif;font-weight:600;font-size:17px;color:var(--ink);margin:0}.tool p{font-size:13px;margin:6px 0 0}
+.foot{background:var(--ink);color:#cdbfa6;padding:40px 0;font-size:14px}.foot .wrap{display:flex;justify-content:space-between}
+.foot .serif{color:var(--cream);font-size:20px}
+</style></head><body>
+<div class="herowrap"><div class="wrap">
+  <nav class="nav">
+    <div class="brand"><span class="logo"><svg viewBox="0 0 64 64" width="18"><path d="M16 40 L32 18 L48 40" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Freedom&nbsp;Path</div>
+    <div class="navlinks"><a>Strategies</a><a>Calculators</a><a>Story</a><a>Journal</a></div>
+    <a class="btn p" style="height:42px;font-size:14px">Begin</a>
+  </nav>
+  <section class="hero">
+    <div>
+      <div class="badges"><span class="bdg b1"><svg width="20" height="20" fill="none" stroke="#9a6a12" stroke-width="2"><path d="M10 1v18M5 5h8a3 3 0 0 1 0 6H6a3 3 0 0 0 0 7h9"/></svg></span><span class="bdg b2"><svg width="20" height="20" fill="none" stroke="#1f5e3a" stroke-width="2" stroke-linejoin="round"><path d="M3 10l7-7 7 7v8H3z"/></svg></span><span class="bdg b3"><svg width="20" height="20" fill="none" stroke="#1a6b5e" stroke-width="2"><path d="M3 16l5-5 4 3 7-9"/></svg></span></div>
+      <div class="kick">A quieter way to plan independence</div>
+      <h1>Imagine the year you stop working for money.</h1>
+      <p>Freedom Path turns your accounts, income, and dreams into one honest, beautiful plan — and the age you could call it.</p>
+      <div class="cta"><a class="btn p">Build your plan</a><a class="btn o">Watch intro ▷</a></div>
+      <div class="photo"><div class="pcap">Real-time insights, seamless budgeting, and a plan you can actually feel.</div></div>
+    </div>
+    <div class="sched">
+      <div class="schhd">Path to FIRE schedule</div>
+      <div class="tabs"><span>Lean</span><span class="on">Standard</span><span>Coast</span></div>
+      <div class="schbig"><span class="tnum">$4,200</span><small>/ month saved</small></div>
+      <div class="srow"><span>Projected FIRE age</span><b class="tnum">52</b></div>
+      <div class="srow"><span>Assets at FIRE</span><b class="tnum">$3.95M</b></div>
+      <div class="srow"><span>Safe withdrawal</span><b class="tnum">6.1%</b></div>
+      <a class="schbtn">Open this plan →</a>
+    </div>
+  </section>
+</div></div>
+
+<div class="wrap">
+  <section class="sec">
+    <h2>Three honest ways to live off what you’ve built.</h2>
+    <p class="lead">No jargon, no one-size-fits-all rule — just the trade-off you actually care about.</p>
+    <div class="rows">
+      <div class="row3"><div class="n">i. Most cautious</div><div><h3>Income Stream</h3><p>Live on guaranteed income alone — Social Security, pension, rental — and never rely on investments.</p></div><span class="go">Explore →</span></div>
+      <div class="row3"><div class="n">ii. Keep your nest egg</div><div><h3>Principal-Preserving</h3><p>Spend your income and earnings, but leave the principal untouched for safety or legacy.</p></div><span class="go">Explore →</span></div>
+      <div class="row3"><div class="n">iii. Most flexible</div><div><h3>Portfolio Drawdown</h3><p>Spend down savings to retire at the earliest age your money can comfortably sustain.</p></div><span class="go">Explore →</span></div>
+    </div>
+  </section>
+  <section class="sec" style="padding-top:0">
+    <h2 style="font-size:32px">Calculators to sharpen the details.</h2>
+    <div class="tools">
+      <div class="tool"><div class="ic"><svg width="18" height="18" fill="none" stroke="#1f5e3a" stroke-width="2"><path d="M9 1v16M4 4h7a3 3 0 0 1 0 6H5a3 3 0 0 0 0 6h8"/></svg></div><h4>Social Security</h4><p>Claim at 62, FRA, or 70.</p></div>
+      <div class="tool"><div class="ic"><svg width="18" height="18" fill="none" stroke="#1f5e3a" stroke-width="2" stroke-linejoin="round"><path d="M9 16s-6-3.8-6-8.5A3.4 3.4 0 0 1 9 5a3.4 3.4 0 0 1 6 2.5C15 12.2 9 16 9 16z"/></svg></div><h4>Healthcare</h4><p>The pre-Medicare gap.</p></div>
+      <div class="tool"><div class="ic"><svg width="18" height="18" fill="none" stroke="#1f5e3a" stroke-width="2" stroke-linejoin="round"><path d="M2 9l7-6 7 6v7H2z"/></svg></div><h4>Mortgage</h4><p>What home really costs.</p></div>
+      <div class="tool"><div class="ic"><svg width="18" height="18" fill="none" stroke="#1f5e3a" stroke-width="2"><path d="M2 14l4-4 3 2 7-8"/></svg></div><h4>Investment</h4><p>Watch it compound.</p></div>
+    </div>
+  </section>
+</div>
+<div class="foot"><div class="wrap"><span class="serif">Freedom Path</span><span>Planning estimates only. Not financial, tax, or legal advice. © 2026</span></div></div>
+</body></html>

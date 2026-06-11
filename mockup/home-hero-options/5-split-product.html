@@ -1,0 +1,94 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=1280">
+<title>Hero — Split Product</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<style>
+.hero{position:relative;overflow:hidden;background:linear-gradient(180deg,#f6fbf6,#ffffff)}
+.hero .wrap{position:relative;z-index:3}
+.hsplit{display:grid;grid-template-columns:0.92fr 1.16fr;gap:40px;align-items:center;padding:30px 0 70px}
+.panel{background:radial-gradient(120% 130% at 0% 0%, #e7f7ec, transparent 60%),linear-gradient(160deg,#effaf0,#f6fbf6);
+  border:1px solid #e2efe4;border-radius:24px;padding:36px}
+.tag{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--n200);padding:7px 15px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--g700)}
+.panel .htitle{font-size:48px;margin-top:18px}
+/* dashboard */
+.dash{background:linear-gradient(150deg,#0f3d22,#15803d);border-radius:24px;padding:18px;box-shadow:0 36px 64px rgba(15,61,34,.26)}
+.win{background:#fff;border-radius:16px;padding:18px}
+.winbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.winbar b{font-size:15px;color:var(--n900)}.seg{display:flex;gap:4px;background:#f1f3ef;border-radius:9px;padding:3px}.seg span{font-size:11px;padding:4px 9px;border-radius:7px;color:var(--n500);font-weight:600}.seg .on{background:#fff;color:var(--n900);box-shadow:0 1px 2px rgba(0,0,0,.07)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.tile{border:1px solid var(--n200);border-radius:12px;padding:12px 13px}
+.tile .l{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--n500)}
+.tile .n{font-size:20px;font-weight:800;color:var(--n900);margin-top:3px}
+.chip{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--g50);color:var(--g600)}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+th{text-align:right;color:var(--n500);font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:7px 8px;border-bottom:1px solid var(--n200)}th:first-child{text-align:left}
+td{text-align:right;padding:7px 8px;border-bottom:1px solid #f2f3ef}td:first-child{text-align:left;color:var(--n900);font-weight:600}
+.pos{color:var(--g600);font-weight:600}
+</style></head><body>
+<section class="hero"><div class="wrap">
+  <nav class="nav">
+    <div class="brand"><span class="logo"><svg viewBox="0 0 64 64" width="18"><path d="M16 40 L32 18 L48 40" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Freedom Path</div>
+    <div class="navlinks"><a>Product</a><a>Calculators</a><a>Strategies</a><a>Pricing</a></div>
+    <a class="btn p">Start free</a>
+  </nav>
+  <div class="hsplit">
+    <div class="panel">
+      <span class="tag">◆ See your whole plan in one view</span>
+      <h1 class="htitle">Your FIRE plan, <span class="gold">live</span> and visual.</h1>
+      <p class="hsub">Connect your assumptions and watch projected age, assets, and withdrawal rate update in real time.</p>
+      <div class="cta"><a class="btn p lg">Build your plan →</a><a class="btn g lg">View a sample</a></div>
+    </div>
+    <div class="dash"><div class="win">
+      <div class="winbar"><b>Portfolio Drawdown FIRE</b><div class="seg"><span class="on">Plan</span><span>History</span></div></div>
+      <div class="tiles">
+        <div class="tile"><div class="l">FIRE age</div><div class="n tnum">52</div><span class="chip">▲ 3 yrs</span></div>
+        <div class="tile"><div class="l">Assets at FIRE</div><div class="n tnum">$3.95M</div></div>
+        <div class="tile"><div class="l">Draw rate</div><div class="n tnum">6.1%</div></div>
+      </div>
+      <svg width="100%" height="112" viewBox="0 0 460 112" preserveAspectRatio="none">
+        <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#34c77e" stop-opacity=".34"/><stop offset="1" stop-color="#34c77e" stop-opacity="0"/></linearGradient></defs>
+        <line x1="0" y1="28" x2="460" y2="28" stroke="#eef0ec"/><line x1="0" y1="56" x2="460" y2="56" stroke="#eef0ec"/><line x1="0" y1="84" x2="460" y2="84" stroke="#eef0ec"/>
+        <path d="M0 94 L60 86 L120 80 L180 64 L240 58 L300 40 L360 36 L420 20 L460 14 L460 112 L0 112 Z" fill="url(#g)"/>
+        <path d="M0 94 L60 86 L120 80 L180 64 L240 58 L300 40 L360 36 L420 20 L460 14" fill="none" stroke="#15803d" stroke-width="2.5"/>
+        <circle cx="300" cy="40" r="4" fill="#fff" stroke="#f5b301" stroke-width="3"/>
+      </svg>
+      <table><thead><tr><th>Year / Age</th><th>Assets</th><th>Draw</th><th>Return</th></tr></thead><tbody>
+        <tr><td>2042 · 52</td><td class="tnum">$3,952,900</td><td class="tnum">$241k</td><td class="pos tnum">+$312k</td></tr>
+        <tr><td>2043 · 53</td><td class="tnum">$4,018,400</td><td class="tnum">$247k</td><td class="pos tnum">+$298k</td></tr>
+        <tr><td>2044 · 54</td><td class="tnum">$4,061,700</td><td class="tnum">$253k</td><td class="pos tnum">+$284k</td></tr>
+      </tbody></table>
+    </div></div>
+  </div>
+</div></section>
+
+<div class="wrap">
+  <div class="stripe">
+    <div class="stat"><div class="n tnum">52</div><div class="l">Median modeled FIRE age</div></div>
+    <div class="stat"><div class="n tnum">4</div><div class="l">Built-in calculators</div></div>
+    <div class="stat"><div class="n tnum">3</div><div class="l">FIRE strategies</div></div>
+    <div class="stat"><div class="n tnum">100%</div><div class="l">Local &amp; private</div></div>
+  </div>
+  <section class="sec">
+    <h2>Three ways to reach FIRE</h2>
+    <p class="sub">Pick how you want to live off your money — from most cautious to most flexible.</p>
+    <div class="grid3">
+      <div class="card"><div class="k">Most cautious</div><h3>Income Stream FIRE</h3><p>Live on guaranteed income alone — Social Security, pension, or rental.</p><span class="go">Explore →</span></div>
+      <div class="card"><div class="k">Keep your nest egg</div><h3>Principal-Preserving</h3><p>Live off income and earnings, never touching your principal.</p><span class="go">Explore →</span></div>
+      <div class="card" style="border-color:var(--g600)"><div class="k" style="color:var(--g700)">Most flexible · popular</div><h3>Portfolio Drawdown</h3><p>Spend down savings to retire at the earliest possible age.</p><span class="go">Explore →</span></div>
+    </div>
+  </section>
+  <section class="sec" style="background:var(--soft);border-radius:20px">
+    <h2>Sharpen every assumption</h2>
+    <p class="sub">Free calculators that feed straight back into your plan.</p>
+    <div class="grid4">
+      <div class="tool"><div class="ic"><svg width="18" height="18" fill="none" stroke="#15803d" stroke-width="2"><path d="M9 1v16M4 4h7a3 3 0 0 1 0 6H5a3 3 0 0 0 0 6h8"/></svg></div><h4>Social Security</h4><p>Benefits at 62, FRA, and 70.</p></div>
+      <div class="tool"><div class="ic"><svg width="18" height="18" fill="none" stroke="#15803d" stroke-width="2" stroke-linejoin="round"><path d="M9 16s-6-3.8-6-8.5A3.4 3.4 0 0 1 9 5a3.4 3.4 0 0 1 6 2.5C15 12.2 9 16 9 16z"/></svg></div><h4>Healthcare</h4><p>ACA gap years + Medicare.</p></div>
+      <div class="tool"><div class="ic"><svg width="18" height="18" fill="none" stroke="#15803d" stroke-width="2" stroke-linejoin="round"><path d="M2 9l7-6 7 6v7H2z"/></svg></div><h4>Mortgage</h4><p>Payment &amp; payoff cost.</p></div>
+      <div class="tool"><div class="ic"><svg width="18" height="18" fill="none" stroke="#15803d" stroke-width="2"><path d="M2 14l4-4 3 2 7-8"/></svg></div><h4>Investment</h4><p>Growth from contributions.</p></div>
+    </div>
+  </section>
+  <div class="foot"><span>© 2026 Freedom Path · Planning estimates only. Not financial advice.</span><span>Private · Local-first</span></div>
+</div>
+</body></html>

@@ -1,0 +1,148 @@
+<style>
+  .fp-wrap { display: grid; gap: 20px; }
+  .fp-subtitle { color: #5b6472; max-width: 900px; line-height: 1.5; }
+  .fp-flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .fp-panel { border: 1px solid #d8dee8; border-radius: 10px; background: #fff; overflow: hidden; box-shadow: 0 8px 28px rgba(15,23,42,0.06); }
+  .fp-panel-head { padding: 12px 14px; border-bottom: 1px solid #e6ebf2; background: #f8fafc; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+  .fp-panel-title { font-size: 14px; font-weight: 700; color: #172033; }
+  .fp-step { width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center; background: #17324d; color: #fff; font-size: 13px; font-weight: 700; }
+  .fp-panel-body { padding: 14px; }
+  .fp-field { margin-bottom: 12px; }
+  .fp-label { font-size: 11px; text-transform: uppercase; color: #667085; letter-spacing: .02em; margin-bottom: 5px; }
+  .fp-input { border: 1px solid #cfd7e3; border-radius: 7px; padding: 9px 10px; font-size: 13px; color: #1f2937; background: #fff; }
+  .fp-row { display: grid; grid-template-columns: 26px 1.2fr 1fr 1fr .9fr; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid #edf1f6; font-size: 12px; }
+  .fp-row.fp-head { color: #64748b; font-size: 11px; text-transform: uppercase; }
+  .fp-check { width: 16px; height: 16px; border: 1px solid #aeb8c6; border-radius: 4px; display: inline-block; position: relative; }
+  .fp-check.on { background: #17324d; border-color: #17324d; }
+  .fp-check.on:after { content: ""; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .fp-chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #cfd7e3; background: #f8fafc; color: #344054; border-radius: 999px; padding: 4px 8px; font-size: 11px; margin: 2px; }
+  .fp-chip.dark { background: #17324d; color: #fff; border-color: #17324d; }
+  .fp-chip.green { background: #ecfdf3; color: #027a48; border-color: #abefc6; }
+  .fp-button-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 14px; }
+  .fp-button { border: 1px solid #cfd7e3; border-radius: 7px; padding: 8px 10px; font-size: 12px; background: #fff; color: #344054; }
+  .fp-button.primary { background: #17324d; border-color: #17324d; color: #fff; }
+  .fp-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .fp-metric { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fbfdff; }
+  .fp-metric-label { font-size: 10px; color: #667085; text-transform: uppercase; }
+  .fp-metric-value { font-size: 16px; font-weight: 700; color: #172033; margin-top: 3px; }
+  .fp-bar { height: 10px; border-radius: 999px; overflow: hidden; background: #edf2f7; margin: 8px 0 12px; display: flex; }
+  .fp-bar span:nth-child(1) { background: #17324d; width: 45%; }
+  .fp-bar span:nth-child(2) { background: #2f855a; width: 31%; }
+  .fp-bar span:nth-child(3) { background: #b7791f; width: 24%; }
+  .fp-note { color: #667085; font-size: 12px; line-height: 1.45; }
+  .fp-callout { border: 1px solid #bfd7ff; background: #f2f7ff; color: #243b5a; border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.5; }
+  @media (max-width: 1000px) { .fp-flow { grid-template-columns: 1fr; } }
+</style>
+
+<div class="fp-wrap">
+  <div>
+    <h2>Manual Collections: Proposed User Flow</h2>
+    <p class="fp-subtitle">
+      A collection is a saved analysis group. The user defines the group name, selects holdings from any account, then sees allocation for that selected set.
+      This does not replace Account, Tax Bucket, or Include in FIRE.
+    </p>
+  </div>
+
+  <div class="fp-flow">
+    <div class="fp-panel">
+      <div class="fp-panel-head">
+        <div class="fp-panel-title">Create Collection</div>
+        <div class="fp-step">1</div>
+      </div>
+      <div class="fp-panel-body">
+        <div class="fp-field">
+          <div class="fp-label">Collection name</div>
+          <div class="fp-input">High Risk / Speculative</div>
+        </div>
+        <div class="fp-field">
+          <div class="fp-label">Purpose</div>
+          <div class="fp-input">Watch crypto and concentrated stock exposure</div>
+        </div>
+        <div class="fp-field">
+          <div class="fp-label">Optional target range</div>
+          <div class="fp-input">5% to 10% of FIRE assets</div>
+        </div>
+        <div>
+          <span class="fp-chip">FIRE Core</span>
+          <span class="fp-chip">Bridge Fund</span>
+          <span class="fp-chip dark">High Risk</span>
+          <span class="fp-chip">Rebalance Watch</span>
+        </div>
+        <div class="fp-button-row">
+          <span class="fp-note">User can start from a suggestion or type any name.</span>
+          <span class="fp-button primary">Create</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="fp-panel">
+      <div class="fp-panel-head">
+        <div class="fp-panel-title">Add Holdings Across Accounts</div>
+        <div class="fp-step">2</div>
+      </div>
+      <div class="fp-panel-body">
+        <div class="fp-row fp-head">
+          <span></span><span>Holding</span><span>Account</span><span>Tax</span><span>Balance</span>
+        </div>
+        <div class="fp-row">
+          <span class="fp-check on"></span><strong>BTC</strong><span>Coinbase</span><span>Taxable</span><span>$18,000</span>
+        </div>
+        <div class="fp-row">
+          <span class="fp-check on"></span><strong>ETH</strong><span>Coinbase</span><span>Taxable</span><span>$9,000</span>
+        </div>
+        <div class="fp-row">
+          <span class="fp-check on"></span><strong>TSLA</strong><span>Schwab Taxable</span><span>Taxable</span><span>$11,000</span>
+        </div>
+        <div class="fp-row">
+          <span class="fp-check"></span><strong>VTI</strong><span>Fidelity Roth</span><span>Roth</span><span>$42,000</span>
+        </div>
+        <div class="fp-row">
+          <span class="fp-check"></span><strong>Cash</strong><span>Ally</span><span>Cash</span><span>$24,000</span>
+        </div>
+        <div class="fp-button-row">
+          <span class="fp-button">Cancel</span>
+          <span class="fp-button primary">Add 3 holdings</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="fp-panel">
+      <div class="fp-panel-head">
+        <div class="fp-panel-title">Review Collection</div>
+        <div class="fp-step">3</div>
+      </div>
+      <div class="fp-panel-body">
+        <div class="fp-summary-grid">
+          <div class="fp-metric">
+            <div class="fp-metric-label">Total</div>
+            <div class="fp-metric-value">$38k</div>
+          </div>
+          <div class="fp-metric">
+            <div class="fp-metric-label">Net Worth</div>
+            <div class="fp-metric-value">7.8%</div>
+          </div>
+          <div class="fp-metric">
+            <div class="fp-metric-label">FIRE Assets</div>
+            <div class="fp-metric-value">8.6%</div>
+          </div>
+        </div>
+        <div class="fp-label">Mix inside this collection</div>
+        <div class="fp-bar"><span></span><span></span><span></span></div>
+        <div>
+          <span class="fp-chip dark">BTC 47%</span>
+          <span class="fp-chip green">ETH 24%</span>
+          <span class="fp-chip">TSLA 29%</span>
+        </div>
+        <div class="fp-button-row">
+          <span class="fp-button">Edit holdings</span>
+          <span class="fp-button primary">Use in review</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fp-callout">
+    Proposed behavior: The portfolio table keeps simple columns, but each row can belong to multiple collections.
+    A collection page answers: "How big is this selected group, where is it held, and how much of my FIRE picture does it represent?"
+  </div>
+</div>

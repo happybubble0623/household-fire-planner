@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Freedom Path — Portfolio (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  h1.page{font-family:'Fraunces',serif;font-weight:600;font-size:34px;margin:0 0 14px}
+  /* hero band — Sequence (8117) */
+  .band{position:relative;overflow:hidden;border-radius:22px;color:#fff;padding:26px 30px;
+    background:radial-gradient(120% 160% at 100% 0%, rgba(245,179,1,.16), transparent 50%),
+      linear-gradient(120deg,#0f3d22,#15803d 70%,#1f9b50);box-shadow:var(--shadow-lg)}
+  .band .lbl{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--green-100)}
+  .band .big{font-size:46px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin-top:4px}
+  .band .sub{display:flex;align-items:center;gap:12px;margin-top:10px}
+  .band .delta{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:4px 11px;font-size:13px;font-weight:600}
+  .band .acts{position:absolute;right:30px;top:26px;display:flex;gap:10px}
+  .band .b{height:38px;padding:0 15px;border-radius:11px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+  .band .b.ghost{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:#fff}
+  .band .b.gold{background:var(--gold-400);color:var(--n900)}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:18px}
+  .two{display:grid;grid-template-columns:340px 1fr;gap:20px;margin-top:20px}
+  .panel{background:var(--surface);border:1px solid var(--n200);border-radius:18px;box-shadow:var(--shadow-sm);padding:22px}
+  .panel h3{font-size:16px;margin:0 0 2px}
+  .legend{display:flex;flex-direction:column;gap:11px;margin-top:6px}
+  .lrow{display:flex;align-items:center;gap:9px;font-size:13.5px}
+  .dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .lrow .nm{color:var(--n800)}
+  .lrow .vl{margin-left:auto;font-weight:700;color:var(--n900)}
+  .lrow .pc{color:var(--n500);width:40px;text-align:right;font-size:12px}
+  .bars{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  .brow .t{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .brow .t .nm{color:var(--n700,#45443e);font-weight:500}
+  .brow .t .vl{color:var(--n900);font-weight:700}
+  .track{height:9px;border-radius:999px;background:var(--n100);overflow:hidden}
+  .track > div{height:100%;border-radius:999px}
+  .sym{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;margin-right:9px;flex:none}
+  .hcell{display:flex;align-items:center}
+  .hname{font-weight:600;color:var(--n900)}
+  .hsub{font-size:11.5px;color:var(--n500)}
+  th .sort{color:var(--n400);font-weight:400}
+  .tablewrap{border:1px solid var(--n200);border-radius:14px;margin-top:14px;overflow:hidden}
+</style>
+</head>
+<body>
+<header class="appbar"><div class="bar" style="max-width:1200px;margin:0 auto;width:100%">
+  <a class="brand"><span class="mark"><svg viewBox="0 0 64 64" width="22" height="22"><path d="M16 40 L32 18 L48 40" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 48 L44 48" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></span>
+    <span class="brandtext"><b>Household <span style="color:var(--green-600)">FIRE</span> Planner</b><small>Your household’s path to financial independence</small></span></a>
+  <nav class="nav"><a>Path to FIRE</a><a class="active">Understand Portfolio</a></nav>
+</div></header>
+
+<div class="wrap" style="padding-top:26px">
+  <h1 class="page">Portfolio overview</h1>
+
+  <section class="band">
+    <div class="acts">
+      <span class="b ghost">↻ Refresh prices</span>
+      <span class="b ghost">↑ Import</span>
+      <span class="b gold">+ Add holding</span>
+    </div>
+    <div class="lbl">Total portfolio value</div>
+    <div class="big tnum" id="hero-total">$1,294,288</div>
+    <div class="sub">
+      <span class="delta">▲ 1.8% · +$22,840 today</span>
+      <span style="color:rgba(255,255,255,.7);font-size:13px">10 holdings · prices refreshed 2 min ago</span>
+      <svg width="150" height="34" viewBox="0 0 150 34" style="margin-left:auto"><path d="M2 30 L20 26 L36 28 L54 18 L72 21 L92 12 L112 15 L132 6 L148 4" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2"/></svg>
+    </div>
+  </section>
+
+  <div class="grid4">
+    <div class="kpi accent">
+      <div class="lbl">Included in FIRE</div>
+      <div class="val tnum">$1,034,288</div>
+      <div style="margin-top:8px"><span class="chip muted">80% of assets</span></div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Taxable</div>
+      <div class="val tnum">$366,318</div>
+      <div style="margin-top:8px"><span class="chip pos">▲ 2.0% vs last refresh</span></div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Tax-advantaged</div>
+      <div class="val tnum">$667,970</div>
+      <div style="margin-top:8px"><span class="chip muted">401k · IRA · Roth · HSA</span></div>
+    </div>
+    <div class="kpi accent-gold">
+      <div class="lbl">Today’s change</div>
+      <div class="val tnum" style="color:var(--positive)">+$22,840</div>
+      <div style="margin-top:8px"><span class="chip pos">▲ 1.8%</span></div>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="panel">
+      <h3>Asset allocation</h3>
+      <p class="muted" style="font-size:13px;margin:2px 0 12px">By asset class.</p>
+      <svg id="donut" width="300" height="210" viewBox="0 0 300 210" style="display:block;margin:0 auto"></svg>
+      <div class="legend" id="legend" style="margin-top:8px"></div>
+    </div>
+    <div class="panel">
+      <h3>Portfolio value over time</h3>
+      <p class="muted" style="font-size:13px;margin:2px 0 6px">Contributions vs. market growth — last 10 years.</p>
+      <svg id="area" width="100%" height="240" viewBox="0 0 720 240"></svg>
+      <div style="display:flex;gap:18px;font-size:12.5px;color:var(--n600);margin-top:6px">
+        <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:12px;height:12px;border-radius:3px;background:var(--green-200)"></span>Contributions</span>
+        <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:12px;height:12px;border-radius:3px;background:var(--green-500)"></span>Market growth</span>
+        <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:14px;height:3px;border-radius:2px;background:var(--green-800)"></span>Total value</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:20px">
+    <h3>Allocation by tax bucket</h3>
+    <p class="muted" style="font-size:13px;margin:2px 0 12px">Where your money sits for tax-efficient withdrawal planning.</p>
+    <div class="bars" id="taxbars"></div>
+  </div>
+
+  <div class="panel" style="margin-top:20px">
+    <h3>Holdings</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Holding <span class="sort">↕</span></th><th>Type</th><th>Tax bucket</th>
+          <th>Units <span class="sort">↕</span></th><th>Price</th><th>Value <span class="sort">↕</span></th>
+          <th>Allocation</th><th>Today <span class="sort">↕</span></th><th>Price</th><th>FIRE</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="disclaimer">Planning estimates only. Not financial, tax, or legal advice. Prices may be manually entered or refreshed from market data.</div>
+</div>
+
+<script>
+const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+const NS='http://www.w3.org/2000/svg';
+const m=v=>'$'+Math.round(v).toLocaleString();
+
+// ---- holdings (realistic to the app model) ----
+const H=[
+  {nm:'Vanguard Total Stock',sym:'VTI',cls:'Equities',type:'ETF',bucket:'Taxable',units:420,price:278.40,day:1.4,fire:true,status:'Refreshed'},
+  {nm:'Vanguard Total Intl',sym:'VXUS',cls:'Equities',type:'ETF',bucket:'Taxable',units:800,price:62.10,day:0.9,fire:true,status:'Refreshed'},
+  {nm:'Vanguard Total Stock (Roth)',sym:'VTSAX',cls:'Equities',type:'Mutual fund',bucket:'Roth',units:1950,price:118.20,day:1.2,fire:true,status:'Refreshed'},
+  {nm:'Employer 401(k) S&P 500',sym:'—',cls:'Equities',type:'Mutual fund',bucket:'Tax-Deferred',units:null,price:null,bal:312400,day:1.3,fire:true,status:'Manual'},
+  {nm:'Apple Inc.',sym:'AAPL',cls:'Equities',type:'Stock',bucket:'Taxable',units:300,price:232.10,day:2.1,fire:true,status:'Refreshed'},
+  {nm:'Vanguard Total Bond',sym:'BND',cls:'Bonds',type:'Bond',bucket:'Tax-Deferred',units:1200,price:72.40,day:-0.3,fire:true,status:'Refreshed'},
+  {nm:'Bitcoin',sym:'BTC',cls:'Crypto',type:'Crypto',bucket:'Taxable',units:1.4,price:64200,day:3.6,fire:true,status:'Refreshed'},
+  {nm:'Fidelity 500 (HSA)',sym:'FXAIX',cls:'Equities',type:'Mutual fund',bucket:'HSA',units:null,price:null,bal:38200,day:1.1,fire:true,status:'Manual'},
+  {nm:'Cash & money market',sym:'—',cls:'Cash',type:'Cash',bucket:'Taxable',units:null,price:null,bal:40200,day:0,fire:true,status:'Manual'},
+  {nm:'Primary residence',sym:'—',cls:'Real estate',type:'Home',bucket:'Not Applicable',units:null,price:null,bal:260000,day:0,fire:false,status:'Manual'},
+];
+H.forEach(h=> h.value = h.bal!=null ? h.bal : h.units*h.price);
+const total=H.reduce((s,h)=>s+h.value,0);
+document.getElementById('hero-total').textContent=m(total);
+
+// ---- donut by asset class ----
+const classColors={Equities:css('--green-600'),Bonds:css('--chart-4'),Crypto:css('--gold-400'),Cash:css('--chart-5'),'Real estate':css('--chart-6')};
+const byClass={};H.forEach(h=>byClass[h.cls]=(byClass[h.cls]||0)+h.value);
+const seg=Object.entries(byClass).map(([k,v])=>({nm:k,v,c:classColors[k]})).sort((a,b)=>b.v-a.v);
+const cx=150,cy=100,r=72,sw=24,C=2*Math.PI*r;
+const dsvg=document.getElementById('donut');
+let tr=document.createElementNS(NS,'circle');tr.setAttribute('cx',cx);tr.setAttribute('cy',cy);tr.setAttribute('r',r);tr.setAttribute('fill','none');tr.setAttribute('stroke',css('--n100'));tr.setAttribute('stroke-width',sw);dsvg.appendChild(tr);
+let off=0;seg.forEach(d=>{const len=C*d.v/total;const a=document.createElementNS(NS,'circle');
+  a.setAttribute('cx',cx);a.setAttribute('cy',cy);a.setAttribute('r',r);a.setAttribute('fill','none');a.setAttribute('stroke',d.c);
+  a.setAttribute('stroke-width',sw);a.setAttribute('stroke-linecap','round');a.setAttribute('stroke-dasharray',(len-3)+' '+(C-len+3));
+  a.setAttribute('stroke-dashoffset',-off);a.setAttribute('transform','rotate(-90 '+cx+' '+cy+')');dsvg.appendChild(a);off+=len;});
+const tv=document.createElementNS(NS,'text');tv.setAttribute('x',cx);tv.setAttribute('y',cy-4);tv.setAttribute('text-anchor','middle');
+tv.setAttribute('font-size','22');tv.setAttribute('font-weight','700');tv.setAttribute('fill',css('--n900'));tv.setAttribute('class','tnum');tv.textContent='$1.29M';dsvg.appendChild(tv);
+const tl=document.createElementNS(NS,'text');tl.setAttribute('x',cx);tl.setAttribute('y',cy+15);tl.setAttribute('text-anchor','middle');
+tl.setAttribute('font-size','11');tl.setAttribute('font-weight','600');tl.setAttribute('fill',css('--n500'));tl.textContent='TOTAL';dsvg.appendChild(tl);
+document.getElementById('legend').innerHTML=seg.map(d=>`<div class="lrow"><span class="dot" style="background:${d.c}"></span>
+  <span class="nm">${d.nm}</span><span class="vl tnum">${m(d.v)}</span><span class="pc tnum">${Math.round(d.v/total*100)}%</span></div>`).join('');
+
+// ---- area: portfolio value over time ----
+const yrs=[2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026];
+const val=[300,360,410,500,560,690,720,860,990,1140,1294].map(v=>v*1000);
+const con=[280,330,365,415,455,520,560,615,665,720,770].map(v=>v*1000);
+const asvg=document.getElementById('area');
+const ax0=56,ax1=700,ay0=16,ay1=200,maxV=1400000,N=yrs.length;
+const AX=i=>ax0+(ax1-ax0)*i/(N-1), AY=v=>ay1-(ay1-ay0)*v/maxV;
+[0,350000,700000,1050000,1400000].forEach(v=>{const y=AY(v);const ln=document.createElementNS(NS,'line');
+  ln.setAttribute('x1',ax0);ln.setAttribute('x2',ax1);ln.setAttribute('y1',y);ln.setAttribute('y2',y);ln.setAttribute('stroke',css('--chart-grid'));ln.setAttribute('stroke-dasharray','3 4');asvg.appendChild(ln);
+  const tx=document.createElementNS(NS,'text');tx.setAttribute('x',ax0-9);tx.setAttribute('y',y+4);tx.setAttribute('text-anchor','end');tx.setAttribute('font-size','10.5');tx.setAttribute('fill',css('--n500'));tx.setAttribute('class','tnum');tx.textContent='$'+(v/1000000).toFixed(1)+'M';asvg.appendChild(tx);});
+function areaPath(arr){let p='M'+AX(0)+' '+ay1+' ';arr.forEach((v,i)=>p+='L'+AX(i)+' '+AY(v)+' ');p+='L'+AX(N-1)+' '+ay1+' Z';return p;}
+// total area (growth fill) then contributions area on top of baseline
+const g1=document.createElementNS(NS,'linearGradient');g1.id='gg';g1.setAttribute('x1','0');g1.setAttribute('x2','0');g1.setAttribute('y1','0');g1.setAttribute('y2','1');
+g1.innerHTML='<stop offset="0" stop-color="'+css('--green-500')+'" stop-opacity=".30"/><stop offset="1" stop-color="'+css('--green-500')+'" stop-opacity="0"/>';asvg.appendChild(g1);
+const pv=document.createElementNS(NS,'path');pv.setAttribute('d',areaPath(val));pv.setAttribute('fill','url(#gg)');asvg.appendChild(pv);
+const pc=document.createElementNS(NS,'path');pc.setAttribute('d',areaPath(con));pc.setAttribute('fill',css('--green-200'));pc.setAttribute('opacity','.85');asvg.appendChild(pc);
+let lp='';val.forEach((v,i)=>lp+=(i?'L':'M')+AX(i)+' '+AY(v)+' ');
+const line=document.createElementNS(NS,'path');line.setAttribute('d',lp);line.setAttribute('fill','none');line.setAttribute('stroke',css('--green-800'));line.setAttribute('stroke-width','2.5');line.setAttribute('stroke-linejoin','round');asvg.appendChild(line);
+yrs.forEach((y,i)=>{if(i%2===0){const tx=document.createElementNS(NS,'text');tx.setAttribute('x',AX(i));tx.setAttribute('y',ay1+18);tx.setAttribute('text-anchor','middle');tx.setAttribute('font-size','10.5');tx.setAttribute('fill',css('--n500'));tx.textContent=y;asvg.appendChild(tx);}});
+
+// ---- tax bucket bars ----
+const bucketColor={Taxable:css('--green-600'),'Tax-Deferred':css('--chart-4'),Roth:css('--green-400'),HSA:css('--gold-400'),'Not Applicable':css('--chart-5')};
+const byBucket={};H.forEach(h=>byBucket[h.bucket]=(byBucket[h.bucket]||0)+h.value);
+const blabel={Taxable:'Taxable',' Tax-Deferred':'Tax-Deferred','Tax-Deferred':'Tax-Deferred / pre-tax',Roth:'Roth / after-tax',HSA:'HSA','Not Applicable':'Home (not in FIRE)'};
+document.getElementById('taxbars').innerHTML=Object.entries(byBucket).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+  <div class="brow"><div class="t"><span class="nm">${blabel[k]||k}</span><span class="vl tnum">${m(v)} · ${Math.round(v/total*100)}%</span></div>
+  <div class="track"><div style="width:${(v/total*100).toFixed(1)}%;background:${bucketColor[k]}"></div></div></div>`).join('');
+
+// ---- holdings table ----
+const symColor={ETF:css('--green-600'),'Mutual fund':css('--chart-4'),Stock:css('--green-500'),Bond:css('--chart-5'),Crypto:css('--gold-400'),Cash:css('--n400'),Home:css('--chart-6')};
+document.getElementById('tbody').innerHTML=H.map(h=>{
+  const init=h.sym!=='—'?h.sym.slice(0,3):h.type.slice(0,2).toUpperCase();
+  const dayCls=h.day>0?'pos':(h.day<0?'neg':'');
+  const daytxt=h.day===0?'—':(h.day>0?'▲ ':'▼ ')+Math.abs(h.day).toFixed(1)+'%';
+  return `<tr>
+    <td><div class="hcell"><span class="sym" style="background:${symColor[h.type]}">${init}</span>
+      <span><span class="hname">${h.nm}</span><br><span class="hsub">${h.sym}</span></span></div></td>
+    <td>${h.type}</td>
+    <td><span class="pill ${h.bucket==='Taxable'?'aca':'med'}" style="${h.bucket==='Not Applicable'?'background:var(--n100);color:var(--n600)':''}">${h.bucket}</span></td>
+    <td class="tnum">${h.units!=null?h.units.toLocaleString():'—'}</td>
+    <td class="tnum">${h.price!=null?'$'+h.price.toLocaleString():'—'}</td>
+    <td class="tnum" style="font-weight:700;color:var(--n900)">${m(h.value)}</td>
+    <td class="tnum" style="color:var(--n600)">${(h.value/total*100).toFixed(1)}%</td>
+    <td class="tnum ${dayCls}">${daytxt}</td>
+    <td><span class="pill ${h.status==='Refreshed'?'med':'aca'}">${h.status}</span></td>
+    <td>${h.fire?'<span class="pill med">In FIRE</span>':'<span class="pill" style="background:var(--n100);color:var(--n600)">Excluded</span>'}</td>
+  </tr>`;}).join('');
+</script>
+</body>
+</html>

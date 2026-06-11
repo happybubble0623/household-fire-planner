@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Freedom Path — Mortgage (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .back{font-size:13px;font-weight:500;color:var(--n500)}
+  h1.page{font-family:'Fraunces',serif;font-weight:600;font-size:40px;margin:10px 0 6px}
+  .lead{color:var(--n500);max-width:640px}
+  .layout{display:grid;grid-template-columns:380px 1fr;gap:24px;margin-top:26px}
+  .field{margin-bottom:14px}
+  .field label{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--n500)}
+  .input{margin-top:6px;height:46px;border:1px solid var(--n300);border-radius:12px;background:#fff;display:flex;align-items:center;padding:0 14px;font-size:15px;font-weight:500;color:var(--n900);justify-content:space-between}
+  .input .u{color:var(--n400);font-size:13px}
+  .kpirow{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .panel{background:var(--surface);border:1px solid var(--n200);border-radius:18px;box-shadow:var(--shadow-sm);padding:22px}
+  .panel h3{font-size:16px;margin:0 0 4px}
+  .donutwrap{display:grid;grid-template-columns:230px 1fr;gap:24px;align-items:center}
+  .legend{display:flex;flex-direction:column;gap:12px}
+  .lrow{display:flex;align-items:center;gap:10px;font-size:14px}
+  .dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .lrow .nm{color:var(--n700,#45443e)}
+  .lrow .vl{margin-left:auto;font-weight:700;color:var(--n900)}
+  .lrow .pc{color:var(--n500);width:42px;text-align:right;font-size:12.5px}
+  .center-val{font-size:30px;font-weight:700;fill:var(--n900)}
+  .center-lbl{font-size:11px;font-weight:600;fill:var(--n500)}
+  .cmp{display:flex;gap:40px;align-items:flex-end;justify-content:center;padding:8px 0 0}
+  .cmpcol{text-align:center}
+  .cmpcol .top{font-size:12px;color:var(--n500);margin-bottom:8px}
+  .cmpcol .amt{font-weight:700;color:var(--n900);margin-top:8px}
+</style>
+</head>
+<body>
+<header class="appbar"><div class="bar" style="max-width:1200px;margin:0 auto;width:100%">
+  <a class="brand"><span class="mark"><svg viewBox="0 0 64 64" width="22" height="22"><path d="M16 40 L32 18 L48 40" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 48 L44 48" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></span>
+    <span class="brandtext"><b>Household <span style="color:var(--green-600)">FIRE</span> Planner</b><small>Your household’s path to financial independence</small></span></a>
+  <nav class="nav"><a class="active">Path to FIRE</a><a>Understand Portfolio</a></nav>
+</div></header>
+
+<div class="wrap" style="padding-top:26px">
+  <div class="back">← Back to Path to FIRE</div>
+  <h1 class="page">Mortgage calculator</h1>
+  <p class="lead">Estimate the full monthly payment — principal, interest, taxes, insurance, PMI, and HOA — and see how the loan pays down over time.</p>
+
+  <div class="layout">
+    <div class="panel">
+      <h3 style="margin-bottom:16px">Loan details</h3>
+      <div class="field"><label>Home price</label><div class="input"><span>625,000</span><span class="u">$</span></div></div>
+      <div class="field"><label>Down payment</label><div class="input"><span>125,000</span><span class="u">20%</span></div></div>
+      <div class="field"><label>Loan term</label><div class="input"><span>30</span><span class="u">years</span></div></div>
+      <div class="field"><label>Interest rate</label><div class="input"><span>6.40</span><span class="u">%</span></div></div>
+      <div class="field"><label>Property tax / yr</label><div class="input"><span>5,500</span><span class="u">$</span></div></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:8px">Recalculate</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div class="kpirow">
+        <div class="kpi accent">
+          <div class="ico" style="background:var(--green-50)"><svg width="18" height="18" fill="none" stroke="#15803d" stroke-width="2" stroke-linecap="round"><path d="M12 1v22M5 5h10a3 3 0 0 1 0 6H7a3 3 0 0 0 0 6h11"/></svg></div>
+          <div class="lbl">Monthly payment</div>
+          <div class="val hero tnum">$2,847</div>
+          <div style="margin-top:8px"><span class="chip muted">P&I + taxes + insurance</span></div>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Principal &amp; interest / mo</div>
+          <div class="val tnum">$2,108</div>
+          <div style="margin-top:8px"><span class="chip pos">▼ $84 vs 6.9%</span></div>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Taxes, insurance &amp; HOA / mo</div>
+          <div class="val tnum">$739</div>
+        </div>
+        <div class="kpi accent-gold">
+          <div class="lbl">Total interest (30 yr)</div>
+          <div class="val tnum">$258,540</div>
+          <div style="margin-top:8px"><span class="chip gold">41% of payments</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Monthly payment breakdown</h3>
+        <p class="muted" style="font-size:13px;margin:2px 0 14px">Where each month’s payment goes.</p>
+        <div class="donutwrap">
+          <svg id="donut" width="230" height="230" viewBox="0 0 230 230"></svg>
+          <div class="legend" id="legend"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Principal vs. interest over the loan</h3>
+        <p class="muted" style="font-size:13px;margin:2px 0 6px">You borrow <b>$500,000</b> — but pay back far more.</p>
+        <svg id="cmp" width="100%" height="240" viewBox="0 0 560 240"></svg>
+      </div>
+    </div>
+  </div>
+  <div class="disclaimer">Planning estimates only. Not financial, tax, or legal advice.</div>
+</div>
+
+<script>
+const css = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+// ---- Donut ----
+const seg = [
+  {nm:'Principal & interest', v:2108, c:css('--green-600')},
+  {nm:'Property tax', v:458, c:css('--green-400')},
+  {nm:'Homeowner’s insurance', v:192, c:css('--gold-400')},
+  {nm:'HOA fees', v:89, c:css('--chart-4')},
+];
+const total = seg.reduce((s,d)=>s+d.v,0);
+const cx=115, cy=115, r=86, sw=26, C=2*Math.PI*r;
+const svg = document.getElementById('donut');
+const NS='http://www.w3.org/2000/svg';
+// track
+let t=document.createElementNS(NS,'circle');
+t.setAttribute('cx',cx);t.setAttribute('cy',cy);t.setAttribute('r',r);t.setAttribute('fill','none');
+t.setAttribute('stroke',css('--n100'));t.setAttribute('stroke-width',sw);svg.appendChild(t);
+let off=0;
+seg.forEach(d=>{
+  const len=C*d.v/total;
+  const a=document.createElementNS(NS,'circle');
+  a.setAttribute('cx',cx);a.setAttribute('cy',cy);a.setAttribute('r',r);a.setAttribute('fill','none');
+  a.setAttribute('stroke',d.c);a.setAttribute('stroke-width',sw);a.setAttribute('stroke-linecap','round');
+  a.setAttribute('stroke-dasharray', (len-3)+' '+(C-len+3));
+  a.setAttribute('stroke-dashoffset', -off);
+  a.setAttribute('transform','rotate(-90 '+cx+' '+cy+')');
+  svg.appendChild(a); off+=len;
+});
+const tv=document.createElementNS(NS,'text');tv.setAttribute('x',cx);tv.setAttribute('y',cy-2);
+tv.setAttribute('text-anchor','middle');tv.setAttribute('class','center-val tnum');tv.textContent='$2,847';svg.appendChild(tv);
+const tl=document.createElementNS(NS,'text');tl.setAttribute('x',cx);tl.setAttribute('y',cy+18);
+tl.setAttribute('text-anchor','middle');tl.setAttribute('class','center-lbl');tl.textContent='PER MONTH';svg.appendChild(tl);
+// legend
+document.getElementById('legend').innerHTML = seg.map(d=>`
+  <div class="lrow"><span class="dot" style="background:${d.c}"></span>
+  <span class="nm">${d.nm}</span><span class="vl tnum">$${d.v.toLocaleString()}</span>
+  <span class="pc tnum">${Math.round(d.v/total*100)}%</span></div>`).join('');
+
+// ---- Comparison bars ----
+const cmp=document.getElementById('cmp');
+function bar(x,label,parts){ // parts: [{v,c,nm}]
+  const max=783540, h=180, base=200, w=92;
+  let y=base, total=parts.reduce((s,p)=>s+p.v,0);
+  parts.forEach((p,i)=>{
+    const ph=p.v/max*h;
+    const rect=document.createElementNS(NS,'rect');
+    rect.setAttribute('x',x);rect.setAttribute('width',w);
+    rect.setAttribute('y',y-ph);rect.setAttribute('height',ph);
+    rect.setAttribute('fill',p.c);
+    rect.setAttribute('rx', i===parts.length-1?8:0);
+    cmp.appendChild(rect);
+    y-=ph;
+  });
+  const tt=document.createElementNS(NS,'text');tt.setAttribute('x',x+w/2);tt.setAttribute('y',base+22);
+  tt.setAttribute('text-anchor','middle');tt.setAttribute('fill',css('--n500'));tt.setAttribute('font-size','12');tt.textContent=label;cmp.appendChild(tt);
+  const av=document.createElementNS(NS,'text');av.setAttribute('x',x+w/2);av.setAttribute('y',y-12);
+  av.setAttribute('text-anchor','middle');av.setAttribute('fill',css('--n900'));av.setAttribute('font-size','15');av.setAttribute('font-weight','700');av.setAttribute('class','tnum');av.textContent='$'+(total/1000).toFixed(0)+'k';cmp.appendChild(av);
+}
+bar(150,'Amount borrowed',[{v:500000,c:css('--green-600')}]);
+bar(320,'Total you repay',[{v:500000,c:css('--green-600')},{v:283540,c:css('--gold-400')}]);
+// legend for cmp
+const lg=document.createElementNS(NS,'g');
+cmp.innerHTML += `<g font-size="12" fill="${css('--n600')}">
+ <rect x="150" y="220" width="11" height="11" rx="2" fill="${css('--green-600')}"></rect><text x="167" y="230">Principal</text>
+ <rect x="250" y="220" width="11" height="11" rx="2" fill="${css('--gold-400')}"></rect><text x="267" y="230">Interest</text></g>`;
+</script>
+</body>
+</html>

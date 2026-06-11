@@ -1,0 +1,60 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Freedom Path" [ref=e5] [cursor=pointer]:
+          - /url: /app/fire-path
+        - navigation "Primary navigation" [ref=e6]:
+          - link "Path to FIRE" [ref=e7] [cursor=pointer]:
+            - /url: /app/fire-path
+          - link "Understand Portfolio" [ref=e8] [cursor=pointer]:
+            - /url: /app/portfolio-lab
+    - main [ref=e9]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - link "Back to Path to FIRE" [ref=e13] [cursor=pointer]:
+            - /url: /app/fire-path
+          - heading "Investment calculator" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Project how a portfolio could grow from starting assets, monthly contributions, return, and time.
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - generic [ref=e18]:
+              - generic [ref=e19]:
+                - generic [ref=e20]: Starting balance
+                - button "About Starting balance" [ref=e21]:
+                  - img [ref=e22]
+              - spinbutton "Starting balance" [ref=e25]: "100000"
+            - generic [ref=e26]:
+              - generic [ref=e27]:
+                - generic [ref=e28]: Monthly contribution
+                - button "About Monthly contribution" [ref=e29]:
+                  - img [ref=e30]
+              - spinbutton "Monthly contribution" [ref=e33]: "2000"
+            - generic [ref=e34]:
+              - generic [ref=e35]:
+                - generic [ref=e36]: Annual return
+                - button "About Annual return" [ref=e37]:
+                  - img [ref=e38]
+              - generic [ref=e40]:
+                - spinbutton "Annual return" [ref=e41]: "7"
+                - generic [ref=e42]: "%"
+            - generic [ref=e43]:
+              - generic [ref=e44]:
+                - generic [ref=e45]: Time horizon
+                - button "About Time horizon" [ref=e46]:
+                  - img [ref=e47]
+              - generic [ref=e49]:
+                - spinbutton "Time horizon" [ref=e50]: "15"
+                - generic [ref=e51]: years
+          - generic [ref=e52]:
+            - generic [ref=e53]:
+              - paragraph [ref=e54]: Projected ending balance
+              - paragraph [ref=e55]: $918,819
+            - generic [ref=e56]:
+              - paragraph [ref=e57]: Total contributions
+              - paragraph [ref=e58]: $460,000
+            - generic [ref=e59]:
+              - paragraph [ref=e60]: Investment growth
+              - paragraph [ref=e61]: $458,819
+        - paragraph [ref=e62]: Planning estimates only. Not financial, tax, or legal advice.
+  - alert [ref=e63]
