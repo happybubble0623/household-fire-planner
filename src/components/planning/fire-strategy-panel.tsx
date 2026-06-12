@@ -117,7 +117,8 @@ const termHelp: Record<string, string> = {
   "Assets at FIRE": "Projected FIRE assets at the start of the first retirement drawdown year.",
   "Implied withdrawal rate": "The first-year portfolio draw divided by assets at FIRE. It is an output, not an input.",
   "Income coverage ratio": "Passive or guaranteed income divided by annual expenses.",
-  "Annual surplus / shortfall": "Your spendable income for this FIRE mode minus your annual retirement expenses. Positive is a surplus; negative is a gap you'd need to cover.",
+  "Annual surplus": "Your spendable income for this FIRE mode minus your annual retirement expenses, when income comes out ahead.",
+  "Annual shortfall": "Your spendable income for this FIRE mode minus your annual retirement expenses, when there's a gap you'd need to cover.",
   "First shortfall age": "The first age when income is lower than retirement expenses.",
   "Coverage status": "Whether income covers projected expenses through life expectancy.",
   "Spendable income": "Income streams plus cash-generating investment return available to cover expenses.",
@@ -436,8 +437,9 @@ function ResultCard({
   label: string;
   value: string;
   tone?: "default" | "success" | "warning";
-  // Optional tooltip override so the same card label (e.g. "Annual surplus /
-  // shortfall") can carry mode-specific help text explaining which income counts.
+  // Optional tooltip override so a card label (e.g. the sign-driven "Annual
+  // surplus" / "Annual shortfall") can carry mode-specific help text explaining
+  // which income counts.
   help?: string;
 }) {
   const valueClass =
@@ -1554,10 +1556,10 @@ function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps[
           tone={result.incomeCoverageRatio >= 1 ? "success" : "warning"}
         />
         <ResultCard
-          label="Annual surplus / shortfall"
+          label={result.shortfallOrSurplus < 0 ? "Annual shortfall" : "Annual surplus"}
           value={formatSignedCurrency(result.shortfallOrSurplus)}
           tone={result.shortfallOrSurplus < 0 ? "warning" : "success"}
-          help="Your income sources — Social Security, pension, rental, annuity, and any other guaranteed income — minus your annual retirement expenses. Investment returns and savings are not counted in this mode. Positive means your income covers expenses; negative means a gap."
+          help="Your income sources — Social Security, pension, rental, annuity, and any other guaranteed income — minus your annual retirement expenses. Investment returns and savings are not counted in this mode. A surplus means your income covers expenses; a shortfall means a gap."
         />
         <ResultCard label="First shortfall age" value={result.firstShortfallAge ? formatNumber(result.firstShortfallAge) : "None"} tone={result.firstShortfallAge ? "warning" : "success"} />
         <ResultCard label="Coverage status" value={result.passes ? "Covered" : "Shortfall"} tone={result.passes ? "success" : "warning"} />
@@ -1622,10 +1624,10 @@ function PrincipalPreservingResults({
         />
         <ResultCard label="Spendable income" value={formatCurrency(result.spendableIncome)} />
         <ResultCard
-          label="Annual surplus / shortfall"
+          label={result.shortfallOrSurplus < 0 ? "Annual shortfall" : "Annual surplus"}
           value={formatSignedCurrency(result.shortfallOrSurplus)}
           tone={result.shortfallOrSurplus < 0 ? "warning" : "success"}
-          help="Your spendable income — guaranteed income (Social Security, pension, rent) plus the cash yield (dividends and interest) your investments pay out — minus your annual retirement expenses. It excludes selling principal. Positive means you can live on income without touching savings."
+          help="Your spendable income — guaranteed income (Social Security, pension, rent) plus the cash yield (dividends and interest) your investments pay out — minus your annual retirement expenses. It excludes selling principal. A surplus means you can live on income without touching savings; a shortfall means a gap."
         />
         <ResultCard
           label="First principal dip age"

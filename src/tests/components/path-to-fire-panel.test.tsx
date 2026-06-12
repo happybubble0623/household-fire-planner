@@ -433,10 +433,12 @@ describe("PathToFirePanel", () => {
     expect(screen.queryByLabelText("Expected annual portfolio return")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Use Portfolio FIRE Assets" })).not.toBeInTheDocument();
     expect(screen.getByText("Income coverage ratio")).toBeInTheDocument();
-    expect(screen.getByText("Annual surplus / shortfall")).toBeInTheDocument();
+    // The label is sign-driven: "Annual surplus" when income covers expenses,
+    // "Annual shortfall" when there's a gap (no ambiguous slash).
+    expect(screen.getByText(/^Annual (surplus|shortfall)$/)).toBeInTheDocument();
     // The surplus tooltip is mode-specific: it spells out that income here means
     // the user's income sources (not investment returns or savings).
-    fireEvent.click(screen.getByLabelText("About Annual surplus / shortfall"));
+    fireEvent.click(screen.getByLabelText(/^About Annual (surplus|shortfall)$/));
     expect(screen.getByRole("tooltip")).toHaveTextContent(/income sources/i);
     expect(screen.getByText("First shortfall age")).toBeInTheDocument();
     expect(screen.getByText("Coverage status")).toBeInTheDocument();
@@ -482,7 +484,7 @@ describe("PathToFirePanel", () => {
     // The surplus tooltip spells out spendable income = guaranteed income + cash yield.
     // (An earlier tooltip from the Cash yield field may still be open, so match the
     // surplus tooltip by a phrase unique to it.)
-    fireEvent.click(screen.getByLabelText("About Annual surplus / shortfall"));
+    fireEvent.click(screen.getByLabelText(/^About Annual (surplus|shortfall)$/));
     expect(
       screen
         .getAllByRole("tooltip")
