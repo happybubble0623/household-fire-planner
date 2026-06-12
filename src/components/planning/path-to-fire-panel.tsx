@@ -114,14 +114,11 @@ const auroraCss = `
 .aurora-home .foot{border-top:1px solid var(--n200);padding:30px 0;color:var(--n500);font-size:13px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:30px}
 
 /* ---- "Which path fits you?" — three comparison cards + Help me choose ---- */
-.aurora-home .paths-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:0}
-.aurora-home .paths-headtext{flex:1;min-width:260px}
-.aurora-home .paths-head h2{font-size:34px;text-align:left;letter-spacing:-.02em}
-.aurora-home .paths-sub{color:var(--n500);font-size:15px;margin:10px 0 0;max-width:560px;text-align:left}
+.aurora-home .paths-helprow{display:flex;flex-direction:column;align-items:center;margin-top:22px}
 .aurora-home .paths-helpbtn{display:inline-flex;align-items:center;gap:8px;flex:none;height:42px;padding:0 18px;border-radius:12px;background:var(--gold50);border:1px solid var(--gold100);color:var(--gold6);font-weight:600;font-size:14px;cursor:pointer;transition:.15s}
 .aurora-home .paths-helpbtn:hover{background:var(--gold100)}
 
-.aurora-home .paths-picker{flex-basis:100%;width:100%;order:3;margin-top:24px;background:var(--surface);border:1px solid var(--n200);border-radius:18px;box-shadow:var(--shadow-md);overflow:hidden;animation:pathsin .22s ease}
+.aurora-home .paths-picker{width:100%;margin-top:24px;background:var(--surface);border:1px solid var(--n200);border-radius:18px;box-shadow:var(--shadow-md);overflow:hidden;animation:pathsin .22s ease}
 @keyframes pathsin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 .aurora-home .paths-ptop{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 22px;background:linear-gradient(120deg,var(--g50),var(--gold50));border-bottom:1px solid var(--n200)}
 .aurora-home .paths-lt{display:flex;align-items:center;gap:10px}
@@ -176,8 +173,7 @@ const auroraCss = `
 .aurora-home .htitle{font-size:40px}
 .aurora-home .grid3,.aurora-home .grid4,.aurora-home .stripe,.aurora-home .kpis{grid-template-columns:1fr}
 .aurora-home .paths-grid{grid-template-columns:1fr;gap:16px}
-.aurora-home .paths-head{flex-direction:column;align-items:stretch}
-.aurora-home .paths-head h2{font-size:27px}
+.aurora-home .paths h2{font-size:27px}
 .aurora-home .paths-helpbtn{width:100%;justify-content:center}
 .aurora-home .paths-opts{flex-direction:column}
 .aurora-home .paths-opt{min-width:0;width:100%}
@@ -275,14 +271,12 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
         </div>
 
         <section className="sec paths" id="strategies">
-          <div className="paths-head">
-            <div className="paths-headtext">
-              <h2>Three paths to reach early retirement</h2>
-              <p className="paths-sub">
-                Each path is a different way to fund the years after work. Pick the one that sounds
-                like you — you can switch anytime.
-              </p>
-            </div>
+          <h2>Three paths to reach early retirement</h2>
+          <p className="sub">
+            Each path is a different way to fund the years after work. Pick the one that sounds
+            like you — you can switch anytime.
+          </p>
+          <div className="paths-helprow">
             <PathPicker />
           </div>
 
