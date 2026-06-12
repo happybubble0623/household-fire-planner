@@ -118,7 +118,6 @@ const termHelp: Record<string, string> = {
   "Implied withdrawal rate": "The first-year portfolio draw divided by assets at FIRE. It is an output, not an input.",
   "Income coverage ratio": "Passive or guaranteed income divided by annual expenses.",
   "Annual surplus / shortfall": "Your spendable income for this FIRE mode minus your annual retirement expenses. Positive is a surplus; negative is a gap you'd need to cover.",
-  "Progress to FIRE age": "How far your current age has progressed toward this strategy's projected FIRE age, measured as current age ÷ projected FIRE age. 100% means you've reached the age where you could retire under this strategy.",
   "First shortfall age": "The first age when income is lower than retirement expenses.",
   "Coverage status": "Whether income covers projected expenses through life expectancy.",
   "Spendable income": "Income streams plus cash-generating investment return available to cover expenses.",
@@ -497,33 +496,6 @@ function ProgressBar({
       </div>
     </div>
   );
-}
-
-// Age-based progress toward a strategy's projected FIRE age. Used by both
-// Portfolio Drawdown and Principal-Preserving so the progress bar reads in
-// intuitive age terms rather than an assets-based ratio.
-//
-// Formula: percent = (current age / projected FIRE age) × 100, clamped to
-// 0–100. It reaches 100% once the current age is at or past the FIRE age
-// (you could retire now), and shows 0% with a "not reached" note when the
-// strategy never reaches FIRE under the current assumptions.
-function computeAgeProgress(currentAge: number, fireAge: number | null) {
-  if (fireAge === null) {
-    return { percent: 0, note: "FIRE age not reached under current assumptions" };
-  }
-  if (fireAge <= currentAge) {
-    return {
-      percent: 100,
-      note: `Age ${formatNumber(currentAge)} — you've reached your FIRE age`
-    };
-  }
-  const percent = Math.max(0, Math.min(100, (currentAge / fireAge) * 100));
-  return {
-    percent,
-    note: `Age ${formatNumber(currentAge)} of ${formatNumber(fireAge)} — ${formatPercent(
-      percent / 100
-    )} of the way to your FIRE age`
-  };
 }
 
 // Always-visible navigation to the standalone calculators, shown near the top
@@ -1482,7 +1454,7 @@ export function FireStrategyPanel({
       ) : null}
 
       {isWithdrawalRateMode && withdrawalResult ? (
-        <WithdrawalResults result={withdrawalResult} currentAge={inputs.currentAge} />
+        <WithdrawalResults result={withdrawalResult} />
       ) : null}
 
       {isIncomeStreamMode && incomeStreamResult ? (
@@ -1492,7 +1464,7 @@ export function FireStrategyPanel({
       {isPrincipalPreservingMode && principalPreservingResult ? (
         <PrincipalPreservingResults
           result={principalPreservingResult}
-          currentAge={inputs.currentAge}
+          currentFireAssets={inputs.currentFireAssets}
         />
       ) : null}
 
@@ -1505,14 +1477,12 @@ export function FireStrategyPanel({
   );
 }
 
-function WithdrawalResults({
-  result,
-  currentAge
-}: {
-  result: NonNullable<Phase1PanelProps["fireResult"]>["withdrawalRate"];
-  currentAge: number;
-}) {
-  const ageProgress = computeAgeProgress(currentAge, result.estimatedFireAge);
+function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["fireResult"]>["withdrawalRate"] }) {
+  const targetAssets = result.targetFireNumber ?? result.assetsAtFire;
+  const progress =
+    targetAssets <= 0
+      ? 100
+      : (Math.max(0, targetAssets - result.fireGap) / targetAssets) * 100;
   const fireAge = result.estimatedFireAge === null ? "Not reached" : formatNumber(result.estimatedFireAge);
   const fireYear = result.estimatedFireYear === null ? "Not reached" : String(result.estimatedFireYear);
   const impliedWithdrawalRate =
@@ -1520,6 +1490,11 @@ function WithdrawalResults({
 
   return (
     <section className="space-y-5">
+      <ProgressBar
+        label="Progress to FIRE"
+        value={progress}
+        note={`${formatPercent(progress / 100)} of the assets needed at FIRE`}
+      />
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <ResultCard
           label="Estimated FIRE age"
@@ -1534,11 +1509,6 @@ function WithdrawalResults({
         <ResultCard label="Assets at FIRE" value={formatCurrency(result.assetsAtFire)} />
         <ResultCard label="Implied withdrawal rate" value={impliedWithdrawalRate} />
       </div>
-      <ProgressBar
-        label="Progress to FIRE age"
-        value={ageProgress.percent}
-        note={ageProgress.note}
-      />
       <section aria-label="Cash flow by age" className="space-y-3">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
           Money in vs. money out, year by year
@@ -1613,12 +1583,15 @@ function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps[
 
 function PrincipalPreservingResults({
   result,
-  currentAge
+  currentFireAssets
 }: {
   result: NonNullable<Phase1PanelProps["fireResult"]>["principalPreserving"];
-  currentAge: number;
+  currentFireAssets: number;
 }) {
-  const ageProgress = computeAgeProgress(currentAge, result.estimatedFireAge);
+  const progress =
+    result.principalFloor <= 0
+      ? 100
+      : Math.min(100, (currentFireAssets / result.principalFloor) * 100);
   const fireAge =
     result.estimatedFireAge === null ? "Not reached" : formatNumber(result.estimatedFireAge);
   const fireYear =
@@ -1626,6 +1599,11 @@ function PrincipalPreservingResults({
 
   return (
     <section className="space-y-5">
+      <ProgressBar
+        label="Progress to FIRE"
+        value={progress}
+        note={`${formatPercent(progress / 100)} of the principal floor (${formatCurrency(result.principalFloor)})`}
+      />
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <ResultCard
           label="Earliest Principal-Preserving FIRE age"
@@ -1664,11 +1642,6 @@ function PrincipalPreservingResults({
           Try a higher savings rate, lower expenses, more income, or a higher cash-generating return.
         </div>
       )}
-      <ProgressBar
-        label="Progress to FIRE age"
-        value={ageProgress.percent}
-        note={ageProgress.note}
-      />
       <ProjectionTable
         label="Principal-Preserving FIRE projection"
         rows={result.projectionRows}

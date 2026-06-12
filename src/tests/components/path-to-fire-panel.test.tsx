@@ -311,10 +311,10 @@ describe("PathToFirePanel", () => {
     expect(
       screen.queryByRole("link", { name: /Estimate with Social Security calculator/i })
     ).not.toBeInTheDocument();
-    // The drawdown progress bar is now age-based (progress toward the FIRE age),
-    // not assets-based.
-    expect(screen.getByRole("progressbar", { name: "Progress to FIRE age" })).toBeInTheDocument();
-    expect(screen.getByText(/of the way to your FIRE age/i)).toBeInTheDocument();
+    // The drawdown progress bar is assets-based: current assets as a share of the
+    // assets needed at FIRE.
+    expect(screen.getByRole("progressbar", { name: "Progress to FIRE" })).toBeInTheDocument();
+    expect(screen.getByText(/of the assets needed at FIRE/i)).toBeInTheDocument();
     expect(screen.getAllByLabelText("About Implied withdrawal rate").length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByLabelText("About Implied withdrawal rate")[0]);
     expect(screen.getByRole("tooltip")).toHaveTextContent(
@@ -475,10 +475,10 @@ describe("PathToFirePanel", () => {
     expect(screen.getAllByText("Principal floor").length).toBeGreaterThan(0);
     expect(screen.getByText("Spendable income")).toBeInTheDocument();
     expect(screen.getByText("First principal dip age")).toBeInTheDocument();
-    // Principal-Preserving progress is age-based (toward the FIRE age), not the
-    // old assets-vs-principal-floor ratio.
-    expect(screen.getByRole("progressbar", { name: "Progress to FIRE age" })).toBeInTheDocument();
-    expect(screen.queryByText(/of the principal floor/i)).not.toBeInTheDocument();
+    // Principal-Preserving progress is assets-based: current assets as a share of
+    // the FIRE-age principal floor.
+    expect(screen.getByRole("progressbar", { name: "Progress to FIRE" })).toBeInTheDocument();
+    expect(screen.getByText(/of the principal floor/i)).toBeInTheDocument();
     // The surplus tooltip spells out spendable income = guaranteed income + cash yield.
     // (An earlier tooltip from the Cash yield field may still be open, so match the
     // surplus tooltip by a phrase unique to it.)
