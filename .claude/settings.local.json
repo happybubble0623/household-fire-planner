@@ -112,7 +112,12 @@
       "Bash(grep -rn \"Local mode\" --include=\"*.tsx\" --include=\"*.ts\" -l src)",
       "Bash(grep -rn \"Update today\" --include=\"*.tsx\" -l src)",
       "Bash(echo \"no assertions found \\(exit $?\\)\")",
-      "Bash(node scripts/portfolio-header-centered-shots.mjs)"
+      "Bash(node scripts/portfolio-header-centered-shots.mjs)",
+      "Bash(node scripts/portfolio-info-button-swap-shots.mjs)",
+      "Bash(curl -s -w '\\\\nHTTP_STATUS=%{http_code}\\\\n' -H 'Authorization: Bearer __CMDSUB_OUTPUT__' https://api.supabase.com/v1/projects/riyprnpgeccjypodrabb/config/auth -o /tmp/auth_config.json)",
+      "Bash(python3 -c *)",
+      "Bash(curl -s -H 'Authorization: Bearer __CMDSUB_OUTPUT__' https://api.supabase.com/v1/projects/riyprnpgeccjypodrabb/config/auth -o /tmp/auth2.json)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

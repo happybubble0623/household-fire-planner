@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/storage/supabase-sync";
 
 type Step = "email" | "code";
@@ -9,13 +10,74 @@ type Step = "email" | "code";
 const GUEST_HINT =
   "You can continue as Guest without creating an account. Household FIRE Planner never asks for brokerage, bank, SSA, or government credentials.";
 
+// Where a successful sign-in (and Continue as Guest) lands the user.
+const POST_SIGN_IN_PATH = "/app/fire-path";
+
+// How long the "You're signed in" confirmation is shown before we redirect.
+// Long enough to reassure the user the code worked, short enough to feel snappy.
+const REDIRECT_DELAY_MS = 1000;
+
+// Soft client-side cap on how many sign-in codes a single device may request per
+// calendar day (initial sends AND resends both count). This is a courtesy guard
+// against accidental email spam / hitting Supabase's own rate limit — it lives in
+// localStorage so it is trivially bypassable and is meant only as a first line of
+// defense. Real server-side abuse protection (per-email / per-IP throttling) is a
+// follow-up after deploy; raise this number then if needed.
+const MAX_DAILY_CODE_REQUESTS = 4;
+const CODE_REQUEST_STORAGE_KEY = "hfp:code-requests";
+
+// Local calendar day (YYYY-MM-DD) used to key the daily counter so it resets at
+// midnight in the user's own timezone.
+function todayKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
+}
+
+function readCodeRequestCount(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = window.localStorage.getItem(CODE_REQUEST_STORAGE_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as { date?: string; count?: number };
+    return parsed?.date === todayKey() ? Number(parsed.count) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function incrementCodeRequestCount(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const next = readCodeRequestCount() + 1;
+    window.localStorage.setItem(
+      CODE_REQUEST_STORAGE_KEY,
+      JSON.stringify({ date: todayKey(), count: next })
+    );
+  } catch {
+    // Storage may be unavailable (private mode / quota); fail open rather than
+    // blocking a legitimate sign-in.
+  }
+}
+
 export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
+  const router = useRouter();
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [status, setStatus] = useState(GUEST_HINT);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Cancel a pending post-sign-in redirect if the component unmounts first.
+  useEffect(
+    () => () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+    },
+    []
+  );
 
   // Step 1: email the verification code. We intentionally do NOT pass
   // emailRedirectTo — the code flow establishes the session in-page via
@@ -27,6 +89,15 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
     if (!supabase) {
       setError(null);
       setStatus("Supabase is not configured. Guest mode remains available.");
+      return false;
+    }
+
+    // Enforce the per-device daily cap before we send (covers initial sends and
+    // resends, since both route through here).
+    if (readCodeRequestCount() >= MAX_DAILY_CODE_REQUESTS) {
+      setError(
+        `You've requested the maximum of ${MAX_DAILY_CODE_REQUESTS} codes today. Please try again tomorrow.`
+      );
       return false;
     }
 
@@ -44,6 +115,10 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
       setError(sendError.message);
       return false;
     }
+
+    // Only count sends that actually went out, so a provider-side failure doesn't
+    // burn the user's daily allowance.
+    incrementCodeRequestCount();
 
     setStatus(
       `We emailed a verification code to ${targetEmail}. Enter it below to finish signing in.`
@@ -91,7 +166,15 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
       return;
     }
 
-    setStatus("You're signed in. Your saved plans will sync to this device.");
+    // Session is now established (verifyOtp persisted it + fired
+    // onAuthStateChange). Flash a brief confirmation, then navigate into the app
+    // so the user isn't stranded on /login thinking sign-in failed. router.refresh
+    // re-renders server components so the signed-in header picks up the session.
+    setStatus("You're signed in. Taking you to your FIRE path…");
+    redirectTimer.current = setTimeout(() => {
+      router.push(POST_SIGN_IN_PATH);
+      router.refresh();
+    }, REDIRECT_DELAY_MS);
   }
 
   async function resendCode() {
@@ -207,7 +290,7 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
         <Link
-          href="/app/fire-path"
+          href={POST_SIGN_IN_PATH}
           className="rounded-lg bg-[var(--primary)] px-4 py-2 text-center font-semibold text-white transition-colors hover:bg-[var(--primary-hover)]"
         >
           Continue as Guest

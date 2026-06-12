@@ -1,161 +1,233 @@
 # Deployment Guide — Household FIRE Planner
 
-Step-by-step checklist to take the app live. Estimated time: 30–45 minutes the first time.
-Recommended host: **Vercel** (built by the Next.js team, free Hobby tier, zero server config).
+Step-by-step checklist to take the app live on **Vercel**, with a **Cloudflare** domain,
+**Supabase** backend, and **Resend** for transactional email. Estimated time: 45–60 minutes
+the first time. Tackle the sections in order — each builds on the previous one.
+
+Stack at a glance:
+- **Vercel** — hosts the Next.js app, auto-deploys on every push to `main`.
+- **Cloudflare** — registrar / DNS for your domain (points the domain at Vercel; holds the email DNS records).
+- **Supabase** — auth (email OTP / magic code) + cloud sync + feedback storage.
+- **Resend** — sends auth OTP emails and feedback notifications from your domain.
 
 ---
 
-## 1. Before you deploy (one-time, local)
+## 0. Pre-flight (local, one-time)
 
-- [ ] Run the checks on your Mac and make sure all pass:
+- [ ] Confirm the three checks pass on your machine:
 
   ```bash
-  npm test -- --run
-  npm run lint
-  npm run build
+  npm test       # vitest, all green
+  npm run lint   # eslint, no errors
+  npm run build  # production build, no errors/warnings
   ```
 
-- [ ] Push the project to a GitHub repository (private is fine). Vercel deploys from GitHub.
-  If the project isn't a git repo yet:
+- [ ] Confirm secrets are not tracked by git (should print **nothing**):
 
   ```bash
-  git init
+  git ls-files | grep -i env
+  ```
+
+  `.gitignore` already excludes `.env`, `.env.*`, `node_modules/`, and `.next/`.
+  Your real secrets live only in `.env.local` (gitignored). `.env.example` (committed)
+  documents the variable names with placeholder values.
+
+---
+
+## (a) Push to GitHub
+
+- [ ] Create an empty repo on github.com (private is fine — Vercel can still deploy it).
+- [ ] From the project root:
+
+  ```bash
   git add .
-  git commit -m "Initial deploy"
-  # create an empty repo on github.com, then:
+  git commit -m "Production-ready: deployment config + docs"
   git remote add origin https://github.com/<your-username>/<repo-name>.git
   git push -u origin main
   ```
 
-  ⚠️ Confirm `.env.local` is in `.gitignore` before pushing — your API keys must never be committed.
+  ⚠️ Double-check `.env.local` is **not** in the push (it's gitignored — verify with
+  `git ls-files | grep -i env` returning nothing).
 
-## 2. Supabase (one-time)
+---
 
-- [ ] In the Supabase dashboard → **SQL Editor**, run the full `supabase/schema.sql`.
-  If you ran it before, at minimum run the new `feedback_messages` block at the bottom
-  (this powers the Contact page; without it the form shows an error).
-- [ ] To read feedback later: dashboard → **Table Editor** → `feedback_messages`.
-  (Visitors can only insert; nothing can be read through the public API.)
+## (b) Import to Vercel + set environment variables
 
-## 3. Create the Vercel project
+- [ ] Sign in at **vercel.com** with your GitHub account.
+- [ ] **Add New → Project** → import your repo. Vercel auto-detects Next.js; keep the
+  default build settings (build command `next build`, output handled automatically).
+- [ ] Before clicking **Deploy**, open **Environment Variables** and add the following
+  (names must match `.env.example` exactly; copy values from your local `.env.local`).
+  Set each for **Production** (and Preview, if you want preview deploys to work):
 
-- [ ] Sign up at vercel.com with your GitHub account.
-- [ ] **Add New → Project** → import your repo. Vercel auto-detects Next.js — keep the
-  default build settings (build command `next build`, no changes needed).
-- [ ] Before clicking Deploy, open **Environment Variables** and add these five
-  (copy values from your local `.env.local`):
-
-  | Name | Value | Notes |
+  | Name | Example value | Notes |
   |---|---|---|
-  | `NEXT_PUBLIC_SUPABASE_URL` | your Supabase project URL | from Supabase → Settings → API |
-  | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | your anon/public key | same page; the *anon* key, never the service-role key |
-  | `EODHD_API_KEY` | your EODHD key | market-price refresh |
-  | `MARKET_DATA_PROVIDER` | `eodhd` | |
-  | `NEXT_PUBLIC_SITE_URL` | your final URL, e.g. `https://www.yourdomain.com` | drives sitemap.xml, robots.txt, canonical/OpenGraph URLs — no trailing slash |
+  | `NEXT_PUBLIC_SUPABASE_URL` | `https://abcd.supabase.co` | Supabase → Settings → API |
+  | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGci…` | the **anon/public** key — never the service-role key |
+  | `NEXT_PUBLIC_SITE_URL` | `https://www.yourdomain.com` | your final domain, **no trailing slash**; drives sitemap/robots/canonical/OG |
+  | `EODHD_API_KEY` | `xxxxxxxx` | market-price + symbol search API |
+  | `MARKET_DATA_PROVIDER` | `eodhd` | leave as `eodhd` |
 
-  If you don't have a custom domain yet, set `NEXT_PUBLIC_SITE_URL` to the
-  `https://<project>.vercel.app` URL for now and update it in step 4.
+  If your custom domain isn't wired up yet, temporarily set `NEXT_PUBLIC_SITE_URL` to the
+  `https://<project>.vercel.app` URL and update it after section (c).
 
-- [ ] Click **Deploy** and wait for the green checkmark.
+  ⚠️ `NEXT_PUBLIC_*` vars are inlined at **build time** — after changing any of them you
+  must **redeploy** (Deployments → ⋯ → Redeploy) for the change to take effect.
 
-## 4. Custom domain (optional but recommended for SEO)
+- [ ] Click **Deploy** and wait for the green checkmark. Note the `*.vercel.app` URL.
 
-- [ ] Vercel project → **Settings → Domains** → add `yourdomain.com` (buy one at
-  Namecheap/Cloudflare/Google Domains if needed, ~$10–15/yr).
-- [ ] Follow Vercel's DNS instructions (usually one A record + one CNAME). HTTPS is automatic.
-- [ ] Update `NEXT_PUBLIC_SITE_URL` to the real domain (Settings → Environment Variables),
-  then **Deployments → ⋯ → Redeploy** so the sitemap picks it up.
-  ⚠️ `NEXT_PUBLIC_*` variables are baked in at build time — changing one always requires a redeploy.
+---
 
-## 5. Verify the live site (5 minutes)
+## (c) Add the Cloudflare domain to Vercel + DNS
 
-Open these and check each works:
+You'll keep DNS at Cloudflare and point it at Vercel.
 
-- [ ] `https://yourdomain.com` → redirects to the planner
-- [ ] `https://yourdomain.com/robots.txt` → shows rules + sitemap line with your domain
-- [ ] `https://yourdomain.com/sitemap.xml` → lists all pages with your domain (not localhost)
-- [ ] `https://yourdomain.com/contact` → submit a test message, then confirm it appears in
-  Supabase → Table Editor → `feedback_messages`
-- [ ] A calculator page on your phone (mobile layout, tooltips, tables scroll properly)
-- [ ] Sign up / log in, save a plan, reload — confirms Supabase env vars are correct
+- [ ] In **Vercel → Project → Settings → Domains**, add both `yourdomain.com` and
+  `www.yourdomain.com`. Pick one as primary (e.g. `www`) and let Vercel redirect the other.
+  Vercel will show the exact DNS records it wants.
+- [ ] In the **Cloudflare dashboard → your domain → DNS → Records**, add what Vercel asked for:
 
-## 6. Get indexed by Google (the SEO payoff)
+  | Type | Name | Value | Proxy |
+  |---|---|---|---|
+  | `A` | `@` (apex) | `76.76.21.21` | **DNS only (grey cloud)** |
+  | `CNAME` | `www` | `cname.vercel-dns.com` | **DNS only (grey cloud)** |
 
-- [ ] Go to **Google Search Console** (search.google.com/search-console) → Add property →
-  Domain → verify via the DNS record it gives you (add it where your DNS lives).
-- [ ] In Search Console → **Sitemaps** → submit `sitemap.xml`.
-- [ ] Optional: do the same at **Bing Webmaster Tools** (can import from Search Console).
-- [ ] Expect first indexing in days; meaningful impressions take weeks. Check
-  Search Console → Pages to see what's indexed and any mobile/crawl issues.
+  Use the exact targets Vercel shows you — they occasionally change.
+  Set these records to **DNS only / grey cloud**, not proxied (orange cloud): Vercel
+  terminates TLS and issues the certificate itself, and Cloudflare proxying on top can
+  cause redirect loops or cert-validation failures.
+- [ ] Back in Vercel → Domains, wait for both domains to show **Valid Configuration**
+  (DNS can take a few minutes to a couple of hours). HTTPS is issued automatically.
+- [ ] Once the domain is live, set `NEXT_PUBLIC_SITE_URL` to the real domain in Vercel and
+  **redeploy** so sitemap/robots/canonical URLs use it.
 
-## 7. Ongoing
+---
 
-- Every `git push` to `main` auto-deploys to production; pushes to other branches get
-  preview URLs.
-- Feedback emails: new contact-form messages are emailed to you automatically once you
-  complete the "Email notifications for feedback" section below.
-- Yearly: refresh the 2026 healthcare constants in `src/lib/calculations/healthcare-data.ts`
-  and Social Security figures when new numbers are published.
+## (d) Supabase production config
 
-## Email notifications for feedback (one-time, ~15 minutes)
+The app uses **email OTP (one-time code)** auth — the user receives a numeric code and
+types it back, so there is **no email link to redirect to**.
 
-Sends every new contact-form message to your inbox via a Supabase Edge Function
-(`supabase/functions/notify-feedback/index.ts`) and Resend (free email API).
+- [ ] **Supabase → Authentication → URL Configuration → Site URL**: set to your production
+  domain, `https://www.yourdomain.com` (no trailing slash). This is used as the default base
+  for the project and email templates.
+- [ ] **Redirect URLs**: the OTP/code flow does **not** use redirect URLs, so you do **not**
+  need to add any `…/auth/callback` entries for login to work. (Only add redirect URLs if you
+  later switch to magic-**link** or OAuth providers.)
+- [ ] **Database schema** — in **SQL Editor**, run the full `supabase/schema.sql` (idempotent).
+  If you've run it before, at minimum run the `feedback_messages` block at the bottom — it
+  powers the Contact/feedback form. Visitors can only INSERT; nothing is publicly readable.
+- [ ] Read feedback later via **Table Editor → `feedback_messages`**.
 
-### A. Resend account
+---
 
-- [ ] Sign up at resend.com **using zhchong0623@gmail.com** (important: the free
-  no-domain-verification mode only delivers to your own account email).
-- [ ] Dashboard → **API Keys** → Create API key (name: `fire-planner`, permission:
-  Sending access). Copy the key (starts with `re_`) — shown only once.
+## (e) Resend: verify your domain + Supabase custom SMTP
 
-### B. Deploy the function (Supabase CLI, run on your Mac)
+By default Supabase Auth sends OTP emails from a shared address with tight rate limits and
+poor deliverability. For production, verify your domain in Resend and route Supabase auth
+email through it.
+
+### e1. Verify the domain in Resend (DNS lives in Cloudflare)
+
+- [ ] **resend.com → Domains → Add Domain** → enter `yourdomain.com`.
+- [ ] Resend shows a set of DNS records. In **Cloudflare → DNS → Records**, add them exactly
+  as given. You'll typically add (use Resend's exact hostnames/values — these are illustrative):
+
+  | Type | Name | Value | Purpose |
+  |---|---|---|---|
+  | `TXT` | `send` (or `@`) | `v=spf1 include:amazonses.com ~all` | **SPF** — authorizes the sender |
+  | `TXT`/`CNAME` | `resend._domainkey` | (long key Resend provides) | **DKIM** — signs the mail |
+  | `MX` | `send` | `feedback-smtp.<region>.amazonses.com` (prio 10) | return-path |
+  | `TXT` | `_dmarc` | `v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com` | **DMARC** — reporting/policy |
+
+  Set these to **DNS only (grey cloud)** in Cloudflare. Start DMARC at `p=none` (monitor),
+  then tighten to `quarantine`/`reject` once SPF+DKIM pass cleanly for a week or two.
+- [ ] Back in Resend, click **Verify** until the domain shows **Verified** (DNS propagation
+  can take minutes to a few hours).
+- [ ] **Resend → API Keys → Create API Key** (Sending access). Copy it (starts with `re_`) —
+  shown only once.
+
+### e2. Point Supabase Auth SMTP at Resend
+
+- [ ] **Supabase → Project Settings → Authentication → SMTP Settings → Enable custom SMTP**:
+
+  | Field | Value |
+  |---|---|
+  | Host | `smtp.resend.com` |
+  | Port | `465` (SSL) or `587` (STARTTLS) |
+  | Username | `resend` |
+  | Password | your Resend API key (`re_…`) |
+  | Sender email | `noreply@yourdomain.com` |
+  | Sender name | `Household FIRE Planner` |
+
+- [ ] Save. Send yourself a test login OTP from the live site and confirm it arrives **from
+  `noreply@yourdomain.com`** (not the Supabase default sender), lands in the inbox (not spam),
+  and the code logs you in.
+
+### e3. (Optional) Feedback-notification email
+
+The Contact form stores messages in `feedback_messages` and a Supabase **Edge Function**
+(`supabase/functions/notify-feedback/index.ts`) emails them to you via Resend.
 
 ```bash
-# one-time install + login
+# one-time: install + login
 brew install supabase/tap/supabase
-supabase login                       # opens browser
+supabase login
 
 cd "/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Freedom Path"
-supabase link --project-ref <YOUR_PROJECT_REF>   # ref = the part before .supabase.co in your project URL
+supabase link --project-ref <YOUR_PROJECT_REF>   # the part before .supabase.co in your URL
 
-# set the secrets the function needs
+# secrets the function needs (NOT Vercel env vars — these are Supabase secrets)
 supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxx
+supabase secrets set FEEDBACK_FROM_EMAIL=noreply@yourdomain.com   # now that the domain is verified
 supabase secrets set FEEDBACK_WEBHOOK_SECRET=$(openssl rand -hex 24)
-# print the secret you just generated — you'll paste it into the webhook in step C:
-supabase secrets list
+supabase secrets list                              # copy the webhook secret for the next step
 
-# deploy (no JWT check; the function enforces its own shared secret instead)
 supabase functions deploy notify-feedback --no-verify-jwt
 ```
 
-### C. Database webhook (Supabase dashboard)
+- [ ] **Supabase → Database → Webhooks → Create webhook**: table `feedback_messages`, event
+  **Insert** only, type **Supabase Edge Function → notify-feedback**, and add HTTP header
+  `x-webhook-secret` = the `FEEDBACK_WEBHOOK_SECRET` from above. Save.
+- [ ] Submit a test message at `/about` (feedback form) and confirm the email arrives.
+  Logs: **Edge Functions → notify-feedback → Logs** (401 = secret mismatch; 502 = Resend rejected).
 
-- [ ] Dashboard → **Database → Webhooks** → Enable webhooks (if asked) → **Create webhook**:
-  - Name: `notify-feedback`
-  - Table: `feedback_messages` · Events: check **Insert** only
-  - Type: **Supabase Edge Function** → pick `notify-feedback`
-    (or HTTP Request to `https://<YOUR_PROJECT_REF>.functions.supabase.co/notify-feedback`)
-  - HTTP Headers → add: `x-webhook-secret` = the FEEDBACK_WEBHOOK_SECRET value from step B
-- [ ] Save.
+---
 
-### D. Test
+## (f) Post-deploy checks
 
-- [ ] Submit a test message at `/contact` (locally or on the live site).
-- [ ] You should get an email at zhchong0623@gmail.com within seconds; replying goes
-  straight to the visitor (reply-to is set to their address).
-- [ ] If no email: Dashboard → **Edge Functions → notify-feedback → Logs** shows the error
-  (401 = secret header mismatch; 502 = Resend rejected — check the API key).
+Open each on the live domain and confirm:
 
-Later, if you verify your own domain in Resend, set a nicer sender with:
-`supabase secrets set FEEDBACK_FROM_EMAIL=feedback@yourdomain.com` and redeploy.
+- [ ] `https://www.yourdomain.com` → loads the planner over HTTPS, no console errors.
+- [ ] `https://www.yourdomain.com/robots.txt` → rules + a `Sitemap:` line pointing at **your domain** (not localhost).
+- [ ] `https://www.yourdomain.com/sitemap.xml` → lists all pages with **your domain**.
+- [ ] **Auth**: sign up / log in with a real email → OTP arrives from `noreply@yourdomain.com`,
+  code logs you in, save a plan, reload → data persists (confirms Supabase env + SMTP).
+- [ ] **Contact form** (`/about`) → submit a message → row appears in Supabase `feedback_messages`
+  and (if e3 is set up) the notification email arrives.
+- [ ] **Price refresh** → a portfolio page refreshes prices without error (confirms `EODHD_API_KEY`).
+- [ ] **Mobile** → open a calculator on a phone: layout, tooltips, and table scrolling work.
+- [ ] **SEO**: in **Google Search Console**, add the domain property, verify via DNS (Cloudflare),
+  and submit `sitemap.xml`.
+
+---
+
+## Ongoing
+
+- Every `git push` to `main` auto-deploys to production; other branches get preview URLs.
+- Changing any `NEXT_PUBLIC_*` value requires a **redeploy** (build-time inlining).
+- Yearly: refresh the healthcare constants in `src/lib/calculations/healthcare-data.ts` and
+  Social Security figures when new numbers publish.
 
 ## Troubleshooting
 
 | Symptom | Likely cause / fix |
 |---|---|
-| Contact form: "feedback service isn't configured" | `NEXT_PUBLIC_SUPABASE_*` vars missing on Vercel → add, redeploy |
-| Contact form: "Something went wrong sending" | `feedback_messages` table/policy not created → run the SQL block (step 2) |
-| Sitemap shows `localhost:3000` | `NEXT_PUBLIC_SITE_URL` not set at build time → set it, redeploy |
+| Sitemap/robots show `localhost:3000` | `NEXT_PUBLIC_SITE_URL` not set at build time → set it in Vercel, **redeploy** |
+| Domain stuck "Invalid Configuration" in Vercel | Cloudflare record proxied (orange cloud) → switch to **DNS only**, or wrong A/CNAME target |
+| Auth OTP email never arrives / goes to spam | Custom SMTP not enabled, or Resend domain not verified → finish section (e) |
+| OTP email comes from Supabase default sender | Custom SMTP not saved in Supabase → re-check SMTP settings (e2) |
+| Contact form: "feedback service isn't configured" | `NEXT_PUBLIC_SUPABASE_*` missing on Vercel → add, redeploy |
+| Contact form: "Something went wrong sending" | `feedback_messages` table/policy not created → run the SQL block (d) |
 | Price refresh fails in production | `EODHD_API_KEY` / `MARKET_DATA_PROVIDER` missing on Vercel |
-| Build fails on Vercel but works locally | Check the Vercel build log; usually a lint/type error — run `npm run build` locally first |
+| Build passes locally, fails on Vercel | Read the Vercel build log — usually a lint/type error; reproduce with `npm run build` |

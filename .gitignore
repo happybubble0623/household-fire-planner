@@ -13,6 +13,8 @@ tsconfig.tsbuildinfo
 # Environment files
 .env
 .env.*
+# ...but keep the committed template of variable names (placeholders only).
+!.env.example
 
 # Logs
 *.log
