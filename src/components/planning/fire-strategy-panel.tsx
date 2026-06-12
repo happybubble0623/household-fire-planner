@@ -117,7 +117,8 @@ const termHelp: Record<string, string> = {
   "Assets at FIRE": "Projected FIRE assets at the start of the first retirement drawdown year.",
   "Implied withdrawal rate": "The first-year portfolio draw divided by assets at FIRE. It is an output, not an input.",
   "Income coverage ratio": "Passive or guaranteed income divided by annual expenses.",
-  "Annual surplus / shortfall": "Income minus expenses for the selected FIRE mode.",
+  "Annual surplus / shortfall": "Your spendable income for this FIRE mode minus your annual retirement expenses. Positive is a surplus; negative is a gap you'd need to cover.",
+  "Progress to FIRE age": "How far your current age has progressed toward this strategy's projected FIRE age, measured as current age ÷ projected FIRE age. 100% means you've reached the age where you could retire under this strategy.",
   "First shortfall age": "The first age when income is lower than retirement expenses.",
   "Coverage status": "Whether income covers projected expenses through life expectancy.",
   "Spendable income": "Income streams plus cash-generating investment return available to cover expenses.",
@@ -430,11 +431,15 @@ function InfoLabel({
 function ResultCard({
   label,
   value,
-  tone = "default"
+  tone = "default",
+  help
 }: {
   label: string;
   value: string;
   tone?: "default" | "success" | "warning";
+  // Optional tooltip override so the same card label (e.g. "Annual surplus /
+  // shortfall") can carry mode-specific help text explaining which income counts.
+  help?: string;
 }) {
   const valueClass =
     tone === "success"
@@ -451,7 +456,7 @@ function ResultCard({
       )}
     >
       <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">
-        <InfoLabel label={label} />
+        <InfoLabel label={label} help={help} />
       </p>
       <p className={cn("mt-2 text-[28px] font-extrabold leading-9 tracking-tight tabular-nums", valueClass)}>
         {value}
@@ -492,6 +497,33 @@ function ProgressBar({
       </div>
     </div>
   );
+}
+
+// Age-based progress toward a strategy's projected FIRE age. Used by both
+// Portfolio Drawdown and Principal-Preserving so the progress bar reads in
+// intuitive age terms rather than an assets-based ratio.
+//
+// Formula: percent = (current age / projected FIRE age) × 100, clamped to
+// 0–100. It reaches 100% once the current age is at or past the FIRE age
+// (you could retire now), and shows 0% with a "not reached" note when the
+// strategy never reaches FIRE under the current assumptions.
+function computeAgeProgress(currentAge: number, fireAge: number | null) {
+  if (fireAge === null) {
+    return { percent: 0, note: "FIRE age not reached under current assumptions" };
+  }
+  if (fireAge <= currentAge) {
+    return {
+      percent: 100,
+      note: `Age ${formatNumber(currentAge)} — you've reached your FIRE age`
+    };
+  }
+  const percent = Math.max(0, Math.min(100, (currentAge / fireAge) * 100));
+  return {
+    percent,
+    note: `Age ${formatNumber(currentAge)} of ${formatNumber(fireAge)} — ${formatPercent(
+      percent / 100
+    )} of the way to your FIRE age`
+  };
 }
 
 // Always-visible navigation to the standalone calculators, shown near the top
@@ -1450,7 +1482,7 @@ export function FireStrategyPanel({
       ) : null}
 
       {isWithdrawalRateMode && withdrawalResult ? (
-        <WithdrawalResults result={withdrawalResult} />
+        <WithdrawalResults result={withdrawalResult} currentAge={inputs.currentAge} />
       ) : null}
 
       {isIncomeStreamMode && incomeStreamResult ? (
@@ -1460,7 +1492,7 @@ export function FireStrategyPanel({
       {isPrincipalPreservingMode && principalPreservingResult ? (
         <PrincipalPreservingResults
           result={principalPreservingResult}
-          currentFireAssets={inputs.currentFireAssets}
+          currentAge={inputs.currentAge}
         />
       ) : null}
 
@@ -1473,12 +1505,14 @@ export function FireStrategyPanel({
   );
 }
 
-function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["fireResult"]>["withdrawalRate"] }) {
-  const targetAssets = result.targetFireNumber ?? result.assetsAtFire;
-  const progress =
-    targetAssets <= 0
-      ? 100
-      : (Math.max(0, targetAssets - result.fireGap) / targetAssets) * 100;
+function WithdrawalResults({
+  result,
+  currentAge
+}: {
+  result: NonNullable<Phase1PanelProps["fireResult"]>["withdrawalRate"];
+  currentAge: number;
+}) {
+  const ageProgress = computeAgeProgress(currentAge, result.estimatedFireAge);
   const fireAge = result.estimatedFireAge === null ? "Not reached" : formatNumber(result.estimatedFireAge);
   const fireYear = result.estimatedFireYear === null ? "Not reached" : String(result.estimatedFireYear);
   const impliedWithdrawalRate =
@@ -1501,9 +1535,9 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
         <ResultCard label="Implied withdrawal rate" value={impliedWithdrawalRate} />
       </div>
       <ProgressBar
-        label="Progress to FIRE"
-        value={progress}
-        note={`${formatPercent(progress / 100)} of the assets needed at FIRE`}
+        label="Progress to FIRE age"
+        value={ageProgress.percent}
+        note={ageProgress.note}
       />
       <section aria-label="Cash flow by age" className="space-y-3">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
@@ -1549,7 +1583,12 @@ function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps[
           value={formatPercent(result.incomeCoverageRatio)}
           tone={result.incomeCoverageRatio >= 1 ? "success" : "warning"}
         />
-        <ResultCard label="Annual surplus / shortfall" value={formatSignedCurrency(result.shortfallOrSurplus)} tone={result.shortfallOrSurplus < 0 ? "warning" : "success"} />
+        <ResultCard
+          label="Annual surplus / shortfall"
+          value={formatSignedCurrency(result.shortfallOrSurplus)}
+          tone={result.shortfallOrSurplus < 0 ? "warning" : "success"}
+          help="Your income sources — Social Security, pension, rental, annuity, and any other guaranteed income — minus your annual retirement expenses. Investment returns and savings are not counted in this mode. Positive means your income covers expenses; negative means a gap."
+        />
         <ResultCard label="First shortfall age" value={result.firstShortfallAge ? formatNumber(result.firstShortfallAge) : "None"} tone={result.firstShortfallAge ? "warning" : "success"} />
         <ResultCard label="Coverage status" value={result.passes ? "Covered" : "Shortfall"} tone={result.passes ? "success" : "warning"} />
       </div>
@@ -1574,15 +1613,12 @@ function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps[
 
 function PrincipalPreservingResults({
   result,
-  currentFireAssets
+  currentAge
 }: {
   result: NonNullable<Phase1PanelProps["fireResult"]>["principalPreserving"];
-  currentFireAssets: number;
+  currentAge: number;
 }) {
-  const progress =
-    result.principalFloor <= 0
-      ? 100
-      : Math.min(100, (currentFireAssets / result.principalFloor) * 100);
+  const ageProgress = computeAgeProgress(currentAge, result.estimatedFireAge);
   const fireAge =
     result.estimatedFireAge === null ? "Not reached" : formatNumber(result.estimatedFireAge);
   const fireYear =
@@ -1611,6 +1647,7 @@ function PrincipalPreservingResults({
           label="Annual surplus / shortfall"
           value={formatSignedCurrency(result.shortfallOrSurplus)}
           tone={result.shortfallOrSurplus < 0 ? "warning" : "success"}
+          help="Your spendable income — guaranteed income (Social Security, pension, rent) plus the cash yield (dividends and interest) your investments pay out — minus your annual retirement expenses. It excludes selling principal. Positive means you can live on income without touching savings."
         />
         <ResultCard
           label="First principal dip age"
@@ -1628,9 +1665,9 @@ function PrincipalPreservingResults({
         </div>
       )}
       <ProgressBar
-        label="Progress to FIRE"
-        value={progress}
-        note={`${formatPercent(progress / 100)} of the principal floor (${formatCurrency(result.principalFloor)})`}
+        label="Progress to FIRE age"
+        value={ageProgress.percent}
+        note={ageProgress.note}
       />
       <ProjectionTable
         label="Principal-Preserving FIRE projection"
@@ -1714,7 +1751,10 @@ function ProjectionTable({
         ) : null}
       </div>
       <div className="max-h-[560px] overflow-auto">
-        <table aria-label={label} className="min-w-full divide-y divide-gray-200 text-sm">
+        <table
+          aria-label={label}
+          className="min-w-full border-collapse text-sm [&_td]:border [&_td]:border-[var(--border)] [&_td]:text-center [&_th]:border [&_th]:border-[var(--border)] [&_th]:text-center"
+        >
           <thead className="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">Age</th>
@@ -1902,7 +1942,10 @@ function IncomeStreamProjectionTable({
         </p>
       </div>
       <div className="max-h-[560px] overflow-auto">
-        <table aria-label={label} className="min-w-full divide-y divide-gray-200 text-sm">
+        <table
+          aria-label={label}
+          className="min-w-full border-collapse text-sm [&_td]:border [&_td]:border-[var(--border)] [&_td]:text-center [&_th]:border [&_th]:border-[var(--border)] [&_th]:text-center"
+        >
           <thead className="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">Age</th>

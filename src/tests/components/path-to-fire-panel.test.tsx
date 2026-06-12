@@ -280,7 +280,9 @@ describe("PathToFirePanel", () => {
     expect(screen.getByText("Assets at FIRE")).toBeInTheDocument();
     expect(screen.getByText("Implied withdrawal rate")).toBeInTheDocument();
     expect(screen.queryByLabelText("Withdrawal rate")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Annual retirement expenses")).toHaveValue("100,000");
+    expect(screen.getByLabelText("Annual retirement expenses")).toHaveValue("60,000");
+    // Starting assets are pre-filled so the calculator shows a meaningful result on load.
+    expect(screen.getByLabelText("Current FIRE assets")).toHaveValue("500,000");
     expect(
       screen.getByLabelText("Retirement expenses are inflation adjusted")
     ).toBeChecked();
@@ -309,13 +311,22 @@ describe("PathToFirePanel", () => {
     expect(
       screen.queryByRole("link", { name: /Estimate with Social Security calculator/i })
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("progressbar", { name: "Progress to FIRE" })).toBeInTheDocument();
+    // The drawdown progress bar is now age-based (progress toward the FIRE age),
+    // not assets-based.
+    expect(screen.getByRole("progressbar", { name: "Progress to FIRE age" })).toBeInTheDocument();
+    expect(screen.getByText(/of the way to your FIRE age/i)).toBeInTheDocument();
     expect(screen.getAllByLabelText("About Implied withdrawal rate").length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByLabelText("About Implied withdrawal rate")[0]);
     expect(screen.getByRole("tooltip")).toHaveTextContent(
       /first-year portfolio draw divided by assets at FIRE/i
     );
-    expect(screen.getByRole("table", { name: "Portfolio Drawdown FIRE projection" })).toBeInTheDocument();
+    const projectionTable = screen.getByRole("table", { name: "Portfolio Drawdown FIRE projection" });
+    expect(projectionTable).toBeInTheDocument();
+    // Cells are center-aligned and each column carries a subtle --border separator.
+    expect(projectionTable).toHaveClass("[&_td]:text-center");
+    expect(projectionTable).toHaveClass("[&_th]:text-center");
+    expect(projectionTable).toHaveClass("[&_td]:border-[var(--border)]");
+    expect(projectionTable).toHaveClass("[&_th]:border-[var(--border)]");
     expect(screen.getByRole("columnheader", { name: /^Age$/i })).toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: /Year/i })).not.toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: /Investment return/i })).toBeInTheDocument();
@@ -423,6 +434,10 @@ describe("PathToFirePanel", () => {
     expect(screen.queryByRole("button", { name: "Use Portfolio FIRE Assets" })).not.toBeInTheDocument();
     expect(screen.getByText("Income coverage ratio")).toBeInTheDocument();
     expect(screen.getByText("Annual surplus / shortfall")).toBeInTheDocument();
+    // The surplus tooltip is mode-specific: it spells out that income here means
+    // the user's income sources (not investment returns or savings).
+    fireEvent.click(screen.getByLabelText("About Annual surplus / shortfall"));
+    expect(screen.getByRole("tooltip")).toHaveTextContent(/income sources/i);
     expect(screen.getByText("First shortfall age")).toBeInTheDocument();
     expect(screen.getByText("Coverage status")).toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "Income coverage progress" })).toBeInTheDocument();
@@ -460,6 +475,19 @@ describe("PathToFirePanel", () => {
     expect(screen.getAllByText("Principal floor").length).toBeGreaterThan(0);
     expect(screen.getByText("Spendable income")).toBeInTheDocument();
     expect(screen.getByText("First principal dip age")).toBeInTheDocument();
+    // Principal-Preserving progress is age-based (toward the FIRE age), not the
+    // old assets-vs-principal-floor ratio.
+    expect(screen.getByRole("progressbar", { name: "Progress to FIRE age" })).toBeInTheDocument();
+    expect(screen.queryByText(/of the principal floor/i)).not.toBeInTheDocument();
+    // The surplus tooltip spells out spendable income = guaranteed income + cash yield.
+    // (An earlier tooltip from the Cash yield field may still be open, so match the
+    // surplus tooltip by a phrase unique to it.)
+    fireEvent.click(screen.getByLabelText("About Annual surplus / shortfall"));
+    expect(
+      screen
+        .getAllByRole("tooltip")
+        .some((tip) => /guaranteed income.*cash yield/is.test(tip.textContent ?? ""))
+    ).toBe(true);
     expect(screen.getByRole("table", { name: "Principal-Preserving FIRE projection" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: /Cash yield/i })).toBeInTheDocument();
   });

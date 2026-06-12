@@ -9,7 +9,7 @@ describe("defaultPhase1Workbook", () => {
     expect(defaultPhase1Workbook.schemaVersion).toBe("phase1.7");
     expect(defaultPhase1Workbook.fireInputs.fireRuleMode).toBe("withdrawal_rate");
     expect(defaultPhase1Workbook.fireInputs.passiveIncomeFireAge).toBe(60);
-    expect(defaultPhase1Workbook.fireInputs.expectedCashGeneratingReturnPercent).toBe(2);
+    expect(defaultPhase1Workbook.fireInputs.expectedCashGeneratingReturnPercent).toBe(3);
     expect(defaultPhase1Workbook.fireInputs.expensesInflationAdjusted).toBe(true);
     expect(defaultPhase1Workbook.fireInputs.useExpenseCategoriesOverride).toBe(false);
     expect(defaultPhase1Workbook.fireInputs.expenseCategories).toEqual([]);
@@ -57,7 +57,7 @@ describe("defaultPhase1Workbook", () => {
     const normalized = normalizePhase1Workbook(olderWorkbook);
 
     expect(normalized.schemaVersion).toBe("phase1.7");
-    expect(normalized.fireInputs.expectedCashGeneratingReturnPercent).toBe(2);
+    expect(normalized.fireInputs.expectedCashGeneratingReturnPercent).toBe(3);
     expect(normalized.fireInputs.useExpenseCategoriesOverride).toBe(false);
     expect(normalized.fireInputs.expenseCategories).toEqual([]);
     expect(normalized.portfolioCollections.map((collection) => collection.name)).toEqual([

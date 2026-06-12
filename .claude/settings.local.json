@@ -147,7 +147,11 @@
       "Bash(rm scripts/capture-home-screenshots.mjs)",
       "Bash(rmdir scripts *)",
       "Bash(rm -f /tmp/shot.js && echo cleaned)",
-      "Bash(file mockup/healthcare-calculator-pv/screenshots/*.png)"
+      "Bash(file mockup/healthcare-calculator-pv/screenshots/*.png)",
+      "Bash(node scripts/capture-fire-strategy.mjs)",
+      "Bash(ls -la \"ARCHITECTURE \\(Conflicted copy chongzha-mac 202606101248\\).md\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git fsck *)"
     ]
   }
 }
