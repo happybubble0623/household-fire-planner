@@ -1154,6 +1154,47 @@ Product significance:
 - Reflects real liquidity (home isn't drawdown capital) and lets tax be modeled everywhere.
 - The mode spectrum (Income Stream ⊂ Principal-Preserving ⊂ Portfolio Drawdown) is now surfaced as lifestyle-based guidance.
 
+### 2026-06-12 - Production Price-Fetch Fix, Learn/SEO Launch, And GSC/Analytics Decisions
+
+Founder input:
+
+- Reported that portfolio price fetching was broken in production while working locally.
+- Wanted Learn content and sitewide SEO to improve discoverability without adding new top-level navigation tabs.
+- Challenged the ambiguous "Annual surplus / shortfall" slash label as unclear.
+- Asked to align the home page "Three paths to reach early retirement" intro with the centered "Free calculators" section, and to move the "Help me choose" link directly below that intro.
+- Wanted real analytics in place and a Google Search Console "13 errors / URL not allowed" error resolved.
+- Asked for a marketing plan and a monetization plan to be written down.
+
+Codex response / artifact:
+
+- Diagnosed the production price-fetch failure as a missing `EODHD_API_KEY` in the Vercel environment (the key existed locally but not in production); the founder added it and an empty redeploy commit `8df927b` confirmed the fix.
+- Built Learn pages + sitewide SEO (commit `b9f47a4`): new `/what-is-fire` and `/fire-glossary` pages; a single "Learn" nav dropdown instead of new top-level tabs; FAQ + FAQPage JSON-LD on the three strategy pages; sitewide Organization + WebSite JSON-LD and Twitter card tags in the root layout; both new pages added to the sitemap; two-way internal linking.
+- Replaced the ambiguous slash with a sign-driven dynamic label (commit `049c02c`): "Annual surplus" (green) when positive, "Annual shortfall" (red) when negative, with plainly reworded tooltips; applies to Income Stream and Principal-Preserving modes.
+- Centered the "Three paths to reach early retirement" heading + subtitle and moved the "Not sure which fits you? Help me choose" link to directly below that intro, above the path cards (commit `1b661be`).
+- Added Vercel Web Analytics (commit `f80e971`): `@vercel/analytics` + `<Analytics />` in the root layout; the founder enabled it in the Vercel dashboard.
+- Fixed the sitemap (commit `7a95c55`): removed the redirecting root "/" entry (it 307-redirects to `/app/fire-path`) and promoted `/app/fire-path` to priority 1, resolving the "Page with redirect" GSC error.
+- Wrote `MARKETING_PLAN.md` (commit `7f0aaa4`) and `MONETIZATION_PLAN.md` (commit `d3d3407`).
+
+Founder decisions:
+
+- The GSC "13 errors / URL not allowed" root cause was the Jun-11 sitemap listing `http://localhost:3000` URLs (`NEXT_PUBLIC_SITE_URL` not applied at that build); already fixed — the live sitemap now emits valid `https://www.planmyfi.com` URLs.
+- DECIDED to KEEP `www` as canonical (do NOT switch to non-www). The GSC property is a Domain property covering both `www` and non-www, so there was no real host mismatch — no Vercel domain flip and no env change. For GSC Domain properties, sitemaps must be submitted as the full URL (`https://www.planmyfi.com/sitemap.xml`), not just `sitemap.xml`.
+- Analytics approach: Search Console + Vercel Web Analytics now; Google Analytics 4 optional later (needs a `G-XXXXXXX` Measurement ID from the founder).
+
+Pending / next:
+
+- Verify the healthcare calculator fixes are fully shipped (present-value headline, Medicaid/low-income handling, couple OOP bug, "moderate" OOP default) — verification in progress.
+- Sanity-check default figures (Medigap ~$155/mo, home insurance ~$2,400/yr) for accuracy.
+- Optional: GA4 setup; request indexing for individual calculator pages in Search Console.
+- Housekeeping: delete the old iCloud copy of the repo.
+
+Product significance:
+
+- Restores a core trust feature (live portfolio prices) in production and confirms the failure was environment config, not application logic.
+- Adds Learn content and structured-data SEO to grow organic discovery while honoring the founder's standing constraint against navigation bloat.
+- Removes a recurring point of user confusion in the FIRE result labels and tightens home-page visual consistency.
+- Establishes real analytics and a clean, valid sitemap so Search Console can index the site correctly, and records the deliberate www-canonical decision for future reference.
+
 ## Current Open Strategy Questions
 
 - Should the first visible experience be a quick FIRE snapshot, followed by portfolio setup?
