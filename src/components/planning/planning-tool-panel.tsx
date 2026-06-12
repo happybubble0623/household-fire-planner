@@ -695,7 +695,7 @@ function InvestmentCalculator() {
             onChange={setAnnualReturnPercent}
             suffix="%"
             step={0.1}
-            note="Default 7%/yr — ≈ the S&P 500's long-run real (after-inflation) return; nominal has averaged ~10% since 1926. An assumption, not a guarantee — try 5–6% too."
+            note="Default 7%/yr — ≈ the S&P 500's long-run real (after-inflation) return; before subtracting inflation it has averaged ~10% since 1926. An assumption, not a guarantee — try 5–6% too."
           />
           <NumberInput
             id="investment-years"

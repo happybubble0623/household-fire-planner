@@ -27,7 +27,7 @@ export const investmentFaq: FaqItem[] = [
   {
     question: "What return should I assume?",
     answer:
-      "A common long-run planning assumption is around 7% per year. That's roughly the U.S. stock market's historical real (after-inflation) return; the nominal return — before subtracting inflation — has averaged closer to 10% a year for the S&P 500 since 1926. Using the ~7% real figure keeps your projection in today's-dollar terms. Whatever you pick, it's an assumption, not a guarantee: actual returns vary widely year to year and the average is rarely what any single year delivers. A more conservative number (5–6%) is a reasonable stress test."
+      "A common long-run planning assumption is around 7% per year. That's roughly the U.S. stock market's historical real (after-inflation) return; before subtracting inflation, the return has averaged closer to 10% a year for the S&P 500 since 1926. Using the ~7% real figure keeps your projection in today's-dollar terms. Whatever you pick, it's an assumption, not a guarantee: actual returns vary widely year to year and the average is rarely what any single year delivers. A more conservative number (5–6%) is a reasonable stress test."
   },
   {
     question: "How does compound interest work?",
@@ -37,7 +37,7 @@ export const investmentFaq: FaqItem[] = [
   {
     question: "Should I account for inflation?",
     answer:
-      "Yes, if you want the result in today's purchasing power. Inflation has averaged around 3% a year over the long run (the Federal Reserve targets 2%), which erodes what a future balance can actually buy. A simple way to handle it is to use a real (after-inflation) return — around 7% instead of the ~10% nominal figure — so the projected balance is already expressed in today's dollars rather than inflated future dollars."
+      "Yes, if you want the result in today's purchasing power. Inflation has averaged around 3% a year over the long run (the Federal Reserve targets 2%), which erodes what a future balance can actually buy. A simple way to handle it is to use a real (after-inflation) return — around 7% instead of the ~10% before-inflation figure — so the projected balance is already expressed in today's dollars rather than inflated future dollars."
   },
   {
     question: "How much should I invest each month to reach my goal?",
