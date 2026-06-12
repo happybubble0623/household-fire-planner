@@ -227,15 +227,15 @@ export function HealthcareCostPanel() {
   ];
 
   // The headline is a present value in today's dollars by default. The toggle
-  // switches the same lifetime figure to a labeled nominal (future, inflated)
+  // switches the same lifetime figure to a labeled future (inflated)
   // cumulative total — clearly flagged as not comparable to published estimates,
   // which are quoted in today's dollars. The engine returns a single basis-
-  // independent (nominal) series, so flipping the basis is a pure view change:
-  // it re-renders instantly with no recompute and no Recalculate.
+  // independent (future-dollar) series, so flipping the basis is a pure view
+  // change: it re-renders instantly with no recompute and no Recalculate.
   const isToday = displayMode === "today_dollars";
   const totalYears = result.acaYears + result.medicareYears;
   const heroValue = isToday ? result.presentValueTotal : result.nominalLifetimeTotal;
-  // Per-year rows in the selected basis: nominal as-is for future dollars, or
+  // Per-year rows in the selected basis: as-is for future dollars, or
   // each year's discounted present value for today's dollars. Summing the
   // today's-dollar rows reproduces the headline (presentValueTotal), so the
   // year-by-year breakdown visibly adds up to it.
@@ -265,14 +265,14 @@ export function HealthcareCostPanel() {
   // avg × years ≈ headline in either basis.
   const avgPerYear = totalYears > 0 ? heroValue / totalYears : 0;
   // Phase splits stay on the same basis as the hero so the two cards add up to
-  // it (PV split in today's mode; nominal split in future mode).
+  // it (PV split in today's mode; future-dollar split in future mode).
   const acaPhaseValue = isToday ? result.presentValueAcaCost : result.totalAcaCost;
   const medicarePhaseValue = isToday ? result.presentValueMedicareCost : result.totalMedicareCost;
   const lowIncome = result.medicaidEligiblePre65 || result.medicareLowIncome;
   // Plain-language explanation of the fixed 3% real discount rate, formatted
   // from the value the engine returns (never hardcoded in the copy).
   const discountRatePct = `${Math.round(result.realDiscountRate * 100)}%`;
-  const todayDollarsExplainer = `Today's dollars = the lump sum you'd set aside now, assuming it grows about ${discountRatePct} a year faster than inflation until it's spent. It's a discounted present value, not just an inflation-adjusted sum. Future (nominal) dollars show the actual sticker prices you'd pay in each future year.`;
+  const todayDollarsExplainer = `Today's dollars = the lump sum you'd set aside now, assuming it grows about ${discountRatePct} a year faster than inflation until it's spent. It's a discounted present value, not just an inflation-adjusted sum. Future dollars show the actual amounts you'd pay in each future year, once prices have risen with inflation.`;
 
   // Mode-aware basis note shared by the three money-column tooltips. All three
   // columns follow the "Show amounts in" toggle and share one basis: today's
@@ -280,7 +280,7 @@ export function HealthcareCostPanel() {
   // sticker price that year.
   const columnBasisNote = isToday
     ? ` These amounts follow the "Show amounts in" toggle. You're viewing today's dollars, so each figure is a present value — what that future year's cost is worth in today's money after discounting.`
-    : ` These amounts follow the "Show amounts in" toggle. You're viewing future (nominal) dollars, so each figure is the actual sticker price you'd pay in that future year.`;
+    : ` These amounts follow the "Show amounts in" toggle. You're viewing future dollars, so each figure is the actual amount you'd pay that year, once prices have risen with inflation.`;
   const premiumColumnInfo = `The insurance premium for that year — an ACA marketplace plan before 65, or Medicare (Part B + Medigap + Part D) after 65 — after any subsidy is taken off.${columnBasisNote}`;
   const oopColumnInfo = `Out-of-pocket: what you expect to spend on care beyond premiums that year — deductibles, copays, and coinsurance — capped at your plan's out-of-pocket maximum.${columnBasisNote}`;
   const netCostColumnInfo = `Net cost = premium + out-of-pocket (plus any travel/global premium) for that year, minus any HSA funds applied. It's what actually comes out of pocket that year.${columnBasisNote}`;
@@ -856,7 +856,7 @@ export function HealthcareCostPanel() {
         <p className="mt-2 text-[12.5px] leading-relaxed text-gray-500">
           {isToday
             ? "Shown in today's dollars — each row is that year's discounted present value, so the Net cost column plus HSA funds used adds up to the headline."
-            : "Shown in future (nominal) dollars — the actual amounts you'd pay each year."}
+            : "Shown in future dollars — the actual amounts you'd pay each year, once prices have risen with inflation."}
         </p>
         <div className="mt-4 max-h-96 overflow-auto rounded-xl border border-gray-200">
           <table className="w-full min-w-[640px] text-sm" aria-label="Healthcare cost projection">
