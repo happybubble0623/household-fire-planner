@@ -153,7 +153,26 @@
       "Bash(echo \"exit: $?\")",
       "Bash(git fsck *)",
       "Bash(npm install *)",
-      "Bash(break)"
+      "Bash(break)",
+      "Bash(SHOT_BASE=\"http://localhost:50187\" node scripts/capture-fire-progress-shots.mjs)",
+      "Bash(npm ls *)",
+      "Bash(grep -rniE \"medigap.*[0-9]{3}|155|homeInsurance|home_insurance|insuranceAnnual|2400|2,400|defaultMedigap|medigapMonthly\" src/lib src/components --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(echo \"=== EXIT: $? ===\")",
+      "Bash(node -p \"require\\('@vercel/analytics/package.json'\\).version\")",
+      "Bash(git rebase *)",
+      "Bash(git stash *)",
+      "Bash(curl -s -L https://planmyfi.com/sitemap.xml -A \"Mozilla/5.0\")",
+      "Bash(curl -s -L https://www.planmyfi.com/sitemap.xml -A \"Mozilla/5.0\")",
+      "Bash(echo \"---REBASE EXIT: $?---\")",
+      "Bash(echo \"---PUSH EXIT: $?---\")",
+      "Bash(mkdir -p '/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Plan My FIRE Docs')",
+      "Bash(cp MARKETING_PLAN.md '/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Plan My FIRE Docs/MARKETING_PLAN.md')",
+      "Bash(cp MONETIZATION_PLAN.md '/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Plan My FIRE Docs/MONETIZATION_PLAN.md')",
+      "Bash(cp docs/product-strategy/founder-codex-interaction-log.md '/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Plan My FIRE Docs/founder-codex-interaction-log.md')",
+      "Bash(xargs -I {} bash -c \"echo '=== {} ==='; head -15 {}\")",
+      "Bash(xargs ls -la)",
+      "Bash(echo \"--- push exit: $? ---\")",
+      "Bash(cp \"/Users/chongzha/dev/household-fire-planner/docs/product-strategy/PLAN_MY_FIRE_PRD_v2.md\" \"/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Plan My FIRE Docs/PLAN_MY_FIRE_PRD_v2.md\" *)"
     ]
   }
 }

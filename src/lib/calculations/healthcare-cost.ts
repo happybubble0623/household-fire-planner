@@ -36,7 +36,6 @@ export type HealthcareCostInput = {
   fireAge: number;
   medicareAge: number;
   planToAge: number;
-  displayMode: "today_dollars" | "future_dollars";
 
   // Shared income driver (today's dollars).
   annualMagi: number;
@@ -80,6 +79,11 @@ export type HealthcareYearRow = {
   year: number;
   age: number;
   phase: HealthcarePhase;
+  // All dollar fields below are NOMINAL (future, inflated) dollars — the actual
+  // sticker price in that future year. The view layer multiplies by one of the
+  // two deflators to present today's-dollar figures, so a single basis-
+  // independent series drives every display without recomputing.
+  //
   // Premium the household actually pays (ACA net of subsidy; Medicare Part B +
   // coverage + Part D IRMAA), before HSA funding.
   premium: number;
@@ -92,6 +96,14 @@ export type HealthcareYearRow = {
   grossCost: number;
   // Cost funded from the portfolio after HSA drawdown.
   netPortfolioCost: number;
+  // Multiply any nominal field by this to get the undiscounted today's-dollar
+  // (real) value: 1 / (1 + general inflation)^years.
+  realDeflator: number;
+  // Multiply any nominal field by this to get the discounted present value in
+  // today's dollars: 1 / ((1 + general inflation)(1 + real discount rate))^years.
+  // Summing grossCost × presentValueDeflator across rows reproduces
+  // presentValueTotal, so the year-by-year rows reconcile to the headline.
+  presentValueDeflator: number;
 };
 
 export type HealthcareCostResult = {
@@ -134,7 +146,6 @@ export type HealthcareCostResult = {
   partBMonthlyPerPerson: number;
   // Travel.
   acaNotRequiredAbroad: boolean;
-  displayMode: "today_dollars" | "future_dollars";
 };
 
 const DEFAULT_GENERAL_INFLATION = 0.03;
@@ -273,36 +284,27 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
   const medicareAge = input.medicareAge || MEDICARE_AGE;
   const currentYear = new Date().getFullYear();
 
-  // Growth factor from now to a given age, in the selected display basis.
-  // future_dollars applies the full nominal medical trend; today_dollars
-  // applies the real trend (medical above general inflation).
-  const growthFactor = (medicalInflation: number, age: number) => {
-    const years = Math.max(0, age - input.currentAge);
-    const rate =
-      input.displayMode === "future_dollars"
-        ? medicalInflation
-        : (1 + medicalInflation) / (1 + generalInflation) - 1;
-    return Math.pow(1 + rate, years);
-  };
+  // The series is computed ONCE in nominal (future, inflated) dollars — the
+  // actual sticker price in each future year — and the view layer converts to
+  // today's dollars by multiplying by a deflator. This keeps the dollar basis a
+  // pure presentation choice: switching it never recomputes the model.
 
-  // Real (today's purchasing-power) growth factor — the medical trend above
-  // general inflation — used for the present-value headline and today's-dollar
-  // average regardless of the selected display basis.
-  const realGrowthFactor = (medicalInflation: number, age: number) => {
-    const years = Math.max(0, age - input.currentAge);
-    const realRate = (1 + medicalInflation) / (1 + generalInflation) - 1;
-    return Math.pow(1 + realRate, years);
-  };
-
-  // Nominal growth factor (full medical trend) — used for the labeled
-  // future-dollars cumulative total regardless of the selected display basis.
+  // Nominal growth factor (full medical trend) from now to a given age.
   const nominalGrowthFactor = (medicalInflation: number, age: number) =>
     Math.pow(1 + medicalInflation, Math.max(0, age - input.currentAge));
 
-  // Discount a future year's real cost back to today at the real discount rate.
+  // Nominal → undiscounted today's-dollar (real) deflator: strips general
+  // inflation so the figure is in today's purchasing power.
+  const realDeflatorAt = (age: number) =>
+    1 / Math.pow(1 + generalInflation, Math.max(0, age - input.currentAge));
+
+  // Nominal → discounted present-value deflator: strips general inflation AND
+  // discounts the remaining real cost to today at the real discount rate. This
+  // is what the today's-dollar headline sums, so the per-year present values
+  // reconcile to it.
   const realDiscountRate = DEFAULT_REAL_DISCOUNT_RATE;
-  const discountFactor = (age: number) =>
-    Math.pow(1 + realDiscountRate, Math.max(0, age - input.currentAge));
+  const presentValueDeflatorAt = (age: number) =>
+    realDeflatorAt(age) / Math.pow(1 + realDiscountRate, Math.max(0, age - input.currentAge));
 
   // --- ACA economics, computed once in today's-dollar (year-0) terms. ---
   const ptc = estimatePremiumTaxCredit({
@@ -365,9 +367,9 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
   for (let age = startAge; age <= endAge; age += 1) {
     const phase: HealthcarePhase = age < medicareAge ? "aca" : "medicare";
     const medicalInflation = phase === "aca" ? input.acaInflation : input.medicareInflation;
-    const factor = growthFactor(medicalInflation, age);
-    const realFactor = realGrowthFactor(medicalInflation, age);
     const nominalFactor = nominalGrowthFactor(medicalInflation, age);
+    const realDeflator = realDeflatorAt(age);
+    const presentValueDeflator = presentValueDeflatorAt(age);
 
     // Year-0 (today's-dollar) component amounts, with the low-income public-
     // coverage override applied. These are basis-independent; the display,
@@ -417,20 +419,24 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
       }
     }
 
-    const premium = premium0 * factor;
-    const subsidy = subsidy0 * factor;
-    const outOfPocket = oop0 * factor;
-    const travelPremium = travelAnnual0 * factor;
-    const eligiblePremium = eligiblePremium0 * factor;
+    // Nominal (future, inflated) dollar amounts — the actual sticker price in
+    // this future year. These are stored on the row; the view layer applies a
+    // deflator to show today's dollars.
+    const premium = premium0 * nominalFactor;
+    const subsidy = subsidy0 * nominalFactor;
+    const outOfPocket = oop0 * nominalFactor;
+    const travelPremium = travelAnnual0 * nominalFactor;
+    const eligiblePremium = eligiblePremium0 * nominalFactor;
 
     const grossCost = premium + outOfPocket + travelPremium;
 
-    // Real & nominal gross cost (basis-independent) for the PV headline, the
-    // today's-dollar average, and the labeled future-dollar cumulative total.
-    const componentBase0 = premium0 + oop0 + travelAnnual0;
-    const realGross = componentBase0 * realFactor;
-    const nominalGross = componentBase0 * nominalFactor;
-    const presentValueGross = realGross / discountFactor(age);
+    // The same nominal gross expressed in the three reconciling bases: nominal
+    // (sticker), undiscounted today's-dollar (real), and discounted present
+    // value. Summing presentValueGross across years IS the today's-dollar
+    // headline, so the per-year rows add up to it.
+    const nominalGross = grossCost;
+    const realGross = grossCost * realDeflator;
+    const presentValueGross = grossCost * presentValueDeflator;
 
     if (phase === "aca") {
       presentValueAcaCost += presentValueGross;
@@ -473,7 +479,9 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
       travelPremium: round2(travelPremium),
       hsaDraw: round2(hsaDraw),
       grossCost: round2(grossCost),
-      netPortfolioCost: round2(netPortfolioCost)
+      netPortfolioCost: round2(netPortfolioCost),
+      realDeflator,
+      presentValueDeflator
     });
   }
 
@@ -522,7 +530,6 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     firstYearSubsidy: round2(acaSubsidy0),
     irmaaTierIndex: irmaa.index,
     partBMonthlyPerPerson: round2(partBMonthlyPerPerson),
-    acaNotRequiredAbroad: input.daysAbroadPerYear >= 330,
-    displayMode: input.displayMode
+    acaNotRequiredAbroad: input.daysAbroadPerYear >= 330
   };
 }

@@ -28,7 +28,6 @@ function baseInput(overrides: Partial<HealthcareCostInput> = {}): HealthcareCost
     fireAge: 50,
     medicareAge: 65,
     planToAge: 90,
-    displayMode: "today_dollars",
     annualMagi: 40_000,
     benchmarkSlcspMonthly: 600,
     chosenPlanMonthly: 550,
@@ -160,7 +159,7 @@ describe("healthcare cost projection", () => {
   it("applies the ACA subsidy to the net premium and reports the FPL snapshot", () => {
     const fpl = federalPovertyLevel(1);
     const result = estimateHealthcareCosts(
-      baseInput({ annualMagi: fpl * 2.0, fireAge: 60, planToAge: 64, displayMode: "today_dollars" })
+      baseInput({ annualMagi: fpl * 2.0, fireAge: 60, planToAge: 64 })
     );
     expect(result.incomePctFpl).toBeCloseTo(2.0, 4);
     expect(result.applicablePercent).toBeCloseTo(0.066, 4);
@@ -205,13 +204,15 @@ describe("healthcare cost projection", () => {
     expect(coupleMed.premium).toBeCloseTo(singleMed.premium * 2, 1);
   });
 
-  it("future dollars exceed today's dollars for the same plan", () => {
-    const today = estimateHealthcareCosts(baseInput({ displayMode: "today_dollars" }));
-    const future = estimateHealthcareCosts(baseInput({ displayMode: "future_dollars" }));
-    expect(future.totalGrossCost).toBeGreaterThan(today.totalGrossCost);
-    // Lifetime total equals the sum of yearly gross costs.
-    const summed = future.rows.reduce((total, row) => total + row.grossCost, 0);
-    expect(future.totalGrossCost).toBeCloseTo(summed, 0);
+  it("returns a single nominal series whose rows sum to the nominal lifetime total", () => {
+    const result = estimateHealthcareCosts(baseInput());
+    // The stored rows are nominal (future, inflated) dollars and add up to the
+    // nominal lifetime total — the future-dollars headline.
+    const summed = result.rows.reduce((total, row) => total + row.grossCost, 0);
+    expect(result.totalGrossCost).toBeCloseTo(summed, 0);
+    expect(result.totalGrossCost).toBeCloseTo(result.nominalLifetimeTotal, 0);
+    // Nominal exceeds the discounted present value (today's-dollar headline).
+    expect(result.nominalLifetimeTotal).toBeGreaterThan(result.presentValueTotal);
   });
 
   it("draws down the HSA, reports the depletion age, and never funds Medigap premiums", () => {
@@ -348,14 +349,62 @@ describe("healthcare cost projection", () => {
       expect(result.nominalLifetimeTotal).toBeGreaterThan(result.todayDollarsLifetimeTotal);
     });
 
-    it("keeps the headline figures identical across display modes (basis-independent)", () => {
-      const today = estimateHealthcareCosts(baseInput({ displayMode: "today_dollars" }));
-      const future = estimateHealthcareCosts(baseInput({ displayMode: "future_dollars" }));
-      expect(future.presentValueTotal).toBeCloseTo(today.presentValueTotal, 2);
-      expect(future.nominalLifetimeTotal).toBeCloseTo(today.nominalLifetimeTotal, 2);
-      expect(future.averageAnnualTodayDollars).toBeCloseTo(today.averageAnnualTodayDollars, 2);
-      // In future mode the display-basis lifetime total equals the nominal total.
-      expect(future.totalGrossCost).toBeCloseTo(future.nominalLifetimeTotal, 0);
+    it("is basis-independent — one call yields every headline figure", () => {
+      const result = estimateHealthcareCosts(baseInput());
+      // The nominal stored series, the discounted present value, and the
+      // undiscounted real sum all come from a single computation.
+      expect(result.nominalLifetimeTotal).toBeGreaterThan(result.todayDollarsLifetimeTotal);
+      expect(result.todayDollarsLifetimeTotal).toBeGreaterThan(result.presentValueTotal);
+      expect(result.totalGrossCost).toBeCloseTo(result.nominalLifetimeTotal, 0);
+    });
+  });
+
+  // The hero headline, the year-by-year rows, the chart, and the avg-per-year
+  // sub-line must all reconcile in whichever dollar basis the view selects. The
+  // view scales the single nominal series by a per-row deflator, exactly as the
+  // panel does, so these assertions mirror what the user sees.
+  describe("year-by-year reconciliation across display bases", () => {
+    const input = baseInput({ fireAge: 55, planToAge: 90, hsaBalance: 40_000, hsaStrategy: "gap_first" });
+    const result = estimateHealthcareCosts(input);
+    const years = result.acaYears + result.medicareYears;
+
+    it("(a) future mode: per-year nominal gross rows sum to the nominal headline", () => {
+      const summed = result.rows.reduce((total, row) => total + row.grossCost, 0);
+      expect(summed).toBeCloseTo(result.nominalLifetimeTotal, 0);
+    });
+
+    it("(b) today mode: per-year discounted-PV rows sum to the present-value headline", () => {
+      const summedPv = result.rows.reduce(
+        (total, row) => total + row.grossCost * row.presentValueDeflator,
+        0
+      );
+      expect(summedPv).toBeCloseTo(result.presentValueTotal, 0);
+    });
+
+    it("(c) avg-per-year × years ≈ headline in each mode", () => {
+      // The panel derives avg = headline / years, so avg × years reproduces the
+      // headline by construction in both bases.
+      const nominalAvg = result.nominalLifetimeTotal / years;
+      const pvAvg = result.presentValueTotal / years;
+      expect(nominalAvg * years).toBeCloseTo(result.nominalLifetimeTotal, 6);
+      expect(pvAvg * years).toBeCloseTo(result.presentValueTotal, 6);
+    });
+
+    it("net + HSA used reconciles to the gross headline in each basis", () => {
+      // Future (nominal) basis.
+      const netNominal = result.rows.reduce((total, row) => total + row.netPortfolioCost, 0);
+      const hsaNominal = result.rows.reduce((total, row) => total + row.hsaDraw, 0);
+      expect(netNominal + hsaNominal).toBeCloseTo(result.nominalLifetimeTotal, 0);
+      // Today's (present-value) basis: scale both sides by the per-row deflator.
+      const netPv = result.rows.reduce(
+        (total, row) => total + row.netPortfolioCost * row.presentValueDeflator,
+        0
+      );
+      const hsaPv = result.rows.reduce(
+        (total, row) => total + row.hsaDraw * row.presentValueDeflator,
+        0
+      );
+      expect(netPv + hsaPv).toBeCloseTo(result.presentValueTotal, 0);
     });
   });
 

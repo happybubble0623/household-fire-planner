@@ -162,7 +162,6 @@ export function HealthcareCostPanel() {
       fireAge,
       medicareAge,
       planToAge,
-      displayMode,
       annualMagi,
       benchmarkSlcspMonthly: effectiveBenchmarkMonthly,
       chosenPlanMonthly: effectiveChosenPlanMonthly,
@@ -191,7 +190,6 @@ export function HealthcareCostPanel() {
       fireAge,
       medicareAge,
       planToAge,
-      displayMode,
       annualMagi,
       effectiveBenchmarkMonthly,
       effectiveChosenPlanMonthly,
@@ -228,23 +226,53 @@ export function HealthcareCostPanel() {
     { value: "high", label: "High (heavy usage)" }
   ];
 
-  // The headline is a present value in today's dollars by default. The display
-  // toggle switches the same lifetime figure to a labeled nominal (future,
-  // inflated) cumulative total — clearly flagged as not comparable to published
-  // estimates, which are quoted in today's dollars.
-  const isToday = result.displayMode === "today_dollars";
+  // The headline is a present value in today's dollars by default. The toggle
+  // switches the same lifetime figure to a labeled nominal (future, inflated)
+  // cumulative total — clearly flagged as not comparable to published estimates,
+  // which are quoted in today's dollars. The engine returns a single basis-
+  // independent (nominal) series, so flipping the basis is a pure view change:
+  // it re-renders instantly with no recompute and no Recalculate.
+  const isToday = displayMode === "today_dollars";
   const totalYears = result.acaYears + result.medicareYears;
   const heroValue = isToday ? result.presentValueTotal : result.nominalLifetimeTotal;
-  const avgPerYear = isToday
-    ? result.averageAnnualTodayDollars
-    : totalYears > 0
-      ? result.nominalLifetimeTotal / totalYears
-      : 0;
+  // Per-year rows in the selected basis: nominal as-is for future dollars, or
+  // each year's discounted present value for today's dollars. Summing the
+  // today's-dollar rows reproduces the headline (presentValueTotal), so the
+  // year-by-year breakdown visibly adds up to it.
+  const displayRows = useMemo(
+    () =>
+      result.rows.map((row) => {
+        const m = isToday ? row.presentValueDeflator : 1;
+        return {
+          ...row,
+          premium: row.premium * m,
+          subsidy: row.subsidy * m,
+          outOfPocket: row.outOfPocket * m,
+          travelPremium: row.travelPremium * m,
+          hsaDraw: row.hsaDraw * m,
+          grossCost: row.grossCost * m,
+          netPortfolioCost: row.netPortfolioCost * m
+        };
+      }),
+    [result.rows, isToday]
+  );
+  // Reconciling totals for the breakdown footer, in the displayed basis:
+  // net + HSA used = gross, and gross equals the hero headline.
+  const displayGrossTotal = displayRows.reduce((sum, row) => sum + row.grossCost, 0);
+  const displayHsaUsedTotal = displayRows.reduce((sum, row) => sum + row.hsaDraw, 0);
+  const displayNetTotal = displayRows.reduce((sum, row) => sum + row.netPortfolioCost, 0);
+  // Average per year is derived from the displayed headline so that
+  // avg × years ≈ headline in either basis.
+  const avgPerYear = totalYears > 0 ? heroValue / totalYears : 0;
   // Phase splits stay on the same basis as the hero so the two cards add up to
-  // it (PV split in today's mode; display-basis split in future mode).
+  // it (PV split in today's mode; nominal split in future mode).
   const acaPhaseValue = isToday ? result.presentValueAcaCost : result.totalAcaCost;
   const medicarePhaseValue = isToday ? result.presentValueMedicareCost : result.totalMedicareCost;
   const lowIncome = result.medicaidEligiblePre65 || result.medicareLowIncome;
+  // Plain-language explanation of the fixed 3% real discount rate, formatted
+  // from the value the engine returns (never hardcoded in the copy).
+  const discountRatePct = `${Math.round(result.realDiscountRate * 100)}%`;
+  const todayDollarsExplainer = `Today's dollars = the lump sum you'd set aside now, assuming it grows about ${discountRatePct} a year faster than inflation until it's spent. It's a discounted present value, not just an inflation-adjusted sum. Future (nominal) dollars show the actual sticker prices you'd pay in each future year.`;
 
   return (
     <ToolShell
@@ -306,18 +334,6 @@ export function HealthcareCostPanel() {
             help="Modified adjusted gross income in retirement (Roth conversions, dividends, capital gains, any earned income). Drives both the ACA subsidy and the Medicare IRMAA tier."
             note="Starting example — set to your planned retirement income. Drives both the ACA subsidy and the IRMAA tier."
           />
-          <SelectField
-            id="hc-display-mode"
-            label="Show amounts in"
-            value={displayMode}
-            onChange={setDisplayMode}
-            options={[
-              { value: "today_dollars", label: "Today's dollars" },
-              { value: "future_dollars", label: "Future (nominal) dollars" }
-            ]}
-            help="Today's dollars applies real medical inflation (medical trend above general inflation). Future dollars applies the full nominal medical trend."
-          />
-
           <Section title="ACA gap years (pre-65)">
             <SelectField
               id="hc-aca-plan-mode"
@@ -638,11 +654,23 @@ export function HealthcareCostPanel() {
               <b className="text-gray-800">~{totalYears} years</b> — higher before 65, lower once
               you&apos;re on Medicare.
             </p>
+            {isToday ? (
+              <p className="mt-2 max-w-[520px] text-[12.5px] leading-relaxed text-gray-500">
+                This is the lump sum to set aside <b className="text-gray-700">now</b> — a discounted
+                present value, assuming it grows about{" "}
+                <b className="text-gray-700">{discountRatePct} a year faster than inflation</b> until
+                spent (not just an inflation-adjusted sum).
+              </p>
+            ) : null}
 
             {/* Today's / Future toggle */}
             <div className="mt-4">
+              <div className="flex items-center gap-1.5 text-[13px] font-medium text-gray-700">
+                <span>Show amounts in</span>
+                <InfoPopover label="Dollar basis" content={todayDollarsExplainer} />
+              </div>
               <div
-                className="inline-flex w-full gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1"
+                className="mt-2 inline-flex w-full gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1"
                 role="group"
                 aria-label="Dollar basis"
               >
@@ -795,12 +823,25 @@ export function HealthcareCostPanel() {
         </div>
       </div>
 
-      <HealthcareCostChart data={result.rows} medicareAge={committedInput.medicareAge || 65} />
+      <HealthcareCostChart
+        data={displayRows}
+        medicareAge={committedInput.medicareAge || 65}
+        caption={
+          isToday
+            ? "Today's dollars: each year's bar is its discounted present value, so the bars add up to the headline above."
+            : "Future dollars: each bar is the actual (inflated) amount you'd pay that year."
+        }
+      />
 
       <details className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <summary className="cursor-pointer text-base font-semibold text-gray-900">
           Year-by-year breakdown
         </summary>
+        <p className="mt-2 text-[12.5px] leading-relaxed text-gray-500">
+          {isToday
+            ? "Shown in today's dollars — each row is that year's discounted present value, so the Net cost column plus HSA funds used adds up to the headline."
+            : "Shown in future (nominal) dollars — the actual amounts you'd pay each year."}
+        </p>
         <div className="mt-4 max-h-96 overflow-auto rounded-xl border border-gray-200">
           <table className="w-full min-w-[640px] text-sm" aria-label="Healthcare cost projection">
             <thead className="sticky top-0 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -823,7 +864,7 @@ export function HealthcareCostPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {result.rows.map((row) => (
+              {displayRows.map((row) => (
                 <tr key={row.age} className="odd:bg-white even:bg-gray-50 hover:bg-[var(--green-50)]">
                   <td className="px-3 py-2 text-left font-medium text-gray-900 tabular-nums">
                     {row.year} / {row.age}
@@ -855,8 +896,32 @@ export function HealthcareCostPanel() {
                 </tr>
               ))}
             </tbody>
+            <tfoot className="sticky bottom-0 border-t-2 border-gray-200 bg-gray-50 text-sm font-semibold text-gray-900">
+              <tr>
+                <td className="px-3 py-2 text-left" colSpan={4}>
+                  Net cost (after HSA)
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums text-[var(--positive)]">
+                  {displayHsaUsedTotal > 0 ? `-${formatCurrency(displayHsaUsedTotal)}` : "—"}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums" colSpan={2}>
+                  {formatCurrency(displayNetTotal)}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
+        <p className="mt-3 text-[12.5px] leading-relaxed text-gray-500">
+          Net cost <b className="text-gray-700">{formatCurrency(displayNetTotal)}</b>
+          {displayHsaUsedTotal > 0 ? (
+            <>
+              {" "}
+              + HSA funds used <b className="text-gray-700">{formatCurrency(displayHsaUsedTotal)}</b>
+            </>
+          ) : null}{" "}
+          = <b className="text-gray-700">{formatCurrency(displayGrossTotal)}</b> gross lifetime total —
+          the {isToday ? "today's-dollar" : "future-dollar"} headline above.
+        </p>
       </details>
     </ToolShell>
   );

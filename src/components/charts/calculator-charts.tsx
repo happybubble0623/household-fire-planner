@@ -59,9 +59,12 @@ const brandedTooltip = {
 
 const legendStyle = { fontSize: 12 };
 
-function ChartFrame({ children }: { children: React.ReactNode }) {
+function ChartFrame({ children, caption }: { children: React.ReactNode; caption?: string }) {
   return (
     <div className="w-full overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+      {caption ? (
+        <p className="mb-2 px-1 text-xs leading-relaxed text-[var(--muted-foreground)]">{caption}</p>
+      ) : null}
       <div className="h-72 min-w-[760px]">{children}</div>
     </div>
   );
@@ -200,10 +203,14 @@ export function MortgagePaymentDonut({
 
 export function HealthcareCostChart({
   data,
-  medicareAge
+  medicareAge,
+  caption
 }: {
   data: HealthcareYearRow[];
   medicareAge: number;
+  // Plain-language note telling the reader which dollar basis the bars are in,
+  // so the chart reconciles with the headline above it.
+  caption?: string;
 }) {
   const isClient = useIsClient();
   if (!isClient) {
@@ -213,7 +220,7 @@ export function HealthcareCostChart({
   const showTravel = data.some((row) => row.travelPremium > 0);
 
   return (
-    <ChartFrame>
+    <ChartFrame caption={caption}>
       <ComposedChart width={760} height={270} data={data} margin={{ left: 8, right: 8, top: 16, bottom: 8 }}>
         <defs>
           <linearGradient id="hc-net-cost-fill" x1="0" y1="0" x2="0" y2="1">
