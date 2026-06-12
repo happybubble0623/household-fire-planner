@@ -1,5 +1,7 @@
 # Plan My FIRE — Go-To-Market & Marketing Plan
 
+*Created: 2026-06-12 · Last updated: 2026-06-12*
+
 > Product: **Plan My FIRE** · Site: **[planmyfi.com](https://planmyfi.com)** · Market: US · Status: launching
 > Voice: plain-language, "guided workspace" — professional but casual, never lecturing. The user explores their own numbers; the site supports them.
 > Grounded in [`SEO_AUDIENCE_RESEARCH.md`](./SEO_AUDIENCE_RESEARCH.md) and [`SEO_ACTION_PLAN.md`](./SEO_ACTION_PLAN.md).

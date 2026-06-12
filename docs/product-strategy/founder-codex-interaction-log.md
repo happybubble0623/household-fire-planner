@@ -1,5 +1,7 @@
 # Household FIRE Planner Founder / Codex Interaction Log
 
+*Created: 2026-06-08 · Last updated: 2026-06-12*
+
 Status: Living product-thinking record
 
 Purpose: Document the founder's product thinking, challenges to Codex, additional context, feature proposals, and strategic decisions. This file is intended to show that Household FIRE Planner is founder-directed, not simply AI-directed.

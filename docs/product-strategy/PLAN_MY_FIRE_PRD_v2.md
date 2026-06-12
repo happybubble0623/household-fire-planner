@@ -1,5 +1,7 @@
 # Plan My FIRE — Product Requirements Document v2
 
+*Created: 2026-06-12 · Last updated: 2026-06-12*
+
 Status: Living strategy document
 Owner: Founder (solo / AI-assisted build)
 Last updated: 2026-06-12

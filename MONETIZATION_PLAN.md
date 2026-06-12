@@ -1,5 +1,7 @@
 # Plan My FIRE — Monetization Options Plan
 
+*Created: 2026-06-12 · Last updated: 2026-06-12*
+
 > Product: **Plan My FIRE** · Site: **[planmyfi.com](https://planmyfi.com)** · Market: US · Status: launching
 > Reads alongside [`MARKETING_PLAN.md`](./MARKETING_PLAN.md) and [`SEO_AUDIENCE_RESEARCH.md`](./SEO_AUDIENCE_RESEARCH.md).
 
