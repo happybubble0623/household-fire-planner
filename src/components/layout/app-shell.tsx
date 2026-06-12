@@ -48,7 +48,7 @@ function Brand() {
         aria-hidden="true"
         className="grid h-[30px] w-[30px] flex-none place-items-center rounded-[9px] bg-[var(--primary)]"
       >
-        <svg viewBox="0 0 64 64" className="h-[18px] w-[18px]" role="img" aria-label="Household FIRE Planner logo">
+        <svg viewBox="0 0 64 64" className="h-[18px] w-[18px]" role="img" aria-label="Plan My FIRE logo">
           <path
             d="M16 40 L32 18 L48 40"
             fill="none"
@@ -61,10 +61,10 @@ function Brand() {
       </span>
       <span className="flex flex-col justify-center">
         <span className="text-[15px] font-bold tracking-[-0.01em] text-gray-900">
-          Household <span className="text-[var(--primary)]">FIRE</span> Planner
+          Plan My <span className="text-[var(--primary)]">FIRE</span>
         </span>
         <span className="text-[11px] font-medium text-gray-500">
-          Your private workspace for early retirement
+          Your free workspace for early retirement
         </span>
       </span>
     </Link>

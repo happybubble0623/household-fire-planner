@@ -77,12 +77,12 @@ Deno.serve(async (req) => {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      from: `FIRE Planner Feedback <${fromEmail}>`,
+      from: `Plan My FIRE Feedback <${fromEmail}>`,
       to: [toEmail],
       reply_to: email || undefined,
       subject: `New feedback from ${name}`,
       html: `
-        <h2 style="margin:0 0 8px">New feedback on Household FIRE Planner</h2>
+        <h2 style="margin:0 0 8px">New feedback on Plan My FIRE</h2>
         <p style="margin:0 0 4px"><strong>From:</strong> ${escapeHtml(name)}</p>
         <p style="margin:0 0 12px"><strong>Contact:</strong> ${escapeHtml(contactLine || "none provided")}</p>
         <p style="white-space:pre-wrap;border-left:3px solid #ccc;padding-left:12px;margin:0">${escapeHtml(message)}</p>

@@ -8,7 +8,7 @@ import { getSupabaseClient } from "@/lib/storage/supabase-sync";
 type Step = "email" | "code";
 
 const GUEST_HINT =
-  "You can continue as Guest without creating an account. Household FIRE Planner never asks for brokerage, bank, SSA, or government credentials.";
+  "You can continue as Guest without creating an account. Plan My FIRE never asks for brokerage, bank, SSA, or government credentials.";
 
 // Where a successful sign-in (and Continue as Guest) lands the user.
 const POST_SIGN_IN_PATH = "/app/fire-path";
@@ -195,7 +195,7 @@ export function AuthPanel({ mode }: { mode: "login" | "signup" }) {
         {mode === "signup" ? "Create Optional Account" : "Optional Account"}
       </h1>
       <p className="mt-3 leading-7 text-[var(--muted-foreground)]">
-        You can use Household FIRE Planner without an account. Create an optional account only if you want to save and sync your plans across devices.
+        You can use Plan My FIRE without an account. Create an optional account only if you want to save and sync your plans across devices.
       </p>
 
       {step === "email" ? (

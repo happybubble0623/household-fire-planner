@@ -304,7 +304,7 @@ export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1Workspac
     return (
       <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Household FIRE Planner</p>
+          <p className="text-sm font-medium text-gray-500">Plan My FIRE</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900">
             Loading local workbook
           </h1>

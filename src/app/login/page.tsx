@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { AuthPanel } from "@/components/auth/auth-panel";
 
 export const metadata: Metadata = {
-  title: { absolute: "Sign in — Household FIRE Planner" },
+  title: { absolute: "Sign in — Plan My FIRE" },
   description:
-    "Household FIRE Planner works without an account. Sign in only if you want to sync your plan across devices. Continue as guest to keep everything local.",
+    "Plan My FIRE works without an account. Sign in only if you want to sync your plan across devices. Continue as guest to keep everything local.",
   alternates: { canonical: "/login" },
   robots: { index: false, follow: false }
 };

@@ -4,9 +4,9 @@ import { ContactForm } from "@/components/contact/contact-form";
 import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata: Metadata = {
-  title: { absolute: "About — Household FIRE Planner" },
+  title: { absolute: "About — Plan My FIRE" },
   description:
-    "Why Household FIRE Planner exists: a private, household-level workspace for FIRE and early-retirement planning that brings your accounts together in one place and explains the concepts as you go.",
+    "Why Plan My FIRE exists: a private, household-level workspace for FIRE and early-retirement planning that brings your accounts together in one place and explains the concepts as you go.",
   alternates: { canonical: "/about" }
 };
 

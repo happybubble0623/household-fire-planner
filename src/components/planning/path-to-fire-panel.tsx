@@ -348,7 +348,7 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
 
         <div className="foot">
           <span>
-            © 2026 Household FIRE Planner · Planning estimates only. Not financial advice.
+            © 2026 Plan My FIRE · Planning estimates only. Not financial advice.
           </span>
           <span>Local workbook: {status}</span>
         </div>

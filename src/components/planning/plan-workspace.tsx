@@ -230,10 +230,10 @@ export function PlanWorkspace({ section }: PlanWorkspaceProps) {
       <div className="mx-auto max-w-7xl">
         <header className="mb-5 flex flex-col gap-4 border-b border-[var(--border)] pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-medium text-[var(--primary)]">Household FIRE Planner</p>
+            <p className="text-sm font-medium text-[var(--primary)]">Plan My FIRE</p>
             <h1 className="mt-1 text-3xl font-semibold">{sectionTitles[section]}</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
-              Household FIRE Planner provides planning estimates only. It is not investment, tax, legal, or financial advice.
+              Plan My FIRE provides planning estimates only. It is not investment, tax, legal, or financial advice.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1194,7 +1194,7 @@ function SettingsSection({
       <section className="rounded-lg border border-[var(--border)] bg-white p-4">
         <h2 className="text-lg font-semibold">Plan Storage</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-          Creating an account lets you save and sync your plan. You can still use Household FIRE Planner without an account.
+          Creating an account lets you save and sync your plan. You can still use Plan My FIRE without an account.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button className="inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white" onClick={handleSaveLocal}>
@@ -1234,7 +1234,7 @@ function SettingsSection({
       <section className="rounded-lg border border-[var(--border)] bg-white p-4 lg:col-span-2">
         <h2 className="text-lg font-semibold">Next Development</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-          Roadmap items are planned features and may change. Household FIRE Planner provides planning estimates only and is not investment, tax, legal, or financial advice.
+          Roadmap items are planned features and may change. Plan My FIRE provides planning estimates only and is not investment, tax, legal, or financial advice.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <RoadmapList title="Current MVP Features" items={["Guest mode", "Optional account cloud sync", "Effective-dated historical holdings", "Historical net-worth chart", "End-of-day stock pricing", "Basic Portfolio Lab", "FIRE Path", "Saved Paths", "Path Comparison", "Withdrawal-Rate FIRE", "Income Stream FIRE", "Principal-Preserving FIRE", "Direct Social Security entry", "Basic Social Security formula calculator", "Historical Monte Carlo"]} />
@@ -1253,7 +1253,7 @@ function RoadmapSection() {
       <RoadmapList title="Later Development" items={["Spousal/survivor Social Security", "WEP/GPO", "Tax optimization", "Roth conversion planning", "Required minimum distribution planning", "Time-weighted return", "Money-weighted return", "Performance attribution", "Brokerage/bank integrations", "Paid market data plan if needed"]} />
       <RoadmapList title="Out of Scope for MVP" items={["Trading", "Personalized investment advice", "Real-time market data", "Brokerage account linking", "Bank account linking", "Exact tax filing calculations", "Guaranteed retirement recommendations"]} />
       <p className="rounded-lg border border-[var(--border)] bg-white p-4 text-sm leading-6 text-[var(--muted-foreground)] lg:col-span-2">
-        Roadmap items are planned features and may change. Household FIRE Planner provides planning estimates only and is not investment, tax, legal, or financial advice.
+        Roadmap items are planned features and may change. Plan My FIRE provides planning estimates only and is not investment, tax, legal, or financial advice.
       </p>
     </div>
   );

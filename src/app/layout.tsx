@@ -13,8 +13,8 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Household FIRE Planner",
-    template: "%s | Household FIRE Planner"
+    default: "Plan My FIRE",
+    template: "%s | Plan My FIRE"
   },
   description:
     "Free FIRE calculators for your whole household — portfolio drawdown, principal-preserving and income-stream strategies, plus mortgage, healthcare, Social Security, and investment planning tools.",
@@ -34,8 +34,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "Household FIRE Planner",
-    title: "Household FIRE Planner",
+    siteName: "Plan My FIRE",
+    title: "Plan My FIRE",
     description:
       "Plan your household's path to financial independence and early retirement with free, transparent calculators.",
     url: siteUrl
