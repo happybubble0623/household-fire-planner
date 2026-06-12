@@ -2,8 +2,11 @@ import {
   ACA_APPLICABLE_PERCENT_FLOOR_2026,
   ACA_APPLICABLE_PERCENT_NODES_2026,
   ACA_SUBSIDY_CLIFF_FPL,
+  DEFAULT_REAL_DISCOUNT_RATE,
   IRMAA_TIERS_2026,
+  MEDICAID_FPL_THRESHOLD,
   MEDICARE_AGE,
+  MEDICARE_LOW_INCOME_FPL_THRESHOLD,
   METAL_TIER_PRESETS,
   NATIONAL_BENCHMARK_SILVER_BASE_21,
   OOP_USAGE_PRESETS,
@@ -104,6 +107,23 @@ export type HealthcareCostResult = {
   hsaDepletedAge: number | null;
   averageAcaAnnualCost: number;
   averageMedicareAnnualCost: number;
+  // --- Present-value headline (today's dollars). ---
+  // Each future year's real cost discounted to today at the real discount rate
+  // and summed: "what to set aside today to cover a lifetime of healthcare".
+  presentValueTotal: number;
+  presentValueAcaCost: number;
+  presentValueMedicareCost: number;
+  // Undiscounted average yearly cost in today's dollars (the sub-line figure).
+  averageAnnualTodayDollars: number;
+  // Undiscounted real (today's-dollar) lifetime sum, for reference.
+  todayDollarsLifetimeTotal: number;
+  // Nominal cumulative lifetime total (full medical trend) — the labeled
+  // "future (inflated) dollars" figure, available in either display mode.
+  nominalLifetimeTotal: number;
+  realDiscountRate: number;
+  // Low-income public-coverage flags driving the Medicaid/MSP callout.
+  medicaidEligiblePre65: boolean;
+  medicareLowIncome: boolean;
   // ACA snapshot (real, first ACA year) for headline callouts.
   incomePctFpl: number;
   applicablePercent: number;
@@ -265,6 +285,25 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     return Math.pow(1 + rate, years);
   };
 
+  // Real (today's purchasing-power) growth factor — the medical trend above
+  // general inflation — used for the present-value headline and today's-dollar
+  // average regardless of the selected display basis.
+  const realGrowthFactor = (medicalInflation: number, age: number) => {
+    const years = Math.max(0, age - input.currentAge);
+    const realRate = (1 + medicalInflation) / (1 + generalInflation) - 1;
+    return Math.pow(1 + realRate, years);
+  };
+
+  // Nominal growth factor (full medical trend) — used for the labeled
+  // future-dollars cumulative total regardless of the selected display basis.
+  const nominalGrowthFactor = (medicalInflation: number, age: number) =>
+    Math.pow(1 + medicalInflation, Math.max(0, age - input.currentAge));
+
+  // Discount a future year's real cost back to today at the real discount rate.
+  const realDiscountRate = DEFAULT_REAL_DISCOUNT_RATE;
+  const discountFactor = (age: number) =>
+    Math.pow(1 + realDiscountRate, Math.max(0, age - input.currentAge));
+
   // --- ACA economics, computed once in today's-dollar (year-0) terms. ---
   const ptc = estimatePremiumTaxCredit({
     annualMagi: input.annualMagi,
@@ -276,6 +315,14 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
   const acaSubsidy0 = chosenAnnual0 - acaNetPremium0;
   const acaOop0 = expectedOutOfPocket(input.acaOopUsage, input.acaOutOfPocketMax);
 
+  // Low-income public-coverage flags (household-size-aware via the PTC's FPL%).
+  // Below the Medicaid threshold the pre-65 ACA premium and out-of-pocket are
+  // modeled as ~free; below the Medicare low-income threshold, Medicare premiums
+  // and cost-sharing are modeled as ~free (MSP + Extra Help).
+  const incomePctFpl = ptc.incomePctFpl;
+  const medicaidEligiblePre65 = incomePctFpl < MEDICAID_FPL_THRESHOLD;
+  const medicareLowIncome = incomePctFpl < MEDICARE_LOW_INCOME_FPL_THRESHOLD;
+
   // --- Medicare economics, year-0 terms. ---
   const irmaa = selectIrmaaTier(input.medicareMagi ?? input.annualMagi, household);
   const partBMonthlyPerPerson = PART_B_BASE_PREMIUM_2026 * irmaa.tier.partBMultiplier;
@@ -285,7 +332,11 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     input.medicareCoverage === "medigap"
       ? (input.medigapMonthly + input.partDMonthly) * 12 * people
       : input.advantageMonthly * 12 * people;
-  const medicareOop0 = expectedOutOfPocket(input.medicareOopUsage, input.medicareOutOfPocketMax);
+  // The Medicare out-of-pocket figure is entered PER PERSON, so scale it by the
+  // number of people to match the premium columns (which are already ×people).
+  // Previously this was not multiplied, under-charging couples' Medicare OOP.
+  const medicareOop0 =
+    expectedOutOfPocket(input.medicareOopUsage, input.medicareOutOfPocketMax) * people;
   // HSA-eligible Medicare premium portion (excludes Medigap premiums, which are
   // not HSA-qualified; Part D and Medicare Advantage premiums are).
   const medicareEligiblePremium0 =
@@ -303,48 +354,93 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
   let hsaDepletedAge: number | null = null;
   let totalHsaUsed = 0;
 
+  // Present-value (discounted, today's dollars) and reference real/nominal sums.
+  let presentValueAcaCost = 0;
+  let presentValueMedicareCost = 0;
+  let realAcaCost = 0;
+  let realMedicareCost = 0;
+  let nominalAcaCost = 0;
+  let nominalMedicareCost = 0;
+
   for (let age = startAge; age <= endAge; age += 1) {
     const phase: HealthcarePhase = age < medicareAge ? "aca" : "medicare";
     const medicalInflation = phase === "aca" ? input.acaInflation : input.medicareInflation;
     const factor = growthFactor(medicalInflation, age);
-    const travelFactor = growthFactor(
-      phase === "aca" ? input.acaInflation : input.medicareInflation,
-      age
-    );
-    const travelPremium = travelAnnual0 * travelFactor;
+    const realFactor = realGrowthFactor(medicalInflation, age);
+    const nominalFactor = nominalGrowthFactor(medicalInflation, age);
 
-    let premium: number;
-    let subsidy: number;
-    let outOfPocket: number;
-    let eligiblePremium: number; // HSA-qualified premium portion this year
+    // Year-0 (today's-dollar) component amounts, with the low-income public-
+    // coverage override applied. These are basis-independent; the display,
+    // real, and nominal values are derived by applying the matching factor.
+    let premium0: number;
+    let subsidy0: number;
+    let oop0: number;
+    let eligiblePremium0: number; // HSA-qualified premium portion
 
     if (phase === "aca") {
-      outOfPocket = acaOop0 * factor;
-      if (input.travelMode === "replace") {
+      if (medicaidEligiblePre65) {
+        // Medicaid (<138% FPL pre-65): premium and out-of-pocket are ~free.
+        premium0 = 0;
+        subsidy0 = 0;
+        oop0 = 0;
+        eligiblePremium0 = 0;
+      } else if (input.travelMode === "replace") {
         // Drop the US marketplace baseline; rely on the global/expat plan.
-        premium = 0;
-        subsidy = 0;
-        eligiblePremium = 0;
+        premium0 = 0;
+        subsidy0 = 0;
+        oop0 = acaOop0;
+        eligiblePremium0 = 0;
       } else {
-        premium = acaNetPremium0 * factor;
-        subsidy = acaSubsidy0 * factor;
-        eligiblePremium = 0; // marketplace premiums are not HSA-qualified
+        premium0 = acaNetPremium0;
+        subsidy0 = acaSubsidy0;
+        oop0 = acaOop0;
+        eligiblePremium0 = 0; // marketplace premiums are not HSA-qualified
       }
     } else {
-      subsidy = 0;
-      outOfPocket = medicareOop0 * factor;
-      if (input.travelMode === "replace") {
+      subsidy0 = 0;
+      if (medicareLowIncome) {
+        // Medicare Savings Program + Extra Help (low income 65+): Part B/D
+        // premiums and cost-sharing driven to ~free.
+        premium0 = 0;
+        oop0 = 0;
+        eligiblePremium0 = 0;
+      } else if (input.travelMode === "replace") {
         // Part B must continue (late-enrollment penalty otherwise); the global
         // plan replaces the supplemental coverage and Part D.
-        premium = annualPartB0 * factor;
-        eligiblePremium = annualPartB0 * factor;
+        premium0 = annualPartB0;
+        oop0 = medicareOop0;
+        eligiblePremium0 = annualPartB0;
       } else {
-        premium = (annualPartB0 + medicareCoverage0 + annualPartDSurcharge0) * factor;
-        eligiblePremium = medicareEligiblePremium0 * factor;
+        premium0 = annualPartB0 + medicareCoverage0 + annualPartDSurcharge0;
+        oop0 = medicareOop0;
+        eligiblePremium0 = medicareEligiblePremium0;
       }
     }
 
+    const premium = premium0 * factor;
+    const subsidy = subsidy0 * factor;
+    const outOfPocket = oop0 * factor;
+    const travelPremium = travelAnnual0 * factor;
+    const eligiblePremium = eligiblePremium0 * factor;
+
     const grossCost = premium + outOfPocket + travelPremium;
+
+    // Real & nominal gross cost (basis-independent) for the PV headline, the
+    // today's-dollar average, and the labeled future-dollar cumulative total.
+    const componentBase0 = premium0 + oop0 + travelAnnual0;
+    const realGross = componentBase0 * realFactor;
+    const nominalGross = componentBase0 * nominalFactor;
+    const presentValueGross = realGross / discountFactor(age);
+
+    if (phase === "aca") {
+      presentValueAcaCost += presentValueGross;
+      realAcaCost += realGross;
+      nominalAcaCost += nominalGross;
+    } else {
+      presentValueMedicareCost += presentValueGross;
+      realMedicareCost += realGross;
+      nominalMedicareCost += nominalGross;
+    }
 
     // HSA drawdown. gap_first draws in both phases; medicare_first reserves the
     // HSA for the Medicare years; off never draws.
@@ -391,6 +487,11 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
   const totalNetPortfolioCost = sum(rows.map((row) => row.netPortfolioCost));
   const totalSubsidy = sum(rows.map((row) => row.subsidy));
 
+  const presentValueTotal = presentValueAcaCost + presentValueMedicareCost;
+  const todayDollarsLifetimeTotal = realAcaCost + realMedicareCost;
+  const nominalLifetimeTotal = nominalAcaCost + nominalMedicareCost;
+  const totalYears = rows.length;
+
   return {
     rows,
     acaYears: acaRows.length,
@@ -406,6 +507,15 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     averageMedicareAnnualCost: medicareRows.length
       ? round2(totalMedicareCost / medicareRows.length)
       : 0,
+    presentValueTotal: round2(presentValueTotal),
+    presentValueAcaCost: round2(presentValueAcaCost),
+    presentValueMedicareCost: round2(presentValueMedicareCost),
+    averageAnnualTodayDollars: totalYears ? round2(todayDollarsLifetimeTotal / totalYears) : 0,
+    todayDollarsLifetimeTotal: round2(todayDollarsLifetimeTotal),
+    nominalLifetimeTotal: round2(nominalLifetimeTotal),
+    realDiscountRate,
+    medicaidEligiblePre65,
+    medicareLowIncome,
     incomePctFpl: ptc.incomePctFpl,
     applicablePercent: ptc.applicablePercent,
     aboveSubsidyCliff: ptc.aboveSubsidyCliff,

@@ -60,9 +60,19 @@ export const healthcareFaq: FaqItem[] = [
       "Mostly no. US ACA marketplace plans are US-only, and Original Medicare covers almost nothing outside the country. Medigap plans C, D, F, G, M, and N add a limited foreign-travel emergency benefit (80% after a $250 deductible, $50,000 lifetime cap). If you are outside the US 330+ days a year the ACA coverage requirement does not apply. The tool's travel mode lets you add a global/expat premium on top of US coverage, or replace US coverage with it — while still paying Part B at 65+ to avoid late-enrollment penalties."
   },
   {
+    question: "Why does the calculator show a present value instead of one big lifetime total?",
+    answer:
+      "The headline is the present value in today's dollars — the lump sum you'd need set aside today, earning a conservative real return (about 3% above inflation), to cover every future year of healthcare. That is the number published benchmarks like Fidelity's roughly $345,000-per-couple estimate are quoted in, so it's the fair comparison. Simply adding up decades of inflating premiums produces a much larger figure (often well over a million dollars in future, inflated dollars) that overstates the real burden because those future dollars are worth less and your savings grow in the meantime. The calculator also shows an average cost per year, and the future-dollars toggle if you want to see the raw inflated total — clearly labeled as not comparable to published estimates."
+  },
+  {
+    question: "What if my income is low — do I still pay this much?",
+    answer:
+      "No. If your modified adjusted gross income is below about 138% of the Federal Poverty Level before 65, you would generally qualify for Medicaid (near-free coverage) in states that expanded it, and the calculator models your pre-65 cost near zero. At 65 and older, income below roughly 135% FPL generally qualifies you for a Medicare Savings Program (which pays your Part B premium) plus Part D Extra Help, driving Medicare premiums and cost-sharing close to zero as well. When your income is below these thresholds the tool shows a gold callout and a much lower cost. These are estimates only — eligibility and benefits vary by state, and some states did not expand Medicaid, so confirm on Medicaid.gov and Medicare.gov."
+  },
+  {
     question: "How much should I budget for healthcare in early retirement?",
     answer:
-      "It varies widely with income, location, and health, but the structure is predictable: a subsidized ACA plan in the gap years (often a few hundred dollars a month after the credit, or the full unsubsidized premium if you are over the subsidy cliff), then Part B plus a supplement or Advantage plan plus out-of-pocket once Medicare starts. Run your own numbers above with your real income and area, and view the lifetime total in today's or future dollars to see healthcare's true bite on the plan."
+      "It varies widely with income, location, and health, but the structure is predictable: a subsidized ACA plan in the gap years (often a few hundred dollars a month after the credit, or the full unsubsidized premium if you are over the subsidy cliff), then Part B plus a supplement or Advantage plan plus out-of-pocket once Medicare starts. Run your own numbers above with your real income and area. The headline present value (today's dollars) is the lump sum to set aside now, and the per-year figure shows the recurring bite — switch to future dollars only if you want the raw inflated total."
   },
   {
     question: "Are these healthcare cost figures official?",

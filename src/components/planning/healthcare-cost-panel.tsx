@@ -228,7 +228,23 @@ export function HealthcareCostPanel() {
     { value: "high", label: "High (heavy usage)" }
   ];
 
-  const moneyLabel = result.displayMode === "future_dollars" ? "future dollars" : "today's dollars";
+  // The headline is a present value in today's dollars by default. The display
+  // toggle switches the same lifetime figure to a labeled nominal (future,
+  // inflated) cumulative total — clearly flagged as not comparable to published
+  // estimates, which are quoted in today's dollars.
+  const isToday = result.displayMode === "today_dollars";
+  const totalYears = result.acaYears + result.medicareYears;
+  const heroValue = isToday ? result.presentValueTotal : result.nominalLifetimeTotal;
+  const avgPerYear = isToday
+    ? result.averageAnnualTodayDollars
+    : totalYears > 0
+      ? result.nominalLifetimeTotal / totalYears
+      : 0;
+  // Phase splits stay on the same basis as the hero so the two cards add up to
+  // it (PV split in today's mode; display-basis split in future mode).
+  const acaPhaseValue = isToday ? result.presentValueAcaCost : result.totalAcaCost;
+  const medicarePhaseValue = isToday ? result.presentValueMedicareCost : result.totalMedicareCost;
+  const lowIncome = result.medicaidEligiblePre65 || result.medicareLowIncome;
 
   return (
     <ToolShell
@@ -407,7 +423,7 @@ export function HealthcareCostPanel() {
               value={acaUsage}
               onChange={setAcaUsage}
               options={usageOptions}
-              help="How much care you expect in a typical year. Low ≈ 15% of the out-of-pocket max (rarely see a doctor), Moderate ≈ 45% (regular prescriptions, some visits), High ≈ 85% (chronic condition or planned procedures)."
+              help="How much care you expect in a typical year. Low ≈ 15% of the out-of-pocket max (rarely see a doctor), Moderate ≈ 30% (regular prescriptions, some visits — most people don't approach their max in a typical year), High ≈ 85% (chronic condition or planned procedures)."
             />
             <NumberInput
               id="hc-aca-custom-oop"
@@ -495,7 +511,7 @@ export function HealthcareCostPanel() {
               value={medicareUsage}
               onChange={setMedicareUsage}
               options={usageOptions}
-              help="Low ≈ 15%, Moderate ≈ 45%, High ≈ 85% of the per-person out-of-pocket figure."
+              help="Low ≈ 15%, Moderate ≈ 30%, High ≈ 85% of the per-person out-of-pocket figure."
             />
             <NumberInput
               id="hc-medicare-custom-oop"
@@ -593,22 +609,109 @@ export function HealthcareCostPanel() {
 
         <div className="grid gap-5">
           <CalculateBar stale={gate.stale} onRecalculate={gate.recalculate} />
-          <ResultCard
-            label={`Lifetime net cost (${moneyLabel})`}
-            value={formatCurrency(result.totalNetPortfolioCost)}
-            hero
-            context={`age ${committedInput.fireAge} through ${committedInput.planToAge}`}
-          />
+
+          {/* HERO — present-value headline (today's dollars) with the labeled
+              future-dollars alternative. */}
+          <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-md before:absolute before:inset-y-0 before:left-0 before:w-[5px] before:bg-[var(--primary)] before:content-['']">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-gray-500">
+              {isToday
+                ? "Lifetime healthcare · present value · today's dollars"
+                : "Lifetime healthcare · cumulative total · future dollars"}
+            </p>
+            <p className="mt-2 text-[42px] font-extrabold leading-none tracking-tight text-gray-900 tabular-nums sm:text-[52px]">
+              {formatCurrency(heroValue)}
+            </p>
+            <p className="mt-2 max-w-[520px] text-[15px] font-semibold leading-snug text-gray-800">
+              {isToday ? (
+                <>
+                  What to set aside today to cover a lifetime of healthcare
+                  <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-[var(--positive-bg)] px-2.5 py-0.5 align-middle text-[11px] font-semibold text-[var(--positive)]">
+                    ● today&apos;s $
+                  </span>
+                </>
+              ) : (
+                "What you'd actually pay over the years, added up in future (inflated) dollars"
+              )}
+            </p>
+            <p className="mt-3.5 max-w-[520px] text-[13.5px] leading-relaxed text-gray-500">
+              ≈ <b className="text-gray-800">{formatCurrency(avgPerYear)}/yr</b> on average over{" "}
+              <b className="text-gray-800">~{totalYears} years</b> — higher before 65, lower once
+              you&apos;re on Medicare.
+            </p>
+
+            {/* Today's / Future toggle */}
+            <div className="mt-4">
+              <div
+                className="inline-flex w-full gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1"
+                role="group"
+                aria-label="Dollar basis"
+              >
+                {(
+                  [
+                    { value: "today_dollars", label: "Today's dollars" },
+                    { value: "future_dollars", label: "Future dollars" }
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setDisplayMode(opt.value)}
+                    aria-pressed={displayMode === opt.value}
+                    className={
+                      displayMode === opt.value
+                        ? "flex-1 rounded-lg bg-white px-3 py-2.5 text-[13px] font-semibold text-[var(--primary-hover)] shadow-sm"
+                        : "flex-1 rounded-lg px-3 py-2.5 text-[13px] font-semibold text-gray-600"
+                    }
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-[var(--gold-border)] bg-[var(--gold-bg)] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-[var(--gold-text)]">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 15 15"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  className="mt-0.5 flex-none"
+                  aria-hidden="true"
+                >
+                  <circle cx="7.5" cy="7.5" r="6.5" />
+                  <path d="M7.5 4.2v4.6M7.5 10.8h.01" />
+                </svg>
+                {isToday ? (
+                  <span>
+                    Switch to <b>Future dollars</b> and this reads{" "}
+                    <b>{formatCurrency(result.nominalLifetimeTotal)} in future (inflated) dollars</b> —
+                    not comparable to published estimates like Fidelity&apos;s, which are quoted in
+                    today&apos;s dollars.
+                  </span>
+                ) : (
+                  <span>
+                    These are <b>future (inflated) dollars — not comparable to published estimates</b>{" "}
+                    like Fidelity&apos;s, which are quoted in today&apos;s dollars. Switch back to{" "}
+                    <b>Today&apos;s dollars</b> for the present-value figure (
+                    {formatCurrency(result.presentValueTotal)}).
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Supporting KPI cards */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <ResultCard
-              label={`Gap years total · ${result.acaYears} yrs`}
-              value={formatCurrency(result.totalAcaCost)}
-              context="ACA coverage before Medicare"
+              label={`Before 65 · ACA gap · ${result.acaYears} yrs`}
+              value={formatCurrency(acaPhaseValue)}
+              context={isToday ? "present value · pre-Medicare" : "pre-Medicare · future $"}
             />
             <ResultCard
-              label={`Medicare total · ${result.medicareYears} yrs`}
-              value={formatCurrency(result.totalMedicareCost)}
-              context="from Medicare age on"
+              label={`Medicare years · 65+ · ${result.medicareYears} yrs`}
+              value={formatCurrency(medicarePhaseValue)}
+              context={isToday ? "present value · Part B/D + supplement" : "Part B/D + supplement · future $"}
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -620,7 +723,44 @@ export function HealthcareCostPanel() {
             <ResultCard label="HSA funds used" value={formatCurrency(result.totalHsaUsed)} />
           </div>
 
-          {result.acaYears > 0 ? (
+          {/* Low-income public-coverage callout — Medicaid (pre-65) / MSP + Extra
+              Help (65+). Shown only when income falls below the thresholds. */}
+          {lowIncome ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-[var(--gold-border)] bg-[var(--gold-bg)] p-4 text-[13.5px] leading-relaxed text-[var(--gold-text)] shadow-sm">
+              <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] border border-[var(--gold-border)] bg-white">
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 17 17"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M8.5 15s-5.5-3.6-5.5-8A3.2 3.2 0 0 1 8.5 4.6 3.2 3.2 0 0 1 14 7c0 4.4-5.5 8-5.5 8z" />
+                </svg>
+              </span>
+              <div>
+                <b>Low income?</b> At about {Math.round(result.incomePctFpl * 100)}% of the Federal
+                Poverty Level, your household would likely qualify for{" "}
+                {result.medicaidEligiblePre65 ? <b>Medicaid before 65 (near-free coverage)</b> : null}
+                {result.medicaidEligiblePre65 && result.medicareLowIncome ? ", and " : null}
+                {result.medicareLowIncome ? (
+                  <b>Medicare Savings Programs + Extra Help after 65</b>
+                ) : null}
+                {" "}— so your real out-of-pocket cost would be far lower than the figure above (which
+                is why it&apos;s shown near $0).
+                <span className="mt-1.5 block text-[12px] text-gray-500">
+                  Estimate only; eligibility and benefits vary by state (some states did not expand
+                  Medicaid). Confirm on Medicaid.gov and Medicare.gov.
+                </span>
+              </div>
+            </div>
+          ) : null}
+
+          {result.acaYears > 0 && !result.medicaidEligiblePre65 ? (
             result.aboveSubsidyCliff ? (
               <Callout tone="amber">
                 Your MAGI is at or above 400% of the Federal Poverty Level (
@@ -637,7 +777,7 @@ export function HealthcareCostPanel() {
             )
           ) : null}
 
-          {result.medicareYears > 0 ? (
+          {result.medicareYears > 0 && !result.medicareLowIncome ? (
             <Callout tone={result.irmaaTierIndex > 0 ? "amber" : "gray"}>
               {result.irmaaTierIndex > 0
                 ? `Your MAGI puts you in IRMAA tier ${result.irmaaTierIndex} — Part B rises to ${formatCurrency(result.partBMonthlyPerPerson, true)}/month per person plus a Part D surcharge.`

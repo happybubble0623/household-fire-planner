@@ -9,8 +9,12 @@ import {
   type HealthcareCostInput
 } from "@/lib/calculations/healthcare-cost";
 import {
+  DEFAULT_REAL_DISCOUNT_RATE,
+  MEDICAID_FPL_THRESHOLD,
+  MEDICARE_LOW_INCOME_FPL_THRESHOLD,
   METAL_TIER_PRESETS,
   NATIONAL_BENCHMARK_SILVER_BASE_21,
+  OOP_USAGE_PRESETS,
   PART_B_BASE_PREMIUM_2026,
   REGION_MULTIPLIERS,
   acaAgeCurveFactor,
@@ -291,6 +295,114 @@ describe("healthcare cost projection", () => {
     );
     expect(explicit.rows[0].outOfPocket).toBeCloseTo(1_234, 2);
     expect(explicit.rows[0].outOfPocket).not.toBeCloseTo(preset.rows[0].outOfPocket, 2);
+  });
+
+  it("scales Medicare out-of-pocket by the number of people (couple = single ×2)", () => {
+    // currentAge = fireAge = planToAge = 65 keeps the first year at growth factor
+    // 1 (year 0), so the OOP figure is exact and free of inflation rounding.
+    const single = estimateHealthcareCosts(
+      baseInput({ household: "single", currentAge: 65, fireAge: 65, planToAge: 65 })
+    );
+    const couple = estimateHealthcareCosts(
+      baseInput({ household: "couple", currentAge: 65, fireAge: 65, planToAge: 65 })
+    );
+    const singleMed = single.rows[0];
+    const coupleMed = couple.rows[0];
+    // The couple-OOP fix: per-person OOP is multiplied by people, like premiums.
+    expect(singleMed.outOfPocket).toBeCloseTo(0.3 * 6_000, 2); // 30% of per-person ceiling
+    expect(coupleMed.outOfPocket).toBeCloseTo(singleMed.outOfPocket * 2, 2);
+  });
+
+  it("uses a retuned 30% moderate out-of-pocket preset (was 45%)", () => {
+    expect(OOP_USAGE_PRESETS.moderate).toBe(0.3);
+    const result = estimateHealthcareCosts(
+      baseInput({ household: "single", currentAge: 65, fireAge: 65, planToAge: 65 })
+    );
+    // Year-0 Medicare OOP = 30% of the $6,000 per-person ceiling.
+    expect(result.rows[0].outOfPocket).toBeCloseTo(0.3 * 6_000, 2);
+  });
+
+  describe("present-value headline", () => {
+    it("discounts the lifetime real cost to a present value below the undiscounted sum", () => {
+      const result = estimateHealthcareCosts(baseInput({ fireAge: 55, planToAge: 90 }));
+      expect(result.realDiscountRate).toBeCloseTo(DEFAULT_REAL_DISCOUNT_RATE, 6);
+      expect(result.presentValueTotal).toBeGreaterThan(0);
+      // Discounting future years makes the PV strictly smaller than the
+      // undiscounted today's-dollar lifetime sum.
+      expect(result.presentValueTotal).toBeLessThan(result.todayDollarsLifetimeTotal);
+      // PV phase splits add up to the PV total.
+      expect(result.presentValueAcaCost + result.presentValueMedicareCost).toBeCloseTo(
+        result.presentValueTotal,
+        0
+      );
+    });
+
+    it("reports an average today's-dollar cost per year and a larger nominal total", () => {
+      const result = estimateHealthcareCosts(baseInput({ fireAge: 55, planToAge: 90 }));
+      const years = result.acaYears + result.medicareYears;
+      expect(result.averageAnnualTodayDollars).toBeCloseTo(
+        result.todayDollarsLifetimeTotal / years,
+        0
+      );
+      // Nominal (future-dollar) cumulative total exceeds the today's-dollar sum.
+      expect(result.nominalLifetimeTotal).toBeGreaterThan(result.todayDollarsLifetimeTotal);
+    });
+
+    it("keeps the headline figures identical across display modes (basis-independent)", () => {
+      const today = estimateHealthcareCosts(baseInput({ displayMode: "today_dollars" }));
+      const future = estimateHealthcareCosts(baseInput({ displayMode: "future_dollars" }));
+      expect(future.presentValueTotal).toBeCloseTo(today.presentValueTotal, 2);
+      expect(future.nominalLifetimeTotal).toBeCloseTo(today.nominalLifetimeTotal, 2);
+      expect(future.averageAnnualTodayDollars).toBeCloseTo(today.averageAnnualTodayDollars, 2);
+      // In future mode the display-basis lifetime total equals the nominal total.
+      expect(future.totalGrossCost).toBeCloseTo(future.nominalLifetimeTotal, 0);
+    });
+  });
+
+  describe("low-income public coverage", () => {
+    const fpl = federalPovertyLevel(1);
+
+    it("flags Medicaid pre-65 below 138% FPL and models ACA premiums and OOP as ~free", () => {
+      const result = estimateHealthcareCosts(
+        baseInput({ annualMagi: fpl * 1.2, currentAge: 55, fireAge: 55, planToAge: 64 })
+      );
+      expect(result.incomePctFpl).toBeLessThan(MEDICAID_FPL_THRESHOLD);
+      expect(result.medicaidEligiblePre65).toBe(true);
+      expect(result.rows.every((row) => row.phase === "aca")).toBe(true);
+      expect(result.totalAcaCost).toBe(0);
+      expect(result.rows[0].premium).toBe(0);
+      expect(result.rows[0].outOfPocket).toBe(0);
+    });
+
+    it("flags Medicare Savings Programs below 135% FPL and models Medicare cost as ~free", () => {
+      const result = estimateHealthcareCosts(
+        baseInput({ annualMagi: fpl * 1.2, currentAge: 65, fireAge: 65, planToAge: 90 })
+      );
+      expect(result.incomePctFpl).toBeLessThan(MEDICARE_LOW_INCOME_FPL_THRESHOLD);
+      expect(result.medicareLowIncome).toBe(true);
+      expect(result.totalMedicareCost).toBe(0);
+      expect(result.rows[0].premium).toBe(0);
+      expect(result.rows[0].outOfPocket).toBe(0);
+    });
+
+    it("makes low income cost far less than mid income (fixing the old backwards result)", () => {
+      const low = estimateHealthcareCosts(
+        baseInput({ annualMagi: fpl * 1.2, fireAge: 55, planToAge: 90 })
+      );
+      const mid = estimateHealthcareCosts(
+        baseInput({ annualMagi: fpl * 2.5, fireAge: 55, planToAge: 90 })
+      );
+      expect(low.medicaidEligiblePre65).toBe(true);
+      expect(mid.medicaidEligiblePre65).toBe(false);
+      expect(low.presentValueTotal).toBeLessThan(mid.presentValueTotal);
+      expect(low.presentValueTotal).toBe(0);
+    });
+
+    it("does not flag low-income coverage at a comfortable mid income", () => {
+      const result = estimateHealthcareCosts(baseInput({ annualMagi: fpl * 2.5, fireAge: 55 }));
+      expect(result.medicaidEligiblePre65).toBe(false);
+      expect(result.medicareLowIncome).toBe(false);
+    });
   });
 });
 

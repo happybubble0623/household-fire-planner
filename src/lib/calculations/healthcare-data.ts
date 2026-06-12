@@ -48,6 +48,25 @@ export const ACA_SUBSIDY_CLIFF_FPL = 4.0;
 
 export const DEFAULT_ACA_INFLATION = 0.055;
 
+// Present-value discounting for the lifetime headline. Each future year's real
+// (today's-dollar) cost is discounted back to today at this real rate before
+// summing, so the headline answers "what to set aside today" instead of an
+// undiscounted cumulative sum of real-growing costs (which overstates the
+// burden vs. published benchmarks like Fidelity's). 3%/yr real ≈ a conservative
+// real investment return; a candidate to expose as a user input later.
+export const DEFAULT_REAL_DISCOUNT_RATE = 0.03;
+
+// Low-income public-coverage thresholds, expressed as a share of the
+// (household-size-aware) Federal Poverty Level. Below these, the calculator
+// models near-free public coverage so a low-income household isn't shown costing
+// roughly the same as a mid-income one.
+//   Pre-65: ACA Medicaid expansion covers adults up to 138% FPL (expansion
+//           states). Non-expansion states differ — surfaced as a disclaimer.
+//   65+:    Medicare Savings Programs (QMB/SLMB/QI run 100–135% FPL) plus Part D
+//           Extra Help; 135% FPL is used as one simplifying threshold for both.
+export const MEDICAID_FPL_THRESHOLD = 1.38;
+export const MEDICARE_LOW_INCOME_FPL_THRESHOLD = 1.35;
+
 // ---------------------------------------------------------------------------
 // Internal benchmark-premium estimate (so users don't have to look up their
 // SLCSP on healthcare.gov before getting a useful number)
@@ -168,9 +187,14 @@ export const MEDIGAP_PLANS_WITH_FOREIGN_COVERAGE = ["C", "D", "F", "G", "M", "N"
 // of the plan's out-of-pocket maximum)
 // ---------------------------------------------------------------------------
 
+// Expected annual out-of-pocket spend as a share of the plan's out-of-pocket
+// maximum. "moderate" is set to a typical-year level (~30% of the OOP max);
+// most households don't approach their statutory maximum in an average year.
+// "high" reflects a chronic condition or planned procedures; "low" a healthy
+// year with few claims.
 export const OOP_USAGE_PRESETS = {
   low: 0.15,
-  moderate: 0.45,
+  moderate: 0.3,
   high: 0.85
 } as const;
 

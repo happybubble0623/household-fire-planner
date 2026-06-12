@@ -639,9 +639,14 @@ describe("PathToFirePanel", () => {
     expect(screen.getByLabelText("Household")).toBeInTheDocument();
     expect(screen.getByLabelText("FIRE / retirement age")).toBeInTheDocument();
     expect(screen.getByLabelText("Annual retirement MAGI")).toBeInTheDocument();
-    expect(screen.getByText(/Lifetime net cost/i)).toBeInTheDocument();
-    expect(screen.getByText(/Gap years total/i)).toBeInTheDocument();
-    expect(screen.getByText(/Medicare total/i)).toBeInTheDocument();
+    // Present-value hero, per-year sub-line, and the Today's/Future basis toggle.
+    expect(
+      screen.getByText(/What to set aside today to cover a lifetime of healthcare/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/on average over/i)).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Dollar basis" })).toBeInTheDocument();
+    expect(screen.getByText(/Before 65 · ACA gap/i)).toBeInTheDocument();
+    expect(screen.getByText(/Medicare years · 65\+/i)).toBeInTheDocument();
     expect(
       screen.getByRole("table", { name: "Healthcare cost projection" })
     ).toBeInTheDocument();
@@ -667,6 +672,36 @@ describe("PathToFirePanel", () => {
     expect(screen.getByText(/Edit mode/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Calculate" }));
     expect(screen.getByText(/up to date with your inputs/i)).toBeInTheDocument();
+  });
+
+  it("labels the future-dollars basis as not comparable to published estimates", () => {
+    render(<PlanningToolPanel tool="healthcare" />);
+
+    // Today's mode is the default; the caption warns about the future-dollar view.
+    expect(
+      screen.getByText(/in future \(inflated\) dollars/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Future dollars" }));
+    expect(
+      screen.getByText(/not comparable to published estimates/i)
+    ).toBeInTheDocument();
+  });
+
+  it("shows the low-income Medicaid/MSP callout only when income is below the thresholds", () => {
+    render(<PlanningToolPanel tool="healthcare" />);
+
+    // Default MAGI ($60k single ≈ 380% FPL) is above the thresholds: no callout.
+    expect(screen.queryByText(/Low income\?/i)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Annual retirement MAGI"), {
+      target: { value: "15000" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Calculate" }));
+
+    expect(screen.getByText(/Low income\?/i)).toBeInTheDocument();
+    expect(screen.getByText(/Medicaid before 65/i)).toBeInTheDocument();
+    expect(screen.getByText(/varies by state/i)).toBeInTheDocument();
   });
 
   it("lets users temporarily clear calculator numeric fields while entering a replacement value", () => {
