@@ -117,7 +117,26 @@
       "Bash(curl -s -w '\\\\nHTTP_STATUS=%{http_code}\\\\n' -H 'Authorization: Bearer __CMDSUB_OUTPUT__' https://api.supabase.com/v1/projects/riyprnpgeccjypodrabb/config/auth -o /tmp/auth_config.json)",
       "Bash(python3 -c *)",
       "Bash(curl -s -H 'Authorization: Bearer __CMDSUB_OUTPUT__' https://api.supabase.com/v1/projects/riyprnpgeccjypodrabb/config/auth -o /tmp/auth2.json)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(git push *)",
+      "Bash(node -e \"try{require.resolve\\('playwright'\\);console.log\\('playwright present'\\)}catch\\(e\\){console.log\\('no playwright'\\)}; try{require.resolve\\('puppeteer'\\);console.log\\('puppeteer present'\\)}catch\\(e\\){console.log\\('no puppeteer'\\)}\")",
+      "Bash(node scripts/fire-strategy-projection-shots.mjs)",
+      "Bash(git ls-remote *)",
+      "Bash(git fetch *)",
+      "Bash(node -e \"const s=require\\('./package.json'\\).scripts; console.log\\(JSON.stringify\\(s,null,2\\)\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8842/three-paths-comparison/index.html)",
+      "Bash(curl -s http://localhost:8842/three-paths-comparison/index.html)",
+      "Bash(node -e \"const c=require\\('playwright-core'\\); console.log\\('playwright-core ok', !!c.chromium\\)\")",
+      "Bash(node mockup/three-paths-comparison/_shoot.js)",
+      "Read(//tmp/**)",
+      "Bash(cd \"/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Freedom Path\" && rm src/tests/calculations/_scratch_healthcare_trace.test.ts && rm -f /tmp/hc_trace_out.txt && echo \"scratch removed\" && git status --short | grep scratch || echo \"no scratch in git status\")",
+      "WebFetch(domain:www.kff.org)",
+      "WebFetch(domain:www.ssa.gov)",
+      "WebFetch(domain:www.healthcare.gov)",
+      "WebFetch(domain:www.medicare.gov)",
+      "Skill(firecrawl-scrape)",
+      "Skill(firecrawl-scrape:*)",
+      "WebFetch(domain:www.cms.gov)"
     ]
   }
 }

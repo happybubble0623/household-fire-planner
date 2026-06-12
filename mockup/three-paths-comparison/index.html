@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three paths to reach early retirement — comparison (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../_tokens.css">
+<style>
+  .wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+  .sect{margin:48px 0}
+
+  /* ---- Section heading row ---- */
+  .head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:24px}
+  .head .eyebrow{font-size:13px;font-weight:600;color:var(--green-700);letter-spacing:.02em}
+  .head h2{font-family:'Fraunces',serif;font-weight:600;font-size:30px;line-height:1.1;margin:8px 0 0}
+  .head p.sub{color:var(--n500);font-size:14.5px;margin:8px 0 0;max-width:520px}
+
+  /* ---- Help me choose trigger ---- */
+  .helpbtn{display:inline-flex;align-items:center;gap:8px;flex:none;height:42px;padding:0 18px;border-radius:12px;
+    background:var(--gold-50);border:1px solid var(--gold-100);color:var(--gold-600);font-weight:600;font-size:14px;cursor:pointer;
+    transition:.15s}
+  .helpbtn:hover{background:var(--gold-100)}
+  .helpbtn svg{width:16px;height:16px}
+
+  /* ---- Comparison cards ---- */
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
+  .pcard{background:var(--surface);border:1px solid var(--n200);border-radius:var(--radius);box-shadow:var(--shadow-sm);
+    padding:24px 22px 22px;display:flex;flex-direction:column;position:relative;transition:.18s}
+  .pcard:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+  .pcard.featured{border-color:var(--gold-400);border-width:1.5px;box-shadow:0 0 0 4px var(--gold-50),var(--shadow-md)}
+  .pbadge{position:absolute;top:-13px;left:22px;background:var(--gold-400);color:var(--n900);font-size:11.5px;font-weight:700;
+    padding:5px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;box-shadow:var(--shadow-sm);white-space:nowrap}
+  .pbadge svg{width:13px;height:13px}
+  .ptag{display:inline-flex;align-self:flex-start;font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:4px 10px;
+    border-radius:999px;background:var(--green-50);color:var(--green-700);margin-bottom:14px}
+  .pcard.featured .ptag{background:var(--gold-50);color:var(--gold-600)}
+  .pcard h3{font-size:19px;font-weight:700;letter-spacing:-.01em;margin:0}
+  .pcard .idea{color:var(--n800);font-size:14px;line-height:1.45;margin:8px 0 16px}
+  .feats{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:7px}
+  .feats li{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.25;color:var(--n800);font-weight:500}
+  .feats li svg{width:15px;height:15px;flex:none}
+  .feats li.yes svg{stroke:var(--green-600)}
+  .feats li.no{color:var(--n600)}
+  .feats li.no svg{stroke:var(--negative)}
+  .pbtn{margin-top:auto;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:44px;border-radius:12px;
+    font-weight:600;font-size:14px;border:1px solid var(--n200);background:#fff;color:var(--n800);cursor:pointer;transition:.15s}
+  .pbtn:hover{border-color:var(--green-300);background:var(--green-50);color:var(--green-700)}
+  .pcard.featured .pbtn{background:var(--green-600);border-color:var(--green-600);color:#fff}
+  .pcard.featured .pbtn:hover{background:var(--green-700)}
+
+  /* ---- Help me choose panel ---- */
+  .picker{margin-bottom:24px;background:var(--surface);border:1px solid var(--n200);border-radius:var(--radius);
+    box-shadow:var(--shadow-md);overflow:hidden;display:none}
+  .picker.open{display:block;animation:slidein .22s ease}
+  @keyframes slidein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .picker .ptop{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 22px;
+    background:linear-gradient(120deg,var(--green-50),var(--gold-50));border-bottom:1px solid var(--n200)}
+  .picker .ptop .lt{display:flex;align-items:center;gap:10px}
+  .picker .ptop .pico{width:30px;height:30px;border-radius:9px;background:var(--gold-400);display:flex;align-items:center;justify-content:center;flex:none}
+  .picker .ptop .pico svg{width:17px;height:17px}
+  .picker .ptop b{font-size:14.5px;font-weight:700;color:var(--n900)}
+  .picker .ptop small{display:block;font-size:12px;color:var(--n500);font-weight:500}
+  .closex{border:none;background:transparent;cursor:pointer;color:var(--n500);width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .closex:hover{background:rgba(0,0,0,.05);color:var(--n800)}
+  .pbody{padding:24px 22px 22px}
+  .step{display:none}
+  .step.active{display:block;animation:slidein .2s ease}
+  .stepno{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--green-700)}
+  .step .q{font-size:18px;font-weight:600;color:var(--n900);letter-spacing:-.01em;margin:6px 0 18px;max-width:560px;line-height:1.3}
+  .opts{display:flex;gap:12px;flex-wrap:wrap}
+  .opt{flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:8px;height:50px;padding:0 18px;border-radius:13px;
+    border:1.5px solid var(--n200);background:#fff;font-weight:600;font-size:15px;color:var(--n800);cursor:pointer;transition:.15s}
+  .opt:hover{border-color:var(--green-400);background:var(--green-50);color:var(--green-700)}
+  .opt .oy{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:none}
+  .progress{display:flex;gap:6px;margin-top:20px}
+  .progress span{height:4px;flex:1;border-radius:999px;background:var(--n200)}
+  .progress span.on{background:var(--green-500)}
+  .backlink{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:13px;font-weight:600;color:var(--n500);cursor:pointer}
+  .backlink:hover{color:var(--green-700)}
+
+  /* ---- Result ---- */
+  .result{display:none;animation:slidein .22s ease}
+  .result.active{display:block}
+  .reslead{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--n500)}
+  .rescard{margin-top:10px;border:1.5px solid var(--green-300);background:var(--green-50);border-radius:16px;padding:20px}
+  .rescard .rtag{font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:#fff;color:var(--green-700);display:inline-block;margin-bottom:10px}
+  .rescard h3{font-family:'Fraunces',serif;font-weight:600;font-size:24px;color:var(--green-800);margin:0}
+  .rescard .why{color:var(--n700,#3d3c36);color:var(--n800);font-size:14.5px;line-height:1.5;margin:8px 0 18px;max-width:560px}
+  .resactions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .resbtn{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 22px;border-radius:12px;background:var(--green-600);
+    color:#fff;font-weight:600;font-size:14.5px;border:none;cursor:pointer;box-shadow:var(--shadow-sm)}
+  .resbtn:hover{background:var(--green-700)}
+  .seeall{font-size:13.5px;font-weight:600;color:var(--green-700);cursor:pointer}
+  .seeall:hover{text-decoration:underline}
+  .fallback{margin-top:16px;display:flex;align-items:center;gap:9px;font-size:13px;color:var(--n600);background:var(--gold-50);
+    border:1px solid var(--gold-100);border-radius:11px;padding:11px 14px}
+  .fallback svg{width:16px;height:16px;flex:none;stroke:var(--gold-600)}
+
+  /* ---- Mobile ---- */
+  @media (max-width:760px){
+    .wrap{padding:0 18px}
+    .grid3{grid-template-columns:1fr;gap:16px}
+    .head{flex-direction:column;align-items:stretch}
+    .head h2{font-size:25px}
+    .helpbtn{width:100%;justify-content:center}
+    .opts{flex-direction:column}
+    .opt{min-width:0;width:100%}
+    .resactions{flex-direction:column;align-items:stretch}
+    .resbtn{justify-content:center}
+    .seeall{text-align:center}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="sect">
+    <!-- Heading + Help me choose -->
+    <div class="head">
+      <div>
+        <div class="eyebrow">CHOOSE YOUR STRATEGY</div>
+        <h2>Three paths to reach early retirement</h2>
+        <p class="sub">Each path is a different way to fund the years after work. Pick the one that sounds like you — you can switch anytime.</p>
+      </div>
+      <button class="helpbtn" id="openPicker">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
+        Not sure which fits you? Help me choose →
+      </button>
+    </div>
+
+    <!-- ============ HELP ME CHOOSE PANEL ============ -->
+    <div class="picker" id="picker">
+      <div class="ptop">
+        <div class="lt">
+          <span class="pico"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1b18" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg></span>
+          <div><b>Help me choose</b><small>Answer up to 2 quick questions</small></div>
+        </div>
+        <button class="closex" id="closePicker" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="pbody">
+        <!-- Q1 -->
+        <div class="step active" id="step1">
+          <div class="stepno">Question 1 of 2</div>
+          <div class="q">Will steady income — a pension, rental, or Social Security — cover most of your retirement costs?</div>
+          <div class="opts">
+            <button class="opt" data-go="resIncome"><span class="oy" style="background:var(--green-100)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#15803d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span>Yes, most of them</button>
+            <button class="opt" data-go="step2"><span class="oy" style="background:var(--n200)"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#5c5b53" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>No / not really</button>
+          </div>
+          <div class="progress"><span class="on"></span><span></span></div>
+        </div>
+        <!-- Q2 -->
+        <div class="step" id="step2">
+          <div class="stepno">Question 2 of 2</div>
+          <div class="q">Do you want to live off your investment income — without ever selling your investments?</div>
+          <div class="opts">
+            <button class="opt" data-go="resPreserve"><span class="oy" style="background:var(--green-100)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#15803d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span>Yes, keep it intact</button>
+            <button class="opt" data-go="resDrawdown"><span class="oy" style="background:var(--n200)"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#5c5b53" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>No, spending it is fine</button>
+          </div>
+          <div class="backlink" data-back="step1"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</div>
+          <div class="progress"><span class="on"></span><span class="on"></span></div>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="result" id="resIncome" data-tag="Income-funded" data-name="Income Stream" data-why="Your costs are already covered by reliable income, so your plan can lean on those streams instead of drawing down a portfolio."></div>
+        <div class="result" id="resPreserve" data-tag="Live off income" data-name="Principal-Preserving" data-why="You can live on the income your investments produce and leave your savings untouched — so they can last indefinitely."></div>
+        <div class="result" id="resDrawdown" data-tag="The 4% rule" data-name="Portfolio Drawdown" data-why="You build up your savings and spend them down gradually — the simplest and most common path, and usually the earliest retirement age."></div>
+      </div>
+    </div>
+
+    <!-- ============ THREE COMPARISON CARDS ============ -->
+    <div class="grid3" id="cards">
+      <!-- 1. Portfolio Drawdown (featured) -->
+      <div class="pcard featured">
+        <div class="pbadge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z"/></svg>Most popular · Start here</div>
+        <span class="ptag">The 4% rule</span>
+        <h3>Portfolio Drawdown FIRE</h3>
+        <p class="idea">Build up your savings, then spend them down gradually.</p>
+        <ul class="feats">
+          <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>Simplest, most common</li>
+          <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>Works with index funds</li>
+          <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>Spend savings gradually</li>
+        </ul>
+        <button class="pbtn">Start this path →</button>
+      </div>
+
+      <!-- 2. Principal-Preserving -->
+      <div class="pcard">
+        <span class="ptag">Live off income</span>
+        <h3>Principal-Preserving FIRE</h3>
+        <p class="idea">Live off the income your investments produce — without touching your savings.</p>
+        <ul class="feats">
+          <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>Never spend your savings</li>
+          <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>Live off investment income</li>
+          <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>Good if you've saved a lot</li>
+        </ul>
+        <button class="pbtn">Start this path →</button>
+      </div>
+
+      <!-- 3. Income Stream -->
+      <div class="pcard">
+        <span class="ptag">Income-funded</span>
+        <h3>Income Stream FIRE</h3>
+        <p class="idea">Cover your costs with steady income like pensions, rentals, or Social Security.</p>
+        <ul class="feats">
+          <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>Uses pension / rental / SS income</li>
+          <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>No need to sell investments</li>
+          <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>Good if you have steady income</li>
+        </ul>
+        <button class="pbtn">Start this path →</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var picker = document.getElementById('picker');
+  var steps  = ['step1','step2','resIncome','resPreserve','resDrawdown'];
+
+  function show(id){
+    steps.forEach(function(s){
+      var el = document.getElementById(s);
+      el.classList.remove('active');
+    });
+    document.getElementById(id).classList.add('active');
+  }
+
+  // Build result panels once
+  document.querySelectorAll('.result').forEach(function(r){
+    var name = r.getAttribute('data-name');
+    var tag  = r.getAttribute('data-tag');
+    var why  = r.getAttribute('data-why');
+    r.innerHTML =
+      '<div class="reslead">We suggest</div>' +
+      '<div class="rescard">' +
+        '<span class="rtag">' + tag + '</span>' +
+        '<h3>' + name + ' FIRE</h3>' +
+        '<p class="why">' + why + '</p>' +
+        '<div class="resactions">' +
+          '<button class="resbtn">Start ' + name + ' FIRE →</button>' +
+          '<span class="seeall" data-action="restart">See all three again</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="fallback">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+        'Not sure? Most people start with <strong>&nbsp;Portfolio Drawdown FIRE</strong>.' +
+      '</div>';
+  });
+
+  document.getElementById('openPicker').addEventListener('click', function(){
+    picker.classList.add('open');
+    show('step1');
+    picker.scrollIntoView({behavior:'smooth', block:'nearest'});
+  });
+  document.getElementById('closePicker').addEventListener('click', function(){
+    picker.classList.remove('open');
+  });
+
+  // Option buttons (go to next step or a result)
+  picker.addEventListener('click', function(e){
+    var opt = e.target.closest('[data-go]');
+    if(opt){ show(opt.getAttribute('data-go')); return; }
+    var back = e.target.closest('[data-back]');
+    if(back){ show(back.getAttribute('data-back')); return; }
+    var restart = e.target.closest('[data-action="restart"]');
+    if(restart){ show('step1'); }
+  });
+})();
+</script>
+</body>
+</html>
