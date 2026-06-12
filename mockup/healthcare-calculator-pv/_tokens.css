@@ -1,0 +1,88 @@
+/* Freedom Path redesign tokens — from REDESIGN_SPEC.md. Shared by all mockups. */
+:root {
+  /* green primary ramp */
+  --green-50:#ecfdf3; --green-100:#d1fadf; --green-200:#a6f0c2; --green-300:#6ee0a0;
+  --green-400:#34c77e; --green-500:#16a34a; --green-600:#15803d; --green-700:#166534;
+  --green-800:#14532d; --green-900:#0f3d22;
+  /* warm-neutral grey ramp */
+  --bg:#f7f7f5; --surface:#ffffff; --n100:#efeee9; --n200:#e4e3dd; --n300:#d3d2ca;
+  --n400:#a8a79d; --n500:#7c7b71; --n600:#5c5b53; --n800:#2c2b27; --n900:#1c1b18;
+  /* gold accent */
+  --gold-50:#fff8e6; --gold-100:#fdecbf; --gold-400:#f5b301; --gold-600:#b07d00;
+  /* semantic */
+  --positive:#15803d; --positive-bg:#ecfdf3; --negative:#c0392b; --negative-bg:#fdecea;
+  /* chart palette */
+  --chart-1:#15803d; --chart-2:#34c77e; --chart-3:#f5b301; --chart-4:#0d9488;
+  --chart-5:#7c7b71; --chart-6:#9333ea; --chart-grid:#e4e3dd; --chart-negative:#c0392b;
+  /* elevation */
+  --shadow-sm:0 1px 2px rgba(28,27,24,.06), 0 1px 3px rgba(28,27,24,.05);
+  --shadow-md:0 6px 16px rgba(28,27,24,.08);
+  --shadow-lg:0 24px 50px rgba(20,83,45,.18);
+  --radius:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--n800);
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  font-feature-settings:"tnum" 1,"cv05" 1;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; line-height:1.5;
+}
+.tnum{font-variant-numeric:tabular-nums}
+.wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+a{color:inherit;text-decoration:none}
+
+/* App bar */
+.appbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--n200)}
+.appbar .bar{display:flex;align-items:center;justify-content:space-between;padding:14px 32px}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:38px;height:38px;border-radius:11px;background:var(--green-600);display:flex;align-items:center;justify-content:center;flex:none}
+.brandtext b{font-weight:700;color:var(--n900);font-size:15px;letter-spacing:-.01em}
+.brandtext small{display:block;color:var(--n500);font-size:11px;font-weight:500}
+.nav{display:flex;gap:6px}
+.nav a{padding:9px 16px;border-radius:11px;font-size:14px;font-weight:500;color:var(--n500)}
+.nav a.active{background:var(--green-50);color:var(--green-700)}
+
+/* Cards & tiers */
+.card{background:var(--surface);border:1px solid var(--n200);border-radius:var(--radius);box-shadow:var(--shadow-sm)}
+.kpi{background:var(--surface);border:1px solid var(--n200);border-radius:16px;box-shadow:var(--shadow-md);
+  padding:18px 20px;position:relative;overflow:hidden}
+.kpi.accent{border-top:3px solid var(--green-600)}
+.kpi.accent-gold{border-top:3px solid var(--gold-400)}
+.kpi .ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.kpi .lbl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--n500)}
+.kpi .val{font-size:32px;font-weight:700;color:var(--n900);letter-spacing:-.02em;margin-top:4px;line-height:1.05}
+.kpi .val.hero{font-size:44px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px}
+.chip.pos{background:var(--positive-bg);color:var(--positive)}
+.chip.neg{background:var(--negative-bg);color:var(--negative)}
+.chip.gold{background:var(--gold-50);color:var(--gold-600)}
+.chip.muted{background:var(--n100);color:var(--n600)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border-radius:12px;font-weight:600;font-size:14px;border:1px solid transparent;cursor:pointer}
+.btn.primary{background:var(--green-600);color:#fff;box-shadow:var(--shadow-sm)}
+.btn.secondary{background:#fff;border-color:var(--n200);color:var(--n800)}
+.btn.accent{background:var(--gold-400);color:var(--n900)}
+
+/* Section headings */
+h1,h2,h3{color:var(--n900);letter-spacing:-.02em;margin:0}
+.eyebrow{font-size:13px;font-weight:600;color:var(--green-700)}
+.muted{color:var(--n500)}
+.disclaimer{margin:28px 0;padding:18px 20px;background:var(--n100);border:1px solid var(--n200);border-radius:14px;color:var(--n600);font-size:13px}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+thead th{position:sticky;top:0;background:var(--n100);color:var(--n500);font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.04em;text-align:right;padding:11px 14px;border-bottom:1px solid var(--n200)}
+thead th:first-child,thead th:nth-child(2){text-align:left}
+tbody td{padding:11px 14px;text-align:right;border-bottom:1px solid var(--n100);color:var(--n800)}
+tbody td:first-child,tbody td:nth-child(2){text-align:left}
+tbody tr:nth-child(even){background:var(--n100)}
+tbody tr:hover{background:var(--green-50)}
+.pos{color:var(--positive);font-weight:600}
+.neg{color:var(--negative);font-weight:600}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px}
+.pill.aca{background:var(--gold-50);color:var(--gold-600)}
+.pill.med{background:var(--green-50);color:var(--green-700)}

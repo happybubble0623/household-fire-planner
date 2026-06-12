@@ -136,7 +136,18 @@
       "WebFetch(domain:www.medicare.gov)",
       "Skill(firecrawl-scrape)",
       "Skill(firecrawl-scrape:*)",
-      "WebFetch(domain:www.cms.gov)"
+      "WebFetch(domain:www.cms.gov)",
+      "Bash(cat .claude/launch.json)",
+      "Bash(grep -rln \"Phase1Workspace\\\\|phase1-workspace\" src/app)",
+      "Bash(echo \"=== EXIT $? ===\")",
+      "Bash(rm -f /tmp/shot.js)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(ls \"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" 2>/dev/null && echo \"chrome found\"; ls \"/Applications/Chromium.app/Contents/MacOS/Chromium\" 2>/dev/null && echo \"chromium found\"; ls ~/Library/Caches/ms-playwright 2>/dev/null && echo \"pw cache\")",
+      "Bash(node scripts/capture-home-screenshots.mjs)",
+      "Bash(rm scripts/capture-home-screenshots.mjs)",
+      "Bash(rmdir scripts *)",
+      "Bash(rm -f /tmp/shot.js && echo cleaned)",
+      "Bash(file mockup/healthcare-calculator-pv/screenshots/*.png)"
     ]
   }
 }
