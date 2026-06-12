@@ -191,7 +191,8 @@ describe("PathToFirePanel", () => {
       /first-year portfolio draw divided by assets at FIRE/i
     );
     expect(screen.getByRole("table", { name: "Portfolio Drawdown FIRE projection" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: /Year \/ Age/i })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: /^Age$/i })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: /Year/i })).not.toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: /Investment return/i })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: /Assets withdrawn/i })).toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: /Cash flow/i })).not.toBeInTheDocument();
@@ -442,7 +443,7 @@ describe("PathToFirePanel", () => {
     render(<FireStrategyPanelHarness mode="withdrawal_rate" />);
 
     expect(screen.getAllByText("Assets at FIRE").length).toBeGreaterThan(0);
-    expect(screen.getByRole("columnheader", { name: /Ending FIRE assets/i })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: /Ending assets/i })).toBeInTheDocument();
     expect(screen.queryByText("Simple FIRE number")).not.toBeInTheDocument();
     expect(screen.queryByText("Today's FIRE number")).not.toBeInTheDocument();
     expect(screen.queryByText("FIRE target")).not.toBeInTheDocument();

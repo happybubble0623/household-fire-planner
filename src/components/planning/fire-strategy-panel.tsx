@@ -49,6 +49,39 @@ function formatSignedCurrency(value: number) {
   return formatted;
 }
 
+// Compact currency for the dense projection tables only (NOT the KPI cards):
+// trims values to ~3 significant figures with a $k / $M / $B unit so more
+// columns fit on a narrow phone without horizontal scrolling.
+// e.g. 50000 -> $50k, 1_250_000 -> $1.25M, 482_500 -> $483k.
+function trimToSignificant(value: number) {
+  const decimals = value >= 100 ? 0 : value >= 10 ? 1 : 2;
+  return Number(value.toFixed(decimals)).toString();
+}
+
+function formatCompactCurrencyAbs(value: number) {
+  if (value < 1000) {
+    return `$${Math.round(value)}`;
+  }
+  if (value < 1_000_000) {
+    return `$${trimToSignificant(value / 1000)}k`;
+  }
+  if (value < 1_000_000_000) {
+    return `$${trimToSignificant(value / 1_000_000)}M`;
+  }
+  return `$${trimToSignificant(value / 1_000_000_000)}B`;
+}
+
+function formatCompactCurrency(value: number) {
+  if (value < 0) return `-${formatCompactCurrencyAbs(-value)}`;
+  return formatCompactCurrencyAbs(value);
+}
+
+function formatSignedCompactCurrency(value: number) {
+  if (value > 0) return `+${formatCompactCurrencyAbs(value)}`;
+  if (value < 0) return `-${formatCompactCurrencyAbs(-value)}`;
+  return formatCompactCurrencyAbs(0);
+}
+
 function formatNumber(value: number) {
   return numberFormatter.format(value);
 }
@@ -355,14 +388,20 @@ function formatInputNumber(value: number) {
 function InfoLabel({
   label,
   htmlFor,
-  className
+  className,
+  help
 }: {
   label: string;
   htmlFor?: string;
   className?: string;
+  // Optional override so a renamed column header can keep its original tooltip
+  // (e.g. "Income" displays but keeps the old "Income / savings" help text).
+  help?: string;
 }) {
   const helpText =
-    termHelp[label] ?? "This value changes the projection. Review the calculation details to see how it is used.";
+    help ??
+    termHelp[label] ??
+    "This value changes the projection. Review the calculation details to see how it is used.";
   const content = (
     <>
       <span>{label}</span>
@@ -731,8 +770,6 @@ export function FireStrategyPanel({
           </Button>
         ) : null}
       </div>
-
-      <StrategyCalculatorLinks excludeInvestment={isIncomeStreamMode} />
 
       <div className="grid scroll-mt-28 gap-5 lg:grid-cols-3 xl:grid-cols-[repeat(3,minmax(0,1fr))_minmax(320px,0.95fr)]">
         <Card className="p-6 sm:p-7">
@@ -1427,6 +1464,8 @@ export function FireStrategyPanel({
         />
       ) : null}
 
+      <StrategyCalculatorLinks excludeInvestment={isIncomeStreamMode} />
+
       <p className="rounded-2xl border border-[var(--border)] bg-[var(--soft)] p-5 text-sm leading-relaxed text-gray-500 shadow-sm">
         Planning estimates only. Not financial, tax, or legal advice.
       </p>
@@ -1478,9 +1517,10 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
       <ProjectionTable
         label="Portfolio Drawdown FIRE projection"
         rows={result.projectionRows}
-        incomeLabel="Income / savings"
-        investmentReturnLabel="Investment return (total)"
-        headerNote="How returns are treated here: Investment return (total) is your full growth — price gains plus dividends and interest — shown in its own column. Income / savings never includes investment returns: before FIRE it is the savings you add, after FIRE it is your passive/guaranteed income."
+        incomeLabel="Income"
+        incomeHelp={termHelp["Income / savings"]}
+        investmentReturnLabel="Investment return"
+        headerNote="How returns are treated here: Investment return is your full growth — price gains plus dividends and interest — shown in its own column. Income never includes investment returns: before FIRE it is the savings you add, after FIRE it is your passive/guaranteed income."
         showCashFlow={false}
         showInvestmentReturn
         showAnnualIncome
@@ -1489,7 +1529,7 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
         showFireGap={false}
         auditNotes={[
           "The app tests each possible FIRE age and chooses the first one where assets can survive through life expectancy. Only liquid investments count — your home is excluded.",
-          "Each year your assets earn the Investment return (total return), then you cover spending. Before FIRE, Income / savings is what you add; after FIRE it is your passive/guaranteed income.",
+          "Each year your assets earn the Investment return (total return), then you cover spending. Before FIRE, Income is what you add; after FIRE it is your passive/guaranteed income.",
           "Assets withdrawn is what you sell to cover the spending your income didn't, grossed up for simple tax when enabled. It is 0 when income already covers expenses — so your investment returns keep compounding and the balance grows.",
           "Expenses shows your retirement spending (grossed up for simple tax when enabled). Ending assets = starting + investment return − assets withdrawn (+ any home-sale proceeds)."
         ]}
@@ -1622,6 +1662,7 @@ function ProjectionTable({
   label,
   rows,
   incomeLabel = "Income",
+  incomeHelp,
   investmentReturnLabel = "Investment return",
   cashGeneratingReturnLabel = "Cash-generating return",
   headerNote,
@@ -1641,6 +1682,7 @@ function ProjectionTable({
   label: string;
   rows: Phase1ProjectionRow[];
   incomeLabel?: string;
+  incomeHelp?: string;
   investmentReturnLabel?: string;
   cashGeneratingReturnLabel?: string;
   headerNote?: string;
@@ -1662,7 +1704,8 @@ function ProjectionTable({
       <div className="border-b border-gray-200 p-5 sm:p-6">
         <h2 className="text-xl font-semibold tracking-tight text-gray-900">Year-by-year projection</h2>
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          A compact audit trail for how assets move over time.
+          A compact audit trail for how assets move over time. Currency values are shown in compact
+          form ($k / $M).
         </p>
         {headerNote ? (
           <p className="mt-2 rounded-xl bg-gray-50 px-3 py-2 text-sm leading-relaxed text-gray-600">
@@ -1674,62 +1717,68 @@ function ProjectionTable({
         <table aria-label={label} className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
-              <th className="px-4 py-3">Year / Age</th>
-              <th className="px-4 py-3 text-right">
-                <InfoLabel label="Starting FIRE assets" />
+              <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">Age</th>
+              <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
+                <InfoLabel
+                  label="Starting assets"
+                  help="Projected FIRE assets at the beginning of the row."
+                />
               </th>
               {showCashFlow ? (
-                <th className="px-4 py-3">
+                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
                   <InfoLabel label="Cash flow" />
                 </th>
               ) : null}
               {showInvestmentReturn ? (
-                <th className="px-4 py-3">
+                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
                   <InfoLabel label={investmentReturnLabel} />
                 </th>
               ) : null}
               {showAnnualIncome ? (
-                <th className="px-4 py-3">
-                  <InfoLabel label={incomeLabel} />
+                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                  <InfoLabel label={incomeLabel} help={incomeHelp} />
                 </th>
               ) : null}
               {showExpenses ? (
-                <th className="px-4 py-3">
+                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
                   <InfoLabel label="Expenses" />
                 </th>
               ) : null}
               {showAssetsWithdrawn ? (
-                <th className="px-4 py-3">
+                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
                   <InfoLabel label="Assets withdrawn" />
                 </th>
               ) : null}
               {showCashGeneratingReturn ? (
-                <th className="px-4 py-3">
+                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
                   <InfoLabel label={cashGeneratingReturnLabel} />
                 </th>
               ) : null}
               {showFireTarget ? (
-                <th className="px-4 py-3">
+                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
                   <InfoLabel label="FIRE target" />
                 </th>
               ) : null}
               {showIncomeCoverage ? (
-                <th className="px-4 py-3">
+                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
                   <InfoLabel label="Income coverage" />
                 </th>
               ) : null}
               {showPrincipalFloor ? (
-                <th className="px-4 py-3">
+                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
                   <InfoLabel label="Principal floor" />
                 </th>
               ) : null}
               {showFireGap ? (
-                <th className="px-4 py-3">
+                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
                   <InfoLabel label="FIRE gap" />
                 </th>
               ) : null}
-              <th className="px-4 py-3 text-right">
-                <InfoLabel label="Ending FIRE assets" />
+              <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
+                <InfoLabel
+                  label="Ending assets"
+                  help="Projected FIRE assets at the end of the row."
+                />
               </th>
             </tr>
           </thead>
@@ -1746,71 +1795,73 @@ function ProjectionTable({
                       : "odd:bg-white even:bg-gray-50 hover:bg-[var(--green-50)]"
                   }
                 >
-                  <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900 tabular-nums">
-                    {row.calendarYear} / {row.age}
+                  <td className="whitespace-nowrap px-2.5 py-2.5 font-medium text-gray-900 tabular-nums sm:px-4 sm:py-3">
+                    {row.age}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
-                    {formatCurrency(row.startingAssets)}
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                    {formatCompactCurrency(row.startingAssets)}
                   </td>
                   {showCashFlow ? (
                     <td
                       className={cn(
-                        "whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums",
+                        "whitespace-nowrap px-2.5 py-2.5 text-right font-medium tabular-nums sm:px-4 sm:py-3",
                         row.cashFlow >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
                       )}
                     >
-                      {formatSignedCurrency(row.cashFlow)}
+                      {formatSignedCompactCurrency(row.cashFlow)}
                     </td>
                   ) : null}
                   {showInvestmentReturn ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-[var(--positive)] tabular-nums">
-                      {formatSignedCurrency(row.investmentReturn ?? 0)}
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-[var(--positive)] tabular-nums sm:px-4 sm:py-3">
+                      {formatSignedCompactCurrency(row.investmentReturn ?? 0)}
                     </td>
                   ) : null}
                   {showAnnualIncome ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
-                      {formatCurrency(row.annualIncome ?? 0)}
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {formatCompactCurrency(row.annualIncome ?? 0)}
                     </td>
                   ) : null}
                   {showExpenses ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
-                      {formatCurrency(row.annualExpenses ?? 0)}
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {formatCompactCurrency(row.annualExpenses ?? 0)}
                     </td>
                   ) : null}
                   {showAssetsWithdrawn ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
-                      {formatCurrency(row.assetsWithdrawn ?? 0)}
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {formatCompactCurrency(row.assetsWithdrawn ?? 0)}
                     </td>
                   ) : null}
                   {showCashGeneratingReturn ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
-                      {formatCurrency(row.cashGeneratingReturn ?? 0)}
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {formatCompactCurrency(row.cashGeneratingReturn ?? 0)}
                     </td>
                   ) : null}
                   {showFireTarget ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
-                      {formatCurrency(row.fireTarget ?? 0)}
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {formatCompactCurrency(row.fireTarget ?? 0)}
                     </td>
                   ) : null}
                   {showIncomeCoverage ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
                       {row.incomeCoverageRatio === undefined
                         ? "--"
                         : formatPercent(row.incomeCoverageRatio)}
                     </td>
                   ) : null}
                   {showPrincipalFloor ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
-                      {row.principalFloor === undefined ? "--" : formatCurrency(row.principalFloor)}
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {row.principalFloor === undefined
+                        ? "--"
+                        : formatCompactCurrency(row.principalFloor)}
                     </td>
                   ) : null}
                   {showFireGap ? (
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
-                      {formatCurrency(row.fireGap)}
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {formatCompactCurrency(row.fireGap)}
                     </td>
                   ) : null}
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-gray-900 tabular-nums">
-                    {formatCurrency(row.endingAssets)}
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-right font-semibold text-gray-900 tabular-nums sm:px-4 sm:py-3">
+                    {formatCompactCurrency(row.endingAssets)}
                   </td>
                 </tr>
               );
@@ -1846,24 +1897,25 @@ function IncomeStreamProjectionTable({
       <div className="border-b border-gray-200 p-5 sm:p-6">
         <h2 className="text-xl font-semibold tracking-tight text-gray-900">Year-by-year projection</h2>
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          A compact audit trail for income-stream coverage.
+          A compact audit trail for income-stream coverage. Currency values are shown in compact
+          form ($k / $M).
         </p>
       </div>
       <div className="max-h-[560px] overflow-auto">
         <table aria-label={label} className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
-              <th className="px-4 py-3">Year / Age</th>
-              <th className="px-4 py-3 text-right">
+              <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">Age</th>
+              <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                 <InfoLabel label="Income" />
               </th>
-              <th className="px-4 py-3 text-right">
+              <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                 <InfoLabel label="Expenses" />
               </th>
-              <th className="px-4 py-3 text-right">
+              <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                 <InfoLabel label="Surplus / shortfall" />
               </th>
-              <th className="px-4 py-3 text-right">
+              <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                 <InfoLabel label="Income coverage" />
               </th>
             </tr>
@@ -1874,24 +1926,24 @@ function IncomeStreamProjectionTable({
                 key={`${row.year}-${row.age}`}
                 className="odd:bg-white even:bg-gray-50 hover:bg-[var(--green-50)]"
               >
-                <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900 tabular-nums">
-                  {row.calendarYear} / {row.age}
+                <td className="whitespace-nowrap px-2.5 py-2.5 font-medium text-gray-900 tabular-nums sm:px-4 sm:py-3">
+                  {row.age}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
-                  {formatCurrency(row.annualIncome ?? 0)}
+                <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                  {formatCompactCurrency(row.annualIncome ?? 0)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
-                  {formatCurrency(row.annualExpenses ?? 0)}
+                <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                  {formatCompactCurrency(row.annualExpenses ?? 0)}
                 </td>
                 <td
                   className={cn(
-                    "whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums",
+                    "whitespace-nowrap px-2.5 py-2.5 text-right font-medium tabular-nums sm:px-4 sm:py-3",
                     row.cashFlow >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
                   )}
                 >
-                  {formatSignedCurrency(row.cashFlow)}
+                  {formatSignedCompactCurrency(row.cashFlow)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 tabular-nums">
+                <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
                   {row.incomeCoverageRatio === undefined
                     ? "--"
                     : formatPercent(row.incomeCoverageRatio)}
