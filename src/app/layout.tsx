@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -10,6 +11,11 @@ const inter = Inter({
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+// GA4 measurement ID (e.g. G-XXXXXXXXXX). Must be set as NEXT_PUBLIC_GA_ID in
+// the environment (e.g. Vercel) for Google Analytics to load. Left unset, GA4
+// stays dormant — never hardcode a real measurement ID here.
+const gaId = process.env.NEXT_PUBLIC_GA_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -97,6 +103,10 @@ export default function RootLayout({
       <body>
         {children}
         <Analytics />
+        {/* GA4 loads only when NEXT_PUBLIC_GA_ID is set in the environment
+            (e.g. Vercel). Stays dormant otherwise so builds/deploys are safe
+            before the ID exists. Runs alongside the Vercel <Analytics /> above. */}
+        {gaId ? <GoogleAnalytics gaId={gaId} /> : null}
       </body>
     </html>
   );
