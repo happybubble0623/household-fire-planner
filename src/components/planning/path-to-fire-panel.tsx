@@ -218,7 +218,10 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
             </p>
             <p className="hgloss">
               New to <strong>FIRE</strong>? It just means{" "}
-              <strong>Financial Independence, Retire Early</strong>.
+              <strong>Financial Independence, Retire Early</strong>.{" "}
+              <Link href="/what-is-fire" style={{ color: "var(--g700)", fontWeight: 600 }}>
+                Read the beginner&rsquo;s guide →
+              </Link>
             </p>
             <div className="cta">
               <a href="#strategies" className="btn p lg">
@@ -349,6 +352,14 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
         <div className="foot">
           <span>
             © 2026 Plan My FIRE · Planning estimates only. Not financial advice.
+          </span>
+          <span style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+            <Link href="/what-is-fire" style={{ color: "var(--g700)", fontWeight: 600 }}>
+              What is FIRE?
+            </Link>
+            <Link href="/fire-glossary" style={{ color: "var(--g700)", fontWeight: 600 }}>
+              Glossary
+            </Link>
           </span>
           <span>Local workbook: {status}</span>
         </div>

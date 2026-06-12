@@ -8,6 +8,13 @@ import { FIRE_STRATEGIES } from "@/lib/data/fire-strategies";
 import { PLANNING_TOOLS } from "@/lib/data/planning-tools";
 import { AccountNav } from "@/components/layout/account-nav";
 
+// "Learn" dropdown items — beginner-facing content pages. Kept here as the single
+// source so the desktop dropdown and the mobile menu stay in sync.
+const LEARN_LINKS: Array<{ href: string; label: string; blurb: string }> = [
+  { href: "/what-is-fire", label: "What is FIRE?", blurb: "Plain-English beginner's guide" },
+  { href: "/fire-glossary", label: "Glossary", blurb: "FIRE & retirement terms defined" }
+];
+
 // Mirrors the aurora nav on the home hub (path-to-fire-panel): 14px/500
 // warm-grey links, 8px radius, hover to near-black on a soft green-grey wash.
 const navItemClass =
@@ -80,6 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const strategiesActive = FIRE_STRATEGIES.some((strategy) => isActive(strategy.href));
   const calculatorsActive = PLANNING_TOOLS.some((tool) => isActive(tool.href));
+  const learnActive = LEARN_LINKS.some((link) => isActive(link.href));
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -167,6 +175,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               Portfolio
             </Link>
+
+            <div className="group relative">
+              <button
+                type="button"
+                aria-haspopup="true"
+                className={cn(
+                  navItemClass,
+                  "cursor-pointer group-hover:bg-[rgba(16,40,24,0.05)] group-hover:text-gray-900 group-focus-within:bg-[rgba(16,40,24,0.05)] group-focus-within:text-gray-900",
+                  learnActive && navItemActiveClass
+                )}
+              >
+                Learn
+                <Chevron />
+              </button>
+              <div className={dropdownClass} role="menu">
+                {LEARN_LINKS.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    role="menuitem"
+                    className={cn(dropdownItemClass, isActive(link.href) && "bg-[var(--soft)] text-gray-900")}
+                    aria-current={isActive(link.href) ? "page" : undefined}
+                  >
+                    {link.label}
+                    <small className="mt-0.5 block max-w-[230px] whitespace-normal text-[11.5px] font-normal text-gray-500">
+                      {link.blurb}
+                    </small>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
             <Link
               href="/about"
               className={cn(navItemClass, navItemHoverClass, isActive("/about") && navItemActiveClass)}
@@ -262,6 +302,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 About
               </Link>
             </div>
+            <p className="px-[11px] pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+              Learn
+            </p>
+            {LEARN_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(mobileLinkClass, isActive(link.href) && navItemActiveClass)}
+                aria-current={isActive(link.href) ? "page" : undefined}
+              >
+                {link.label}
+              </Link>
+            ))}
             <div className="mt-2 border-t border-[var(--border)] pt-2">
               <AccountNav variant="mobile" />
             </div>

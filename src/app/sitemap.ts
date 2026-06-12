@@ -7,6 +7,8 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const routes: Array<{ path: string; priority: number }> = [
   { path: "/", priority: 1 },
   { path: "/app/fire-path", priority: 0.9 },
+  { path: "/what-is-fire", priority: 0.7 },
+  { path: "/fire-glossary", priority: 0.6 },
   { path: "/app/fire-path/withdrawal-rate", priority: 0.8 },
   { path: "/app/fire-path/principal-preserving", priority: 0.8 },
   { path: "/app/fire-path/income-stream", priority: 0.8 },

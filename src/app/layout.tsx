@@ -40,9 +40,35 @@ export const metadata: Metadata = {
       "Plan your household's path to financial independence and early retirement with free, transparent calculators.",
     url: siteUrl
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Plan My FIRE",
+    description:
+      "Free FIRE calculators for your whole household — plan your path to financial independence and early retirement."
+  },
   icons: {
     icon: "/favicon.svg"
   }
+};
+
+// Sitewide Organization + WebSite structured data. Emitted once in the root
+// layout so every page carries it. The URL is derived from metadataBase /
+// NEXT_PUBLIC_SITE_URL — never a hardcoded domain.
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Plan My FIRE",
+  url: siteUrl,
+  description:
+    "Free, private FIRE calculators for your whole household — portfolio drawdown, principal-preserving and income-stream strategies, plus mortgage, healthcare, Social Security, and investment planning tools.",
+  logo: `${siteUrl}/favicon.svg`
+};
+
+const webSiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Plan My FIRE",
+  url: siteUrl
 };
 
 export const viewport: Viewport = {
@@ -57,6 +83,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
