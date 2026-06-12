@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import { PlanningToolPanel } from "@/components/planning/planning-tool-panel";
 import { FaqAccordion } from "@/components/planning/faq-accordion";
-import { investmentFaq, investmentIntroParagraphs } from "@/lib/data/investment-faq";
+import { ToolGuideSections } from "@/components/planning/tool-guide-sections";
+import {
+  investmentCrossLinks,
+  investmentFaq,
+  investmentHowItWorks,
+  investmentIntroParagraphs,
+  investmentKeyConcepts,
+  investmentSourcedDefaults
+} from "@/lib/data/investment-faq";
 
 export const metadata: Metadata = {
   title: "Investment Growth & Compound Interest Calculator",
@@ -59,6 +67,13 @@ export default function InvestmentToolPage() {
             </p>
           ))}
         </div>
+
+        <ToolGuideSections
+          howItWorks={investmentHowItWorks}
+          keyConcepts={investmentKeyConcepts}
+          sourcedDefaults={investmentSourcedDefaults}
+          crossLinks={investmentCrossLinks}
+        />
 
         <div className="space-y-5">
           <h2 id="investment-qa-heading" className="text-2xl font-bold tracking-tight text-gray-900">

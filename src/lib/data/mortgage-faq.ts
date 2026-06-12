@@ -5,7 +5,172 @@
 // Ask" see the text without executing JavaScript — and build the FAQPage
 // JSON-LD from the SAME source. Mirrors the healthcare-faq.ts template.
 
+import type {
+  CrossLink,
+  HowItWorksSection,
+  KeyConcept,
+  SourcedDefault
+} from "@/lib/data/tool-guide";
+
 export type FaqItem = { question: string; answer: string };
+
+// "How it works / what it accounts for" — explains the amortization math and
+// the escrowed costs the calculator layers on top, in plain language.
+export const mortgageHowItWorks: { heading: string; sections: HowItWorksSection[] } = {
+  heading: "How the calculator builds your payment",
+  sections: [
+    {
+      heading: "The principal-and-interest payment",
+      paragraphs: [
+        "The core monthly payment comes from the standard amortization formula: it takes your loan amount, your interest rate divided by 12 to get a monthly rate, and the number of monthly payments (the term in years times 12), and solves for the fixed amount that pays the loan to zero over the full term. That single number stays the same every month for the life of a fixed-rate loan — what changes is how it splits between interest and principal."
+      ]
+    },
+    {
+      heading: "Taxes, insurance, PMI, and HOA",
+      paragraphs: [
+        "Most lenders collect property taxes and homeowner's insurance along with the loan payment and hold them in an escrow account, paying those bills for you when they come due. The calculator adds your annual property tax and insurance (divided by 12), any monthly HOA dues, and private mortgage insurance (PMI) when your down payment is under 20%. Together these turn a bare principal-and-interest figure into the all-in number that actually leaves your account — often called PITI. You can switch this block off to see principal and interest alone.",
+        "PMI is handled the way real loans handle it: it applies only while you owe more than 80% of the original loan amount, then automatically drops off, and it is skipped entirely for VA loans, which carry no monthly mortgage insurance."
+      ]
+    },
+    {
+      heading: "How the loan pays down over time",
+      paragraphs: [
+        "The tool walks the loan month by month and rolls the results up into a year-by-year schedule. Because interest is charged on the balance you still owe, the early years are mostly interest and barely dent the balance, while the later years are mostly principal — the front-loading that amortization produces. The payoff chart and total-interest figure make that visible, which is exactly what you need to compare a 15-year against a 30-year term, weigh extra principal payments, or decide whether to clear the mortgage before retiring.",
+        "The same schedule is how you judge a refinance. Refinancing replaces your loan with a new one — usually for a lower rate or shorter term — but it has upfront closing costs. The break-even point is the month when your accumulated monthly savings finally exceed those costs; refinance only if you'll keep the home past it."
+      ]
+    }
+  ]
+};
+
+// Plain-language definitions of the mortgage terms the page uses.
+export const mortgageKeyConcepts: { heading: string; intro?: string; items: KeyConcept[] } = {
+  heading: "Mortgage terms, in plain language",
+  intro: "The words on a mortgage quote, explained without the jargon.",
+  items: [
+    {
+      term: "Principal",
+      definition:
+        "The amount you actually borrowed and still owe. Every payment chips a little off it — slowly at first, faster as the loan matures."
+    },
+    {
+      term: "Interest",
+      definition:
+        "The lender's charge for the loan, calculated on the balance you still owe. Because the balance is highest early on, your first years' payments are mostly interest."
+    },
+    {
+      term: "Amortization",
+      definition:
+        "The schedule that splits each fixed payment between interest and principal so the loan reaches zero exactly at the end of the term. It front-loads interest, so equity builds slowly at first."
+    },
+    {
+      term: "PITI",
+      definition:
+        "Principal, Interest, Taxes, and Insurance — the four parts of a typical full mortgage payment. Lenders use the total to judge how much house you can afford."
+    },
+    {
+      term: "Escrow",
+      definition:
+        "An account your lender uses to collect property taxes and insurance with your monthly payment, then pay those bills on your behalf when they're due."
+    },
+    {
+      term: "PMI (private mortgage insurance)",
+      definition:
+        "A fee on conventional loans when your down payment is under 20%. It protects the lender, costs roughly 0.3%–1.5% of the loan a year, and drops off once you reach 20% equity."
+    },
+    {
+      term: "Loan-to-value (LTV)",
+      definition:
+        "What you owe as a percentage of the home's value. Under 80% LTV (20%+ equity) you can shed PMI; lower LTV also tends to unlock better rates."
+    },
+    {
+      term: "Note rate vs. APR",
+      definition:
+        "The note rate is the interest rate used to compute your payment. APR bundles in fees, so it's higher — use the note rate here for the closest payment match."
+    },
+    {
+      term: "Refinancing break-even",
+      definition:
+        "The month when the savings from a new, lower-rate loan finally cover its closing costs. Refinancing pays off only if you keep the home past that point."
+    }
+  ]
+};
+
+// The prefilled defaults and their sources — mirrors the visible field notes
+// in the interactive calculator.
+export const mortgageSourcedDefaults: {
+  heading: string;
+  intro?: string;
+  items: SourcedDefault[];
+} = {
+  heading: "The default numbers, and where they come from",
+  intro:
+    "The calculator opens with sourced national averages so the first result is realistic. Every one is editable — drop in your own quote for an accurate payment.",
+  items: [
+    {
+      value: "6.5%",
+      label: "30-year fixed rate",
+      source: "Near the mid-2026 average 30-year fixed rate (Freddie Mac PMMS). Rates change daily — use your quote."
+    },
+    {
+      value: "30 years",
+      label: "Loan term",
+      source: "The most common term; a 15-year term cuts total interest sharply but raises the monthly payment."
+    },
+    {
+      value: "≈ 0.9%",
+      label: "Property tax (of home value)",
+      source: "US average effective property-tax rate (ATTOM 2025). Varies widely by county — check the listing."
+    },
+    {
+      value: "~$2,400/yr",
+      label: "Home insurance",
+      source: "Near the 2025 US average homeowner premium (NerdWallet/Bankrate). Varies a lot by state and risk."
+    },
+    {
+      value: "0.5%/yr",
+      label: "PMI rate",
+      source: "Mid-range PMI (typically 0.3%–1.5% under 20% down). Drops at 20% equity; set 0 for VA or 20%+ down."
+    },
+    {
+      value: "20%",
+      label: "Equity that ends PMI",
+      source: "PMI runs until the balance falls below 80% of the original loan, then drops off automatically."
+    }
+  ]
+};
+
+// On-site links to related, deeper content.
+export const mortgageCrossLinks: { heading: string; intro?: string; links: CrossLink[] } = {
+  heading: "Put the payment in context",
+  intro:
+    "Housing is usually the biggest line in a retirement budget. These pages connect your mortgage to the bigger plan.",
+  links: [
+    {
+      href: "/what-is-fire#fire-number",
+      label: "What is FIRE — and your FIRE number",
+      blurb:
+        "Your FIRE number is built from annual expenses, and housing is the largest. Paying off the mortgage before retiring can shrink the number you need to save."
+    },
+    {
+      href: "/app/fire-path/tools/investment",
+      label: "Investment growth calculator",
+      blurb:
+        "Pay the mortgage down faster, or invest the difference? Project what the same dollars could earn invested and compare against your loan's interest rate."
+    },
+    {
+      href: "/app/fire-path/principal-preserving",
+      label: "Principal-Preserving FIRE",
+      blurb:
+        "Carrying a low-rate mortgage while your investments compound is a core trade-off in living off income without touching savings."
+    },
+    {
+      href: "/fire-glossary",
+      label: "FIRE glossary",
+      blurb:
+        "Plain-language definitions for the 4% rule, drawdown, expense ratio, and the rest of the retirement vocabulary."
+    }
+  ]
+};
 
 // Unique, keyword-led intro paragraphs for the mortgage page. Targets "mortgage
 // payment calculator", "how much house can I afford", and PMI/amortization

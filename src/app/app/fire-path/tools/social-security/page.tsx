@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { PlanningToolPanel } from "@/components/planning/planning-tool-panel";
 import { FaqAccordion } from "@/components/planning/faq-accordion";
+import { ToolGuideSections } from "@/components/planning/tool-guide-sections";
 import {
+  socialSecurityCrossLinks,
   socialSecurityFaq,
-  socialSecurityIntroParagraphs
+  socialSecurityHowItWorks,
+  socialSecurityIntroParagraphs,
+  socialSecurityKeyConcepts,
+  socialSecuritySourcedDefaults
 } from "@/lib/data/social-security-faq";
 
 export const metadata: Metadata = {
@@ -59,6 +64,13 @@ export default function SocialSecurityToolPage() {
             </p>
           ))}
         </div>
+
+        <ToolGuideSections
+          howItWorks={socialSecurityHowItWorks}
+          keyConcepts={socialSecurityKeyConcepts}
+          sourcedDefaults={socialSecuritySourcedDefaults}
+          crossLinks={socialSecurityCrossLinks}
+        />
 
         <div className="space-y-5">
           <h2 id="ss-qa-heading" className="text-2xl font-bold tracking-tight text-gray-900">

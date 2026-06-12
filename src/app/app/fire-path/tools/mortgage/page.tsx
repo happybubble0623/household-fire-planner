@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import { PlanningToolPanel } from "@/components/planning/planning-tool-panel";
 import { FaqAccordion } from "@/components/planning/faq-accordion";
-import { mortgageFaq, mortgageIntroParagraphs } from "@/lib/data/mortgage-faq";
+import { ToolGuideSections } from "@/components/planning/tool-guide-sections";
+import {
+  mortgageCrossLinks,
+  mortgageFaq,
+  mortgageHowItWorks,
+  mortgageIntroParagraphs,
+  mortgageKeyConcepts,
+  mortgageSourcedDefaults
+} from "@/lib/data/mortgage-faq";
 
 export const metadata: Metadata = {
   title: "Mortgage Payment Calculator",
@@ -59,6 +67,13 @@ export default function MortgageToolPage() {
             </p>
           ))}
         </div>
+
+        <ToolGuideSections
+          howItWorks={mortgageHowItWorks}
+          keyConcepts={mortgageKeyConcepts}
+          sourcedDefaults={mortgageSourcedDefaults}
+          crossLinks={mortgageCrossLinks}
+        />
 
         <div className="space-y-5">
           <h2 id="mortgage-qa-heading" className="text-2xl font-bold tracking-tight text-gray-900">

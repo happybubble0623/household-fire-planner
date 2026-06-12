@@ -9,7 +9,181 @@
 // The calculator panel itself is a client component; keeping this copy here (not
 // in the panel) is the template pattern shared across the calculators.
 
+import type {
+  CrossLink,
+  HowItWorksSection,
+  KeyConcept,
+  SourcedDefault
+} from "@/lib/data/tool-guide";
+
 export type FaqItem = { question: string; answer: string };
+
+// "How it works / what it accounts for" — walks through the exact steps the
+// calculator runs (highest-35 indexed earnings → AIME → bend-point PIA →
+// claiming-age adjustment), in plain language.
+export const socialSecurityHowItWorks: { heading: string; sections: HowItWorksSection[] } = {
+  heading: "How the estimate works and what it accounts for",
+  sections: [
+    {
+      heading: "From your earnings to an average (AIME)",
+      paragraphs: [
+        "The calculator starts from the covered earnings you enter — either a starting salary that grows each year, or exact year-by-year wages if you fill in the optional table. Each year is capped at that year's Social Security taxable maximum (the most that can count toward a benefit — $184,500 in 2026), because earnings above the cap are neither taxed for Social Security nor counted.",
+        "It then indexes older years up for wage growth so a dollar earned decades ago is measured against today's wages, keeps your highest 35 years (missing years count as $0), adds them up, and divides by 420 months. That figure is your Average Indexed Monthly Earnings, or AIME — the single number the benefit formula works from."
+      ]
+    },
+    {
+      heading: "From AIME to your full-retirement-age benefit (PIA)",
+      paragraphs: [
+        "Your AIME runs through a three-piece formula with two cut points called bend points. You get 90% of the first slice of AIME, 32% of the next slice, and 15% of anything above that. For 2026 the bend points are $1,286 and $7,749. The result is your Primary Insurance Amount (PIA) — the monthly benefit if you claim exactly at full retirement age.",
+        "Because the first slice is replaced at 90% and the top slice at only 15%, the formula is deliberately progressive: lower earners get back a much larger share of their earnings than higher earners. That is why doubling your income does not double your benefit."
+      ]
+    },
+    {
+      heading: "Adjusting for the age you claim",
+      paragraphs: [
+        "Your full retirement age (FRA) depends on your birth year — 67 for anyone born in 1960 or later. Claim before FRA and the benefit is permanently reduced (about five-ninths of 1% for each of the first 36 early months, plus five-twelfths of 1% for each month beyond that), which works out to roughly 30% less at 62 when your FRA is 67. Wait past FRA and you earn delayed-retirement credits of two-thirds of 1% per month — about 8% a year — up to age 70, after which there is no further increase. The tool shows the benefit at 62, your FRA, and 70 side by side so the trade-off is concrete."
+      ]
+    },
+    {
+      heading: "What the number means — and what it leaves out",
+      paragraphs: [
+        "Results are shown in today's dollars (the figure is discounted back by the wage-growth assumption), so they reflect today's buying power rather than the larger amount you'd actually receive once decades of inflation are added. The estimate also does not add future cost-of-living adjustments, so treat it as a conservative floor.",
+        "It models one worker's retirement benefit only — not spousal, divorced-spouse, or survivor benefits, and it does not read your real SSA record or ask for your Social Security number. Every input stays in your browser. For your official figure, sign in at ssa.gov."
+      ]
+    }
+  ]
+};
+
+// Plain-language definitions of the jargon the tool necessarily uses.
+export const socialSecurityKeyConcepts: { heading: string; intro?: string; items: KeyConcept[] } = {
+  heading: "Key Social Security terms, in plain language",
+  intro:
+    "Social Security has its own vocabulary. Here is what the terms behind the estimate actually mean.",
+  items: [
+    {
+      term: "Average Indexed Monthly Earnings (AIME)",
+      definition:
+        "Your highest 35 years of covered earnings — each capped at that year's taxable maximum and adjusted up for past wage growth — added together and divided by 420 months. It is the average the benefit formula starts from."
+    },
+    {
+      term: "Primary Insurance Amount (PIA)",
+      definition:
+        "The monthly benefit you'd get if you claimed exactly at your full retirement age. It comes from running your AIME through the 90% / 32% / 15% bend-point formula."
+    },
+    {
+      term: "Bend points",
+      definition:
+        "The two income cut-offs in the benefit formula ($1,286 and $7,749 for 2026). They split your AIME into slices that are replaced at 90%, 32%, and 15% — which is why the formula favors lower earners."
+    },
+    {
+      term: "Full retirement age (FRA)",
+      definition:
+        "The age you can claim your unreduced benefit — 67 for anyone born in 1960 or later. Claim earlier and you get less for life; wait and you get more."
+    },
+    {
+      term: "Delayed-retirement credits",
+      definition:
+        "The roughly 8% per year (two-thirds of 1% per month) your benefit grows for each year you wait past full retirement age, up to age 70. After 70 waiting adds nothing."
+    },
+    {
+      term: "Early-claiming reduction",
+      definition:
+        "The permanent cut for claiming before full retirement age — about 30% less at 62 when your FRA is 67. It never reverses once you start."
+    },
+    {
+      term: "Credits (quarters of coverage)",
+      definition:
+        "What you earn by working: up to 4 a year, each requiring $1,890 in covered earnings in 2026. You need 40 credits — about 10 years of work — to qualify for a retirement benefit."
+    },
+    {
+      term: "Break-even age",
+      definition:
+        "The age at which the larger checks from waiting catch up to the head start of claiming early. Live past it and waiting wins on total dollars; the right call depends on your health, savings, and need for income now."
+    },
+    {
+      term: "Taxable maximum",
+      definition:
+        "The cap on earnings that count toward Social Security each year ($184,500 in 2026). Income above it is neither taxed for Social Security nor reflected in your benefit."
+    }
+  ]
+};
+
+// The fixed figures the estimate is built on, with their source — mirrors the
+// visible, sourced field notes in the interactive panel.
+export const socialSecuritySourcedDefaults: {
+  heading: string;
+  intro?: string;
+  items: SourcedDefault[];
+} = {
+  heading: "The figures behind the estimate, and where they come from",
+  intro:
+    "The calculator is seeded with the official 2026 Social Security parameters. They are visible so you can trust the starting point and replace your own earnings with exact figures.",
+  items: [
+    {
+      value: "$1,286 / $7,749",
+      label: "2026 PIA bend points",
+      source: "Social Security Administration, 2026 benefit-formula bend points."
+    },
+    {
+      value: "67",
+      label: "Full retirement age (born 1960+)",
+      source: "SSA full-retirement-age schedule by birth year."
+    },
+    {
+      value: "$184,500",
+      label: "2026 taxable maximum",
+      source: "SSA 2026 contribution and benefit base."
+    },
+    {
+      value: "$1,890",
+      label: "Earnings per credit (2026)",
+      source: "SSA 2026 quarter-of-coverage amount; up to 4 credits a year."
+    },
+    {
+      value: "3%/yr",
+      label: "Default wage-growth assumption",
+      source: "Conservative long-run basis; the SSA 2025 Trustees intermediate projection is about 3.6%. Editable."
+    },
+    {
+      value: "Top 35 yrs",
+      label: "Years used (÷ 420 months)",
+      source: "SSA averaging rule: highest 35 indexed years; missing years count as $0."
+    }
+  ]
+};
+
+// On-site links to related, deeper content.
+export const socialSecurityCrossLinks: { heading: string; intro?: string; links: CrossLink[] } = {
+  heading: "Keep planning",
+  intro:
+    "Social Security is one income stream in a retirement plan. These pages put it in context.",
+  links: [
+    {
+      href: "/app/fire-path/income-stream",
+      label: "Income Stream FIRE",
+      blurb:
+        "Retire on guaranteed income alone — Social Security, a pension, or rental income — without drawing down a portfolio. Your benefit estimate is the backbone of this approach."
+    },
+    {
+      href: "/what-is-fire#fire-number",
+      label: "What is FIRE — and your FIRE number",
+      blurb:
+        "Lifetime income like Social Security lowers how much you must save yourself. See how the FIRE number works and where guaranteed income fits."
+    },
+    {
+      href: "/fire-glossary",
+      label: "FIRE glossary",
+      blurb:
+        "Plain-language definitions for AIME, PIA, the 4% rule, drawdown, and the rest of the retirement vocabulary."
+    },
+    {
+      href: "/app/fire-path/tools/healthcare",
+      label: "Retirement healthcare cost calculator",
+      blurb:
+        "Health insurance is the other big retirement unknown. Estimate ACA gap-year and Medicare costs alongside your benefit."
+    }
+  ]
+};
 
 // Unique, keyword-led intro paragraphs for the Social Security page. Targets
 // "Social Security benefit calculator", "when to claim Social Security", and the
