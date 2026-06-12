@@ -707,9 +707,10 @@ describe("PathToFirePanel", () => {
   it("labels the future-dollars basis as not comparable to published estimates", () => {
     render(<PlanningToolPanel tool="healthcare" />);
 
-    // Today's mode is the default; the caption warns about the future-dollar view.
+    // Today's mode is the default; the caption reassures that the present-value
+    // figure is directly comparable to published estimates.
     expect(
-      screen.getByText(/in future \(inflated\) dollars/i)
+      screen.getByText(/directly comparable to published estimates/i)
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Future dollars" }));

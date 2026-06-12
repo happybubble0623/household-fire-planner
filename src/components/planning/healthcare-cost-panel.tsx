@@ -695,7 +695,13 @@ export function HealthcareCostPanel() {
                   </button>
                 ))}
               </div>
-              <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-[var(--gold-border)] bg-[var(--gold-bg)] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-[var(--gold-text)]">
+              <div
+                className={
+                  isToday
+                    ? "mt-3 flex items-start gap-2.5 rounded-xl border border-green-200 bg-[var(--positive-bg)] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-[var(--positive)]"
+                    : "mt-3 flex items-start gap-2.5 rounded-xl border border-[var(--gold-border)] bg-[var(--gold-bg)] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-[var(--gold-text)]"
+                }
+              >
                 <svg
                   width="15"
                   height="15"
@@ -704,18 +710,17 @@ export function HealthcareCostPanel() {
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
+                  strokeLinejoin="round"
                   className="mt-0.5 flex-none"
                   aria-hidden="true"
                 >
                   <circle cx="7.5" cy="7.5" r="6.5" />
-                  <path d="M7.5 4.2v4.6M7.5 10.8h.01" />
+                  <path d={isToday ? "M4.7 7.7l1.9 1.9 3.7-4.1" : "M7.5 4.2v4.6M7.5 10.8h.01"} />
                 </svg>
                 {isToday ? (
                   <span>
-                    Switch to <b>Future dollars</b> and this reads{" "}
-                    <b>{formatCurrency(result.nominalLifetimeTotal)} in future (inflated) dollars</b> —
-                    not comparable to published estimates like Fidelity&apos;s, which are quoted in
-                    today&apos;s dollars.
+                    This is a <b>present value in today&apos;s dollars</b> — directly comparable to
+                    published estimates like Fidelity&apos;s. It&apos;s the lump sum to set aside now.
                   </span>
                 ) : (
                   <span>
