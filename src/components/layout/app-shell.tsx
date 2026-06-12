@@ -64,7 +64,7 @@ function Brand() {
           Plan My <span className="text-[var(--primary)]">FIRE</span>
         </span>
         <span className="text-[11px] font-medium text-gray-500">
-          Your free workspace for early retirement
+          Your free workspace for household early retirement
         </span>
       </span>
     </Link>
