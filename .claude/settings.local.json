@@ -151,7 +151,9 @@
       "Bash(node scripts/capture-fire-strategy.mjs)",
       "Bash(ls -la \"ARCHITECTURE \\(Conflicted copy chongzha-mac 202606101248\\).md\")",
       "Bash(echo \"exit: $?\")",
-      "Bash(git fsck *)"
+      "Bash(git fsck *)",
+      "Bash(npm install *)",
+      "Bash(break)"
     ]
   }
 }
