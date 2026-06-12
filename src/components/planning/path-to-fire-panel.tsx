@@ -209,8 +209,8 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
           <div className="hcenter">
             <span className="tag">● Private, transparent planning — for households</span>
             <h1 className="htitle">
-              Plan your path to <span className="gold">early retirement</span> — together, and
-              privately
+              Plan your path to <span className="gold">early retirement</span> — together, for
+              free
             </h1>
             <p className="hsub">
               Map every account, income, and assumption to one clear path to financial
