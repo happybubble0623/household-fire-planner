@@ -3,8 +3,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { AccountNav } from "@/components/layout/account-nav";
+import { PathPicker } from "@/components/planning/path-picker";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
-import { FIRE_STRATEGIES } from "@/lib/data/fire-strategies";
+import { FIRE_STRATEGIES, FIRE_STRATEGY_CARDS } from "@/lib/data/fire-strategies";
 import { PLANNING_TOOLS, type PlanningTool } from "@/lib/data/planning-tools";
 
 const strategyCards = FIRE_STRATEGIES;
@@ -56,7 +57,7 @@ const toolBlurbs: Record<PlanningTool, { label: string; blurb: string }> = {
 };
 
 const auroraCss = `
-.aurora-home{--g700:#166534;--g600:#15803d;--g500:#16a34a;--g400:#34c77e;--gold:#f5b301;--gold6:#b07d00;--n900:#101410;--n700:#3c423b;--n500:#6b7167;--n300:#cdd1c9;--n200:#e7e9e3;--bg:#ffffff;--soft:#f7f8f5;position:relative;background:#fbfdfb;color:var(--n700);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-feature-settings:"tnum" 1;-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh;scroll-behavior:smooth}
+.aurora-home{--g700:#166534;--g600:#15803d;--g500:#16a34a;--g400:#34c77e;--g300:#6ee0a0;--g100:#d1fadf;--g50:#ecfdf3;--gold:#f5b301;--gold6:#b07d00;--gold50:#fff8e6;--gold100:#fdecbf;--n900:#101410;--n800:#2c2b27;--n700:#3c423b;--n600:#5c5b53;--n500:#6b7167;--n300:#cdd1c9;--n200:#e7e9e3;--surface:#ffffff;--shadow-sm:0 1px 2px rgba(28,27,24,.06),0 1px 3px rgba(28,27,24,.05);--shadow-md:0 6px 16px rgba(28,27,24,.08);--bg:#ffffff;--soft:#f7f8f5;position:relative;background:#fbfdfb;color:var(--n700);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-feature-settings:"tnum" 1;-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh;scroll-behavior:smooth}
 .aurora-home .tnum{font-variant-numeric:tabular-nums}
 .aurora-home .wrap{max-width:1240px;margin:0 auto;padding:0 32px;position:relative;z-index:2}
 .aurora-home h1,.aurora-home h2,.aurora-home h3{color:var(--n900);margin:0;letter-spacing:-.02em}
@@ -134,11 +135,80 @@ const auroraCss = `
 .aurora-home .tool h4{font-size:14.5px;color:var(--n900);margin:0;font-weight:600}
 .aurora-home .tool p{font-size:12.5px;color:var(--n500);margin:5px 0 0}
 .aurora-home .foot{border-top:1px solid var(--n200);padding:30px 0;color:var(--n500);font-size:13px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:30px}
+
+/* ---- "Which path fits you?" — three comparison cards + Help me choose ---- */
+.aurora-home .paths-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:0}
+.aurora-home .paths-headtext{flex:1;min-width:260px}
+.aurora-home .paths-head h2{font-size:34px;text-align:left;letter-spacing:-.02em}
+.aurora-home .paths-sub{color:var(--n500);font-size:15px;margin:10px 0 0;max-width:560px;text-align:left}
+.aurora-home .paths-helpbtn{display:inline-flex;align-items:center;gap:8px;flex:none;height:42px;padding:0 18px;border-radius:12px;background:var(--gold50);border:1px solid var(--gold100);color:var(--gold6);font-weight:600;font-size:14px;cursor:pointer;transition:.15s}
+.aurora-home .paths-helpbtn:hover{background:var(--gold100)}
+
+.aurora-home .paths-picker{flex-basis:100%;width:100%;order:3;margin-top:24px;background:var(--surface);border:1px solid var(--n200);border-radius:18px;box-shadow:var(--shadow-md);overflow:hidden;animation:pathsin .22s ease}
+@keyframes pathsin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.aurora-home .paths-ptop{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 22px;background:linear-gradient(120deg,var(--g50),var(--gold50));border-bottom:1px solid var(--n200)}
+.aurora-home .paths-lt{display:flex;align-items:center;gap:10px}
+.aurora-home .paths-pico{width:30px;height:30px;border-radius:9px;background:var(--gold);display:flex;align-items:center;justify-content:center;flex:none}
+.aurora-home .paths-ptop b{font-size:14.5px;font-weight:700;color:var(--n900)}
+.aurora-home .paths-ptop small{display:block;font-size:12px;color:var(--n500);font-weight:500}
+.aurora-home .paths-closex{border:none;background:transparent;cursor:pointer;color:var(--n500);width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.aurora-home .paths-closex:hover{background:rgba(0,0,0,.05);color:var(--n800)}
+.aurora-home .paths-pbody{padding:24px 22px 22px}
+.aurora-home .paths-stepno{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--g700)}
+.aurora-home .paths-q{font-size:18px;font-weight:600;color:var(--n900);letter-spacing:-.01em;margin:6px 0 18px;max-width:560px;line-height:1.3}
+.aurora-home .paths-opts{display:flex;gap:12px;flex-wrap:wrap}
+.aurora-home .paths-opt{flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:8px;height:50px;padding:0 18px;border-radius:13px;border:1.5px solid var(--n200);background:#fff;font-weight:600;font-size:15px;color:var(--n800);cursor:pointer;transition:.15s}
+.aurora-home .paths-opt:hover{border-color:var(--g400);background:var(--g50);color:var(--g700)}
+.aurora-home .paths-oy{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:none}
+.aurora-home .paths-oy-yes{background:var(--g100)}
+.aurora-home .paths-oy-no{background:var(--n200)}
+.aurora-home .paths-progress{display:flex;gap:6px;margin-top:20px}
+.aurora-home .paths-progress span{height:4px;flex:1;border-radius:999px;background:var(--n200)}
+.aurora-home .paths-progress span.on{background:var(--g500)}
+.aurora-home .paths-backlink{display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:0;border:none;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--n500);cursor:pointer}
+.aurora-home .paths-backlink:hover{color:var(--g700)}
+.aurora-home .paths-reslead{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--n500)}
+.aurora-home .paths-rescard{margin-top:10px;border:1.5px solid var(--g300);background:var(--g50);border-radius:16px;padding:20px}
+.aurora-home .paths-rtag{font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:#fff;color:var(--g700);display:inline-block;margin-bottom:10px}
+.aurora-home .paths-rescard h3{font-size:24px;color:var(--g700);margin:0;letter-spacing:-.01em}
+.aurora-home .paths-why{color:var(--n700);font-size:14.5px;line-height:1.5;margin:8px 0 18px;max-width:560px}
+.aurora-home .paths-resactions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.aurora-home .paths-resbtn{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 22px;border-radius:12px;background:var(--g600);color:#fff;font-weight:600;font-size:14.5px;border:none;cursor:pointer;box-shadow:var(--shadow-sm)}
+.aurora-home .paths-resbtn:hover{background:var(--g700)}
+.aurora-home .paths-seeall{font-size:13.5px;font-weight:600;color:var(--g700);background:none;border:none;padding:0;cursor:pointer}
+.aurora-home .paths-seeall:hover{text-decoration:underline}
+.aurora-home .paths-fallback{margin-top:16px;display:flex;align-items:center;gap:9px;font-size:13px;color:var(--n600);background:var(--gold50);border:1px solid var(--gold100);border-radius:11px;padding:11px 14px}
+
+.aurora-home .paths-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch;margin-top:32px}
+.aurora-home .paths-card{background:var(--surface);border:1px solid var(--n200);border-radius:18px;box-shadow:var(--shadow-sm);padding:24px 22px 22px;display:flex;flex-direction:column;position:relative;transition:.18s}
+.aurora-home .paths-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.aurora-home .paths-card.featured{border-color:var(--gold);border-width:1.5px;box-shadow:0 0 0 4px var(--gold50),var(--shadow-md)}
+.aurora-home .paths-badge{position:absolute;top:-13px;left:22px;background:var(--gold);color:var(--n900);font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;box-shadow:var(--shadow-sm);white-space:nowrap}
+.aurora-home .paths-tag{display:inline-flex;align-self:flex-start;font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:4px 10px;border-radius:999px;background:var(--g50);color:var(--g700);margin-bottom:14px}
+.aurora-home .paths-card.featured .paths-tag{background:var(--gold50);color:var(--gold6)}
+.aurora-home .paths-card h3{font-size:19px;font-weight:700;letter-spacing:-.01em;margin:0;color:var(--n900)}
+.aurora-home .paths-idea{color:var(--n800);font-size:14px;line-height:1.45;margin:8px 0 16px}
+.aurora-home .paths-feats{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:7px}
+.aurora-home .paths-feats li{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.25;color:var(--n800);font-weight:500}
+.aurora-home .paths-feats li svg{flex:none}
+.aurora-home .paths-btn{margin-top:auto;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:44px;border-radius:12px;font-weight:600;font-size:14px;border:1px solid var(--n200);background:#fff;color:var(--n800);cursor:pointer;transition:.15s}
+.aurora-home .paths-btn:hover{border-color:var(--g300);background:var(--g50);color:var(--g700)}
+.aurora-home .paths-card.featured .paths-btn{background:var(--g600);border-color:var(--g600);color:#fff}
+.aurora-home .paths-card.featured .paths-btn:hover{background:var(--g700)}
 @media(max-width:880px){
 .aurora-home .htitle{font-size:40px}
 .aurora-home .navlinks{display:none}
 .aurora-home .navdivider{display:none}
 .aurora-home .grid3,.aurora-home .grid4,.aurora-home .stripe,.aurora-home .kpis{grid-template-columns:1fr}
+.aurora-home .paths-grid{grid-template-columns:1fr;gap:16px}
+.aurora-home .paths-head{flex-direction:column;align-items:stretch}
+.aurora-home .paths-head h2{font-size:27px}
+.aurora-home .paths-helpbtn{width:100%;justify-content:center}
+.aurora-home .paths-opts{flex-direction:column}
+.aurora-home .paths-opt{min-width:0;width:100%}
+.aurora-home .paths-resactions{flex-direction:column;align-items:stretch}
+.aurora-home .paths-resbtn{justify-content:center}
+.aurora-home .paths-seeall{text-align:center}
 }
 `;
 
@@ -304,29 +374,54 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
           </div>
         </div>
 
-        <section className="sec" id="strategies">
-          <h2>Three paths to reach early retirement</h2>
-          <p className="sub">
-            Pick how you&rsquo;ll live off your money in early retirement — from most cautious to
-            most flexible.
-          </p>
-          <div className="grid3">
-            {strategyCards.map((card) => (
-              <Link
+        <section className="sec paths" id="strategies">
+          <div className="paths-head">
+            <div className="paths-headtext">
+              <h2>Three paths to reach early retirement</h2>
+              <p className="paths-sub">
+                Each path is a different way to fund the years after work. Pick the one that sounds
+                like you — you can switch anytime.
+              </p>
+            </div>
+            <PathPicker />
+          </div>
+
+          <div className="paths-grid">
+            {FIRE_STRATEGY_CARDS.map((card) => (
+              <div
                 key={card.href}
-                href={card.href}
-                target="_blank"
-                rel="noreferrer"
-                className="card"
-                style={card.featured ? { borderColor: "var(--g600)" } : undefined}
+                className={card.featured ? "paths-card featured" : "paths-card"}
               >
-                <div className="k" style={card.featured ? { color: "var(--g700)" } : undefined}>
-                  {card.eyebrow}
-                </div>
-                <h3>{card.title}</h3>
-                <p>{card.description}</p>
-                <span className="go">Explore →</span>
-              </Link>
+                {card.featured ? (
+                  <div className="paths-badge">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z" />
+                    </svg>
+                    Most popular · Start here
+                  </div>
+                ) : null}
+                <span className="paths-tag">{card.tag}</span>
+                <h3>{card.navLabel}</h3>
+                <p className="paths-idea">{card.idea}</p>
+                <ul className="paths-feats">
+                  {card.bullets.map((bullet) => (
+                    <li key={bullet}>
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#16a34a" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M5 12l5 5L20 6" />
+                      </svg>
+                      {bullet}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={card.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="paths-btn"
+                >
+                  Start this path →
+                </Link>
+              </div>
             ))}
           </div>
         </section>

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { useMemo, useState } from "react";
 import { PathToFirePanel } from "@/components/planning/path-to-fire-panel";
 import { FireStrategyPanel } from "@/components/planning/fire-strategy-panel";
@@ -109,9 +109,18 @@ describe("PathToFirePanel", () => {
       expect(match).toHaveAttribute("rel", "noreferrer");
     };
 
-    expectNewTabLink(/Portfolio Drawdown/i, "/app/fire-path/withdrawal-rate");
-    expectNewTabLink(/Principal-Preserving/i, "/app/fire-path/principal-preserving");
-    expectNewTabLink(/Income Stream FIRE/i, "/app/fire-path/income-stream");
+    // Each comparison card has a "Start this path →" link to the right route,
+    // opened in a new tab. (The nav dropdown exposes the same routes too.)
+    const startLinks = screen.getAllByRole("link", { name: /Start this path/i });
+    const expectStartLink = (href: string) => {
+      const match = startLinks.find((link) => link.getAttribute("href") === href);
+      expect(match).toBeTruthy();
+      expect(match).toHaveAttribute("target", "_blank");
+      expect(match).toHaveAttribute("rel", "noreferrer");
+    };
+    expectStartLink("/app/fire-path/withdrawal-rate");
+    expectStartLink("/app/fire-path/principal-preserving");
+    expectStartLink("/app/fire-path/income-stream");
 
     // Calculators are reachable from the cards and the nav dropdown.
     expectNewTabLink(/Social Security/i, "/app/fire-path/tools/social-security");
@@ -142,6 +151,123 @@ describe("PathToFirePanel", () => {
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
 
     expect(screen.queryByLabelText("Current age")).not.toBeInTheDocument();
+  });
+
+  it("renders the three FIRE comparison cards with FIRE names, tags, plain-language ideas, three green bullets, and Start links", () => {
+    render(<PathToFirePanelHarness />);
+
+    // All three cards carry the full "FIRE" name as a heading.
+    const cardSpecs: Array<{ name: string; tag: string; idea: string; href: string; bullets: string[] }> = [
+      {
+        name: "Portfolio Drawdown FIRE",
+        tag: "The 4% rule",
+        idea: "Build up your savings, then spend them down gradually.",
+        href: "/app/fire-path/withdrawal-rate",
+        bullets: ["Simplest, most common", "Works with index funds", "Spend savings gradually"]
+      },
+      {
+        name: "Principal-Preserving FIRE",
+        tag: "Live off income",
+        idea: "Live off the income your investments produce — without touching your savings.",
+        href: "/app/fire-path/principal-preserving",
+        bullets: ["Never spend your savings", "Live off investment income", "Good if you've saved a lot"]
+      },
+      {
+        name: "Income Stream FIRE",
+        tag: "Income-funded",
+        idea: "Cover your costs with steady income like pensions, rentals, or Social Security.",
+        href: "/app/fire-path/income-stream",
+        bullets: [
+          "Uses pension / rental / SS income",
+          "No need to sell investments",
+          "Good if you have steady income"
+        ]
+      }
+    ];
+
+    for (const spec of cardSpecs) {
+      const heading = screen.getByRole("heading", { name: spec.name });
+      // The card is the heading's surrounding article-like container.
+      const card = heading.closest(".paths-card") as HTMLElement;
+      expect(card).toBeTruthy();
+      const utils = within(card);
+      expect(utils.getByText(spec.tag)).toBeInTheDocument();
+      expect(utils.getByText(spec.idea)).toBeInTheDocument();
+      for (const bullet of spec.bullets) {
+        expect(utils.getByText(bullet)).toBeInTheDocument();
+      }
+      // Three bullets, all green checks (no red crosses anywhere in the card).
+      expect(utils.getAllByRole("listitem")).toHaveLength(3);
+      const start = utils.getByRole("link", { name: /Start this path/i });
+      expect(start).toHaveAttribute("href", spec.href);
+      expect(start).toHaveAttribute("target", "_blank");
+      expect(start).toHaveAttribute("rel", "noreferrer");
+    }
+
+    // No red crosses (✗) — every bullet is an affirmative green check.
+    expect(screen.queryByText("✗")).not.toBeInTheDocument();
+
+    // Only the featured Portfolio Drawdown card carries the "Most popular" badge.
+    const badges = screen.getAllByText(/Most popular · Start here/i);
+    expect(badges).toHaveLength(1);
+    const featuredHeading = screen.getByRole("heading", { name: "Portfolio Drawdown FIRE" });
+    expect(featuredHeading.closest(".paths-card")).toHaveClass("featured");
+  });
+
+  it("Help me choose: Q1 'Yes' recommends Income Stream FIRE", () => {
+    render(<PathToFirePanelHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Help me choose/i }));
+    expect(screen.getByText(/Question 1 of 2/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Yes, most of them/i }));
+
+    const result = screen.getByRole("status");
+    expect(within(result).getByText("We suggest")).toBeInTheDocument();
+    expect(
+      within(result).getByRole("heading", { name: "Income Stream FIRE", level: 3 })
+    ).toBeInTheDocument();
+    expect(
+      within(result).getByRole("link", { name: /Start Income Stream FIRE/i })
+    ).toHaveAttribute("href", "/app/fire-path/income-stream");
+  });
+
+  it("Help me choose: Q1 'No' then Q2 'Yes' recommends Principal-Preserving FIRE", () => {
+    render(<PathToFirePanelHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Help me choose/i }));
+    fireEvent.click(screen.getByRole("button", { name: /No \/ not really/i }));
+    expect(screen.getByText(/Question 2 of 2/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Yes, keep it intact/i }));
+
+    expect(
+      screen.getByRole("link", { name: /Start Principal-Preserving FIRE/i })
+    ).toHaveAttribute("href", "/app/fire-path/principal-preserving");
+  });
+
+  it("Help me choose: Q1 'No' then Q2 'No' recommends Portfolio Drawdown FIRE, with Back and reset working", () => {
+    render(<PathToFirePanelHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Help me choose/i }));
+    fireEvent.click(screen.getByRole("button", { name: /No \/ not really/i }));
+
+    // Back returns to Q1.
+    fireEvent.click(screen.getByRole("button", { name: /^Back$/i }));
+    expect(screen.getByText(/Question 1 of 2/i)).toBeInTheDocument();
+
+    // Walk to the drawdown result.
+    fireEvent.click(screen.getByRole("button", { name: /No \/ not really/i }));
+    fireEvent.click(screen.getByRole("button", { name: /No, spending it is fine/i }));
+
+    const resultLink = screen.getByRole("link", { name: /Start Portfolio Drawdown FIRE/i });
+    expect(resultLink).toHaveAttribute("href", "/app/fire-path/withdrawal-rate");
+    // Gold fallback line is present.
+    expect(
+      screen.getByText(/Most people start with/i)
+    ).toBeInTheDocument();
+
+    // "See all three again" resets back to Q1.
+    fireEvent.click(screen.getByRole("button", { name: /See all three again/i }));
+    expect(screen.getByText(/Question 1 of 2/i)).toBeInTheDocument();
   });
 
   it("shows compact portfolio drawdown summary cards, progress, info icons, and audit table", () => {
