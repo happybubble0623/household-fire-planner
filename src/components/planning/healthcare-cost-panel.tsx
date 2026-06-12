@@ -274,6 +274,17 @@ export function HealthcareCostPanel() {
   const discountRatePct = `${Math.round(result.realDiscountRate * 100)}%`;
   const todayDollarsExplainer = `Today's dollars = the lump sum you'd set aside now, assuming it grows about ${discountRatePct} a year faster than inflation until it's spent. It's a discounted present value, not just an inflation-adjusted sum. Future (nominal) dollars show the actual sticker prices you'd pay in each future year.`;
 
+  // Mode-aware basis note shared by the three money-column tooltips. All three
+  // columns follow the "Show amounts in" toggle and share one basis: today's
+  // dollars = each year's discounted present value; future dollars = the actual
+  // sticker price that year.
+  const columnBasisNote = isToday
+    ? ` These amounts follow the "Show amounts in" toggle. You're viewing today's dollars, so each figure is a present value — what that future year's cost is worth in today's money after discounting.`
+    : ` These amounts follow the "Show amounts in" toggle. You're viewing future (nominal) dollars, so each figure is the actual sticker price you'd pay in that future year.`;
+  const premiumColumnInfo = `The insurance premium for that year — an ACA marketplace plan before 65, or Medicare (Part B + Medigap + Part D) after 65 — after any subsidy is taken off.${columnBasisNote}`;
+  const oopColumnInfo = `Out-of-pocket: what you expect to spend on care beyond premiums that year — deductibles, copays, and coinsurance — capped at your plan's out-of-pocket maximum.${columnBasisNote}`;
+  const netCostColumnInfo = `Net cost = premium + out-of-pocket (plus any travel/global premium) for that year, minus any HSA funds applied. It's what actually comes out of pocket that year.${columnBasisNote}`;
+
   return (
     <ToolShell
       title="Retirement healthcare cost calculator"
@@ -853,7 +864,12 @@ export function HealthcareCostPanel() {
               <tr>
                 <th className="px-3 py-2 text-left">Year / Age</th>
                 <th className="px-3 py-2 text-left">Phase</th>
-                <th className="px-3 py-2 text-right">Premium</th>
+                <th className="px-3 py-2 text-right">
+                  <span className="inline-flex items-center justify-end gap-1">
+                    Premium
+                    <InfoPopover label="Premium" content={premiumColumnInfo} />
+                  </span>
+                </th>
                 <th className="px-3 py-2 text-right">
                   <span className="inline-flex items-center gap-1">
                     Subsidy
@@ -863,9 +879,19 @@ export function HealthcareCostPanel() {
                     />
                   </span>
                 </th>
-                <th className="px-3 py-2 text-right">Out-of-pocket</th>
+                <th className="px-3 py-2 text-right">
+                  <span className="inline-flex items-center justify-end gap-1">
+                    Out-of-pocket
+                    <InfoPopover label="Out-of-pocket" content={oopColumnInfo} />
+                  </span>
+                </th>
                 <th className="px-3 py-2 text-right">HSA draw</th>
-                <th className="px-3 py-2 text-right">Net cost</th>
+                <th className="px-3 py-2 text-right">
+                  <span className="inline-flex items-center justify-end gap-1">
+                    Net cost
+                    <InfoPopover label="Net cost" content={netCostColumnInfo} />
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
