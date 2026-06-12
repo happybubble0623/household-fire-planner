@@ -75,18 +75,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // The home hub renders the full-bleed Aurora landing with its own top nav,
-  // so the global app header is hidden there to avoid a duplicate top bar.
-  const isHome = pathname === "/app/fire-path";
-
-  if (isHome) {
-    return (
-      <div className="min-h-screen bg-[var(--background)]">
-        <main>{children}</main>
-      </div>
-    );
-  }
-
+  // Every page — including the full-bleed Aurora home hub — shares this single
+  // top banner so navigation (and the mobile hamburger) is identical sitewide.
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const strategiesActive = FIRE_STRATEGIES.some((strategy) => isActive(strategy.href));
   const calculatorsActive = PLANNING_TOOLS.some((tool) => isActive(tool.href));

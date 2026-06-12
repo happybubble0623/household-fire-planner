@@ -128,11 +128,15 @@ describe("PathToFirePanel", () => {
     expectNewTabLink(/Investment/i, "/app/fire-path/tools/investment");
     expectNewTabLink(/Healthcare/i, "/app/fire-path/tools/healthcare");
 
-    // Nav exposes Strategies and Calculators as dropdown triggers, and the
-    // old "Start planning" button is gone.
-    expect(screen.getByRole("button", { name: /Strategies/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Calculators/i })).toBeInTheDocument();
+    // The hub no longer renders its own bespoke top nav — site navigation
+    // (Strategies / Calculators dropdowns, About, account affordance, and the
+    // mobile hamburger) now comes from the shared AppShell header, identical to
+    // every other page. So the panel itself exposes no nav buttons or links.
+    expect(screen.queryByRole("button", { name: /Strategies/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Calculators/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Start planning/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "About" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Sign in" })).not.toBeInTheDocument();
 
     // "Map your path" scrolls to the three-strategy section on this page.
     expect(screen.getByRole("link", { name: /Map your path/i })).toHaveAttribute(
@@ -144,11 +148,6 @@ describe("PathToFirePanel", () => {
       "href",
       "/app/portfolio-lab"
     );
-    // Top bar exposes About (in place of Pricing).
-    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
-    // The low-key account affordance is present in the hub nav: signed out
-    // (Supabase unconfigured in tests) it renders a quiet "Sign in" link.
-    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
 
     expect(screen.queryByLabelText("Current age")).not.toBeInTheDocument();
   });
