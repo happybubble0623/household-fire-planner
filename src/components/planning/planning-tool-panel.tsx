@@ -112,7 +112,7 @@ export type MortgageScheduleRow = {
   balance: number;
 };
 
-function calculateMortgage({
+export function calculateMortgage({
   loanAmount,
   annualInterestRatePercent,
   termYears,
@@ -200,7 +200,7 @@ export type InvestmentScheduleRow = {
   balance: number;
 };
 
-function calculateInvestment({
+export function calculateInvestment({
   startingBalance,
   monthlyContribution,
   annualReturnPercent,
