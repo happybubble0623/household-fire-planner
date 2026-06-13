@@ -676,8 +676,8 @@ describe("PathToFirePanel", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/with a .* discount rate/i)).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Dollar basis" })).toBeInTheDocument();
-    expect(screen.getByText(/Retiring before 65\? · ACA gap/i)).toBeInTheDocument();
-    expect(screen.getByText(/Reached 65\? · Medicare years/i)).toBeInTheDocument();
+    expect(screen.getByText(/Before 65 · ACA gap/i)).toBeInTheDocument();
+    expect(screen.getByText(/Medicare years · 65\+/i)).toBeInTheDocument();
     expect(
       screen.getByRole("table", { name: "Healthcare cost projection" })
     ).toBeInTheDocument();
