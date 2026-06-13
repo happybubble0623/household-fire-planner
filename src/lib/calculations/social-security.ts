@@ -234,8 +234,15 @@ export function estimateSocialSecurityBenefit(
     1 + wageGrowthAssumption,
     Math.max(0, eligibilityYear - new Date().getFullYear())
   );
-  const estimatedMonthlyBenefitTodayDollars = roundToCents(monthlyAtClaiming / dollarYearFactor);
-  const estimatedMonthlyBenefitFutureDollars = roundToCents(monthlyAtClaiming);
+  // SSA rounds the final monthly benefit DOWN to the next lower whole dollar
+  // (after the PIA dime-rounding and the claiming adjustment) — it never pays
+  // cents. Source: ssa.gov/oact/cola/Benefits.html. The today's-dollar view is
+  // this whole-dollar benefit deflated to current purchasing power.
+  const monthlyBenefitFutureDollars = Math.floor(monthlyAtClaiming);
+  const estimatedMonthlyBenefitTodayDollars = roundToCents(
+    monthlyBenefitFutureDollars / dollarYearFactor
+  );
+  const estimatedMonthlyBenefitFutureDollars = monthlyBenefitFutureDollars;
   const ineligibleWarning = `Needs 40 Social Security credits for retirement benefits. This estimate has ${estimatedCredits}.`;
 
   return {

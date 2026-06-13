@@ -315,14 +315,16 @@ describe("healthcare cost projection", () => {
     expect(explicit.rows[0].outOfPocket).not.toBeCloseTo(preset.rows[0].outOfPocket, 2);
   });
 
-  it("scales Medicare out-of-pocket by the number of people (couple = single ×2)", () => {
+  it("scales Medicare Advantage out-of-pocket by the number of people (couple = single ×2)", () => {
     // currentAge = fireAge = planToAge = 65 keeps the first year at growth factor
     // 1 (year 0), so the OOP figure is exact and free of inflation rounding.
+    // The OOP-max × usage model applies to Medicare Advantage (which has a real
+    // OOP max); the Medigap path uses the plan-letter model instead.
     const single = estimateHealthcareCosts(
-      baseInput({ household: "single", currentAge: 65, fireAge: 65, planToAge: 65 })
+      baseInput({ household: "single", currentAge: 65, fireAge: 65, planToAge: 65, medicareCoverage: "advantage" })
     );
     const couple = estimateHealthcareCosts(
-      baseInput({ household: "couple", currentAge: 65, fireAge: 65, planToAge: 65 })
+      baseInput({ household: "couple", currentAge: 65, fireAge: 65, planToAge: 65, medicareCoverage: "advantage" })
     );
     const singleMed = single.rows[0];
     const coupleMed = couple.rows[0];
@@ -334,10 +336,43 @@ describe("healthcare cost projection", () => {
   it("uses a retuned 30% moderate out-of-pocket preset (was 45%)", () => {
     expect(OOP_USAGE_PRESETS.moderate).toBe(0.3);
     const result = estimateHealthcareCosts(
-      baseInput({ household: "single", currentAge: 65, fireAge: 65, planToAge: 65 })
+      baseInput({ household: "single", currentAge: 65, fireAge: 65, planToAge: 65, medicareCoverage: "advantage" })
     );
-    // Year-0 Medicare OOP = 30% of the $6,000 per-person ceiling.
+    // Year-0 Medicare Advantage OOP = 30% of the $6,000 per-person ceiling.
     expect(result.rows[0].outOfPocket).toBeCloseTo(0.3 * 6_000, 2);
+  });
+
+  it("models Original Medicare + Medigap OOP without an OOP-max ceiling (Plan G ≈ Part B deductible)", () => {
+    // Original Medicare + Medigap has NO out-of-pocket maximum, so the
+    // Advantage-style OOP-max × usage model must NOT apply. Plan G's predictable
+    // annual exposure is the $283 Part B deductible.
+    const single = estimateHealthcareCosts(
+      baseInput({
+        household: "single",
+        currentAge: 65,
+        fireAge: 65,
+        planToAge: 65,
+        medicareCoverage: "medigap",
+        medigapPlanLetter: "G",
+        medicareOopUsage: "moderate"
+      })
+    );
+    expect(single.rows[0].outOfPocket).toBeCloseTo(283, 2);
+    // Plan N adds small copays on top of the deductible; still far below an
+    // Advantage-style $1,800.
+    const planN = estimateHealthcareCosts(
+      baseInput({
+        household: "single",
+        currentAge: 65,
+        fireAge: 65,
+        planToAge: 65,
+        medicareCoverage: "medigap",
+        medigapPlanLetter: "N",
+        medicareOopUsage: "moderate"
+      })
+    );
+    expect(planN.rows[0].outOfPocket).toBeGreaterThan(single.rows[0].outOfPocket);
+    expect(planN.rows[0].outOfPocket).toBeLessThan(600);
   });
 
   describe("present-value headline", () => {

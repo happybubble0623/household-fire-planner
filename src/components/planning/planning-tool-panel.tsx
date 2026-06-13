@@ -117,6 +117,7 @@ export function calculateMortgage({
   annualInterestRatePercent,
   termYears,
   startYear = new Date().getFullYear(),
+  homeValue,
   propertyTaxAnnual = 0,
   pmiAnnualPercent = 0,
   homeInsuranceAnnual = 0,
@@ -127,6 +128,10 @@ export function calculateMortgage({
   annualInterestRatePercent: number;
   termYears: number;
   startYear?: number;
+  // Original home value (purchase price / appraised value). PMI cancellation is
+  // pinned to the ORIGINAL value, not the loan. When omitted we assume a 10%
+  // down payment (value = loan / 0.9) so a bare call still behaves sensibly.
+  homeValue?: number;
   propertyTaxAnnual?: number;
   pmiAnnualPercent?: number;
   homeInsuranceAnnual?: number;
@@ -142,8 +147,16 @@ export function calculateMortgage({
   const monthlyTax = propertyTaxAnnual / 12;
   const monthlyInsurance = homeInsuranceAnnual / 12;
   const pmiMonthly = (loanAmount * percentToDecimal(pmiAnnualPercent)) / 12;
-  // VA loans carry no PMI; otherwise PMI runs until the balance drops below 80% of the original loan.
+  const originalHomeValue = homeValue && homeValue > 0 ? homeValue : loanAmount / 0.9;
+  // VA loans carry no PMI. For conventional loans, PMI cancels once you reach
+  // 20% equity — i.e. the balance drops to 80% of the ORIGINAL home value
+  // (borrower-requested at 80%, auto-terminating by 78% under the Homeowners
+  // Protection Act / CFPB). FHA mortgage insurance generally runs the life of
+  // the loan, so it never cancels here. We remove PMI at the first year-end the
+  // balance reaches the 80%-of-value threshold.
   const pmiEligible = loanType !== "va" && pmiAnnualPercent > 0;
+  const pmiCanCancel = loanType !== "fha";
+  const pmiCancelBalance = 0.8 * originalHomeValue;
 
   const schedule: MortgageScheduleRow[] = [];
   let balance = loanAmount;
@@ -151,21 +164,29 @@ export function calculateMortgage({
   let totalTaxesAndFees = 0;
   let yearPrincipal = 0;
   let yearInterest = 0;
-  let yearFees = 0;
+  let yearBaseFees = 0;
+  let monthsThisYear = 0;
 
   for (let month = 1; month <= paymentCount; month += 1) {
     const interest = balance * monthlyRate;
     const principal = Math.min(balance, monthlyPrincipalInterest - interest);
     balance -= principal;
-    const pmi = pmiEligible && balance > 0.8 * loanAmount ? pmiMonthly : 0;
-    const fees = monthlyTax + monthlyInsurance + monthlyHoa + pmi;
+    const baseFees = monthlyTax + monthlyInsurance + monthlyHoa;
     yearPrincipal += principal;
     yearInterest += interest;
-    yearFees += fees;
+    yearBaseFees += baseFees;
+    monthsThisYear += 1;
     totalInterest += interest;
-    totalTaxesAndFees += fees;
 
     if (month % 12 === 0 || month === paymentCount) {
+      // PMI for the year is dropped once the year-end balance reaches 80% of the
+      // original home value (or always, for FHA, until the loan is paid off).
+      const pmiThisYear =
+        pmiEligible && (!pmiCanCancel || balance > pmiCancelBalance)
+          ? pmiMonthly * monthsThisYear
+          : 0;
+      const yearFees = yearBaseFees + pmiThisYear;
+      totalTaxesAndFees += yearFees;
       schedule.push({
         year: startYear + Math.ceil(month / 12) - 1,
         principal: yearPrincipal,
@@ -175,7 +196,8 @@ export function calculateMortgage({
       });
       yearPrincipal = 0;
       yearInterest = 0;
-      yearFees = 0;
+      yearBaseFees = 0;
+      monthsThisYear = 0;
     }
   }
 
@@ -204,14 +226,19 @@ export function calculateInvestment({
   startingBalance,
   monthlyContribution,
   annualReturnPercent,
-  years
+  years,
+  feePercent = 0
 }: {
   startingBalance: number;
   monthlyContribution: number;
   annualReturnPercent: number;
   years: number;
+  // Annual fund fee / expense ratio (percent). The effective return is the
+  // gross return minus this fee: net = gross − fee. Defaults to 0 so callers
+  // that don't model fees are unchanged.
+  feePercent?: number;
 }) {
-  const monthlyReturn = percentToDecimal(annualReturnPercent) / 12;
+  const monthlyReturn = percentToDecimal(annualReturnPercent - feePercent) / 12;
   const months = Math.max(0, Math.round(years * 12));
   const startYear = new Date().getFullYear();
   let balance = startingBalance;
@@ -461,6 +488,7 @@ export function ToolShell({
 
 function MortgageCalculator() {
   const [loanAmount, setLoanAmount] = useState(500_000);
+  const [homeValue, setHomeValue] = useState(600_000);
   const [annualInterestRatePercent, setAnnualInterestRatePercent] = useState(6.5);
   const [termYears, setTermYears] = useState(30);
   const [startYear, setStartYear] = useState(new Date().getFullYear());
@@ -479,6 +507,7 @@ function MortgageCalculator() {
     () =>
       calculateMortgage({
         loanAmount,
+        homeValue,
         annualInterestRatePercent,
         termYears,
         startYear,
@@ -491,6 +520,7 @@ function MortgageCalculator() {
     [
       annualInterestRatePercent,
       homeInsuranceAnnual,
+      homeValue,
       includeFees,
       loanAmount,
       loanType,
@@ -519,6 +549,15 @@ function MortgageCalculator() {
             onChange={setLoanAmount}
             step={1000}
             note="Your number — the home price minus your down payment (not the price)."
+          />
+          <NumberInput
+            id="mortgage-home-value"
+            label="Home value (purchase price)"
+            value={homeValue}
+            onChange={setHomeValue}
+            step={1000}
+            help="The home's purchase price or appraised value. PMI is removed once your loan reaches 20% equity — 80% of this original value — so it sets when PMI drops off. The gap between this and the loan amount is your down payment."
+            note="Your number — the purchase price. PMI drops once the balance falls to 80% of this value (the CFPB/HPA rule, 2026)."
           />
           <NumberInput
             id="mortgage-rate"
@@ -657,9 +696,17 @@ function InvestmentCalculator() {
   const [monthlyContribution, setMonthlyContribution] = useState(2_000);
   const [annualReturnPercent, setAnnualReturnPercent] = useState(7);
   const [years, setYears] = useState(15);
+  const [feePercent, setFeePercent] = useState(0.1);
   const liveResult = useMemo(
-    () => calculateInvestment({ startingBalance, monthlyContribution, annualReturnPercent, years }),
-    [annualReturnPercent, monthlyContribution, startingBalance, years]
+    () =>
+      calculateInvestment({
+        startingBalance,
+        monthlyContribution,
+        annualReturnPercent,
+        years,
+        feePercent
+      }),
+    [annualReturnPercent, feePercent, monthlyContribution, startingBalance, years]
   );
   const gate = useCalculateGate(liveResult);
   const result = gate.value;
@@ -696,6 +743,16 @@ function InvestmentCalculator() {
             suffix="%"
             step={0.1}
             note="Default 7%/yr — ≈ the S&P 500's long-run real (after-inflation) return; before subtracting inflation it has averaged ~10% since 1926. An assumption, not a guarantee — try 5–6% too."
+          />
+          <NumberInput
+            id="investment-fee"
+            label="Annual fee / expense ratio"
+            value={feePercent}
+            onChange={setFeePercent}
+            suffix="%"
+            step={0.01}
+            help="The yearly cost of your funds and any advisor, charged as a percent of assets. It's subtracted straight from your return (net = return − fee), so even a small fee compounds into a meaningfully lower balance over time."
+            note="Default 0.10%/yr — a typical low-cost index fund expense ratio. Broad index ETFs run ~0.03–0.10%; actively managed funds or an advisor can be 0.5–1%+. Use your fund's figure."
           />
           <NumberInput
             id="investment-years"

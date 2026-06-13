@@ -34,9 +34,9 @@ import {
   ACA_OOP_MAX_2026_SELF_ONLY,
   FPL_2025_48_STATES,
   IRMAA_TIERS_2026,
-  METAL_TIER_PRESETS,
   PART_B_BASE_PREMIUM_2026,
   PART_B_DEDUCTIBLE_2026,
+  csrSilverOopMaxPerPerson,
   federalPovertyLevel
 } from "@/lib/calculations/healthcare-data";
 import {
@@ -115,7 +115,7 @@ describe("Social Security — rule-pinned (SSA)", () => {
   // §1.7 (CONFIRMED BUG) Final monthly benefit must floor to a whole dollar.
   // Source: ssa.gov/oact/cola/Benefits.html ("round down to the next lower dollar").
   // Expected: integer dollars. ACTUAL today: $6,676.50 (rounded to cents, not floored).
-  it.skip("SS-6 [BUG §1.7]: final monthly benefit floors to a whole dollar", () => {
+  it("SS-6 [BUG §1.7]: final monthly benefit floors to a whole dollar", () => {
     const est = estimateSocialSecurityBenefit({
       birthYear: 1985, claimingAge: 67, workStartYear: 2010, workEndYear: 2049,
       startingAnnualCoveredEarnings: 80_000, annualEarningsGrowth: 0.03, wageGrowthAssumption: 0.03,
@@ -197,17 +197,38 @@ describe("Healthcare / ACA / Medicare — rule-pinned (IRS / CMS / healthcare.go
   // Source: Rev. Proc. 2025-25 — 133%→3.14%, 138%→3.45%, 150%→4.19%.
   // HH 1, MAGI $22,000 = 140.6% FPL → rule ≈ 3.61%. ACTUAL today: 2.10% (flat floor).
   // Impact: required contribution $462 vs $794 → subsidy overstated ≈ $332/yr.
-  it.skip("HC-5 [BUG §2.5]: applicable % at 140.6% FPL interpolates to ~3.61%, not the 2.10% floor", () => {
+  it("HC-5 [BUG §2.5]: applicable % at 140.6% FPL interpolates to ~3.61%, not the 2.10% floor", () => {
     expect(acaApplicablePercent(22_000 / federalPovertyLevel(1))).toBeCloseTo(0.0361, 3);
   });
 
-  // §2.6 (CONFIRMED BUG) CSR reduces the Silver OOP max for 100–250% FPL.
-  // Source: Fed. Reg. 2025-11606 — >150–200% FPL Silver → $3,500 self-only.
-  // ACTUAL today: METAL_TIER_PRESETS.silver.oopMaxPerPerson = $8,500 (no FPL adjustment).
-  // Impact: 175% FPL silver OOP max overstated by $5,000 ($8,500 vs $3,500).
-  it.skip("HC-6 [BUG §2.6]: 175% FPL silver CSR OOP max is $3,500, not $8,500", () => {
-    // There is currently no CSR-aware path; this pins the rule the engine must honor.
-    expect(METAL_TIER_PRESETS.silver.oopMaxPerPerson).toBe(3_500);
+  // §2.6 (CONFIRMED BUG, FIXED) CSR reduces the Silver OOP max for 100–250% FPL.
+  // Source: Fed. Reg. 2025-11606 — ≤150% & 151–200% FPL Silver → $3,500 self-only;
+  // 201–250% → $8,450; >250% → standard $10,600.
+  // Was: a flat $8,500 Silver OOP max with no FPL adjustment.
+  it("HC-6 [BUG §2.6]: 175% FPL silver CSR OOP max is $3,500, not $8,500", () => {
+    // The CSR band table the engine must honor.
+    expect(csrSilverOopMaxPerPerson(1.75)).toBe(3_500); // 100–200% FPL
+    expect(csrSilverOopMaxPerPerson(2.3)).toBe(8_450); // 201–250% FPL
+    expect(csrSilverOopMaxPerPerson(3.0)).toBeNull(); // >250% FPL → standard
+    // The engine applies it: a Silver plan at 175% FPL caps OOP at $3,500/person,
+    // so high-usage expected OOP is 0.85 × 3,500 = 2,975 (not 0.85 × 8,500 = 7,225).
+    const magi175 = Math.round(federalPovertyLevel(1) * 1.75);
+    const r = estimateHealthcareCosts(
+      hcInput({
+        household: "single",
+        currentAge: 60,
+        fireAge: 60,
+        medicareAge: 65,
+        planToAge: 64,
+        annualMagi: magi175,
+        acaMetalTier: "silver",
+        acaOutOfPocketMax: 8_500,
+        acaOopUsage: "high"
+      })
+    );
+    expect(r.csrSilverApplied).toBe(true);
+    expect(r.acaOutOfPocketMaxApplied).toBe(3_500);
+    expect(r.rows[0].outOfPocket).toBeCloseTo(0.85 * 3_500, 0);
   });
 
   // §2.1 (CONFIRMED BUG, CRITICAL) Original Medicare + Medigap Plan G has no OOP
@@ -215,7 +236,7 @@ describe("Healthcare / ACA / Medicare — rule-pinned (IRS / CMS / healthcare.go
   // Medigap; CMS Part B deductible 2026.
   // ACTUAL today: 0.30 × $6,000 (an MA-style OOP-max) = $1,800/yr/person.
   // Impact: ≈ $1,517/yr/person overstatement, compounding over the Medicare years.
-  it.skip("HC-7 [BUG §2.1]: Medigap Plan G annual medical OOP ≈ Part B deductible (~$283), not $1,800", () => {
+  it("HC-7 [BUG §2.1]: Medigap Plan G annual medical OOP ≈ Part B deductible (~$283), not $1,800", () => {
     const r = estimateHealthcareCosts(hcInput({ medicareCoverage: "medigap", medicareOopUsage: "moderate" }));
     // Year-0 (no inflation) Medicare OOP for a single Plan G enrollee.
     expect(r.rows[0].outOfPocket).toBeLessThanOrEqual(300);
@@ -243,7 +264,7 @@ describe("Mortgage — rule-pinned (standard amortization / CFPB)", () => {
   // Rule: PMI line is $0 once balance ≤ $320,000 (80% of $400k value) ≈ year 2033.
   // ACTUAL today: still charged at $320k (cancels only at ≤$288,000 ≈ year 2038).
   // Impact: ~5 extra years × $1,800/yr ≈ $9,000 over-charged; no home-value input.
-  it.skip("MTG-3 [BUG §3.2]: PMI cancels at 80% of original home VALUE ($320k), not 80% of loan", () => {
+  it("MTG-3 [BUG §3.2]: PMI cancels at 80% of original home VALUE ($320k), not 80% of loan", () => {
     const m = calculateMortgage({ loanAmount: 360_000, annualInterestRatePercent: 6.5, termYears: 30, pmiAnnualPercent: 0.5 });
     // The first year the balance is at/under 80% of the $400k value: PMI must be gone.
     const yearAt320 = m.schedule.find((r) => r.balance <= 320_000)!;
@@ -272,6 +293,36 @@ describe("Investment — rule-pinned (future value of an ordinary annuity)", () 
     const net = calculateInvestment({ startingBalance: 100_000, monthlyContribution: 2_000, annualReturnPercent: 6.5, years: 15 });
     const drop = (gross.endingBalance - net.endingBalance) / gross.endingBalance;
     expect(drop).toBeCloseTo(0.051, 2);
+  });
+
+  // §4.3 (FIXED) expense-ratio / fee input. The effective return is the gross
+  // return minus the annual fee (net = gross − fee), so a fee reduces the ending
+  // balance by exactly the amount of running the projection at the lower net rate.
+  it("INV-fee [§4.3]: an annual fee reduces the return (net = gross − fee)", () => {
+    const gross = calculateInvestment({
+      startingBalance: 100_000,
+      monthlyContribution: 2_000,
+      annualReturnPercent: 7,
+      years: 15
+    });
+    const withFee = calculateInvestment({
+      startingBalance: 100_000,
+      monthlyContribution: 2_000,
+      annualReturnPercent: 7,
+      years: 15,
+      feePercent: 0.2
+    });
+    // A 0.20% fee on a 7% gross return must equal a 6.80% net projection exactly.
+    const equivalentNet = calculateInvestment({
+      startingBalance: 100_000,
+      monthlyContribution: 2_000,
+      annualReturnPercent: 6.8,
+      years: 15
+    });
+    expect(withFee.endingBalance).toBeCloseTo(equivalentNet.endingBalance, 4);
+    expect(withFee.endingBalance).toBeLessThan(gross.endingBalance);
+    // Contributions are unchanged — only growth is reduced by the fee.
+    expect(withFee.totalContributions).toBe(gross.totalContributions);
   });
 });
 
@@ -330,7 +381,7 @@ describe("FIRE engines — rule-pinned", () => {
   // return — overstating survival. monte-carlo.ts and phase1/fire.ts both inflate
   // spending correctly. Rule: two plans differing only in `inflationAdjusted`
   // must NOT produce identical results. ACTUAL today: identical (flag ignored).
-  it.skip("FIRE-6 [BUG §5.2]: saved-path evaluator inflates spending (respects inflationAdjusted)", async () => {
+  it("FIRE-6 [BUG §5.2]: saved-path evaluator inflates spending (respects inflationAdjusted)", async () => {
     const mk = (inflationAdjusted: boolean) => ({
       ...samplePlan.savedPaths[0],
       assumptions: { ...samplePlan.savedPaths[0].assumptions, fireRuleMode: "withdrawal_rate" as const },

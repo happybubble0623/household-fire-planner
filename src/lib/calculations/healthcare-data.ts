@@ -36,8 +36,12 @@ export function federalPovertyLevel(householdSize: number) {
 // household is expected to pay toward the benchmark silver plan). The enhanced
 // ARPA/IRA subsidies expired 2025-12-31, so 2026 reverts to the original ACA
 // structure WITH the 400% FPL subsidy cliff reinstated.
-// Source: Rev. Proc. 2025-25 (IRC 36B applicable percentages for 2026).
+// Source: Rev. Proc. 2025-25 (IRC 36B applicable percentages for 2026). The
+// 133–150% band is NOT flat — it ramps from 3.14% (133%) through 3.45% (138%)
+// to 4.19% (150%); only income strictly below 133% FPL gets the 2.10% floor.
 export const ACA_APPLICABLE_PERCENT_NODES_2026: Array<{ fplPct: number; percent: number }> = [
+  { fplPct: 1.33, percent: 0.0314 },
+  { fplPct: 1.38, percent: 0.0345 },
   { fplPct: 1.5, percent: 0.0419 },
   { fplPct: 2.0, percent: 0.066 },
   { fplPct: 2.5, percent: 0.0844 },
@@ -45,7 +49,7 @@ export const ACA_APPLICABLE_PERCENT_NODES_2026: Array<{ fplPct: number; percent:
   { fplPct: 4.0, percent: 0.0996 }
 ];
 
-// Below 150% FPL the applicable percentage floors at 2.10%.
+// Below 133% FPL the applicable percentage floors at 2.10%.
 export const ACA_APPLICABLE_PERCENT_FLOOR_2026 = 0.021;
 // At or above this multiple of FPL no premium tax credit is available (the
 // reinstated 2026 subsidy cliff).
@@ -149,6 +153,31 @@ export const METAL_TIER_PRESETS: Record<
   gold: { premiumVsBenchmark: 1.2, deductiblePerPerson: 1_500, oopMaxPerPerson: 6_500 }
 };
 
+// Cost-Sharing Reductions (CSR), 2026. Enrollees at 100–250% FPL who pick a
+// SILVER plan are auto-enrolled in a higher-actuarial-value Silver variant with
+// a statutorily reduced out-of-pocket maximum. The reduced self-only maxima by
+// FPL band (family = ×2):
+//   100–200% FPL (94% & 87% AV variants) → $3,500 / $7,000
+//   201–250% FPL (73% AV variant)        → $8,450 / $16,900
+//   >250% FPL (no CSR)                   → standard $10,600 / $21,200
+// CSR is Silver-only and is never reconciled at tax time.
+// Source: Fed. Register 2025-11606 (2026 Marketplace Integrity & Affordability
+// final rule), via the CBPP/Beyond the Basics CY2026 Reference Guide.
+export const CSR_SILVER_OOP_MAX_PER_PERSON_2026 = {
+  upTo200Fpl: 3_500, // 100–200% FPL
+  upTo250Fpl: 8_450 // 201–250% FPL
+} as const;
+
+// Returns the CSR-reduced Silver per-person out-of-pocket maximum for a given
+// income (as a multiple of FPL), or null when CSR does not apply — i.e. below
+// 100% FPL, above 250% FPL, or (decided by the caller) a non-Silver plan.
+export function csrSilverOopMaxPerPerson(incomePctFpl: number): number | null {
+  if (incomePctFpl < 1.0 || incomePctFpl > 2.5) return null;
+  return incomePctFpl <= 2.0
+    ? CSR_SILVER_OOP_MAX_PER_PERSON_2026.upTo200Fpl
+    : CSR_SILVER_OOP_MAX_PER_PERSON_2026.upTo250Fpl;
+}
+
 // ---------------------------------------------------------------------------
 // Medicare (65+)
 // ---------------------------------------------------------------------------
@@ -188,6 +217,41 @@ export const IRMAA_TIERS_2026: IrmaaTier[] = [
 ];
 
 export const DEFAULT_MEDICARE_INFLATION = 0.05;
+
+// 2026 Part D out-of-pocket cap. Under the Inflation Reduction Act redesign, a
+// beneficiary's annual out-of-pocket spending on covered Part D drugs is capped
+// (≈ $2,000, indexed). We use this as the ceiling on modeled drug cost-sharing
+// for the Original Medicare + Medigap path (which has no overall medical OOP
+// max). Source: CMS Final CY2026 Part D Redesign Program Instructions.
+export const PART_D_OOP_CAP_2026 = 2_000;
+
+// Original Medicare + Medigap expected annual out-of-pocket, per person, in
+// today's dollars — by usage level. Unlike Medicare Advantage there is NO
+// out-of-pocket maximum; Medigap instead caps medical cost-sharing tightly, so
+// the binding, predictable cost is the Part B deductible (Plan G covers
+// everything else). These usage tiers layer a small Part D drug allowance
+// (capped at PART_D_OOP_CAP_2026) on top of the plan-letter medical exposure.
+// Source: medicare.gov Medigap; CMS 2026 Part B deductible.
+export const MEDIGAP_DRUG_OOP_BY_USAGE: Record<OopUsageLevel, number> = {
+  low: 0,
+  moderate: 0,
+  high: 1_700
+};
+
+// Plan N adds modest office ($20) and ER ($50) copays that Plan G does not.
+// Expected annual copay total per person, by usage level. Plan G and the
+// deductible-covering letters (C/F) add $0 here.
+export const MEDIGAP_PLAN_N_COPAYS_BY_USAGE: Record<OopUsageLevel, number> = {
+  low: 60,
+  moderate: 180,
+  high: 360
+};
+
+// Medigap plan letters that cover the annual Part B deductible (so the enrollee
+// does not pay it out of pocket). Plans C and F are closed to enrollees who
+// became Medicare-eligible on or after 2020-01-01, but existing enrollees keep
+// them. Every other letter (including the common Plan G) exposes the deductible.
+export const MEDIGAP_PLANS_COVERING_PART_B_DEDUCTIBLE = ["C", "F"] as const;
 
 // Foreign-travel emergency benefit carried by Medigap plans C, D, F, G, M, N:
 // 80% of approved costs after a $250 deductible, capped at a $50,000 lifetime

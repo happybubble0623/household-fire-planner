@@ -7,12 +7,18 @@ import {
   MEDICAID_FPL_THRESHOLD,
   MEDICARE_AGE,
   MEDICARE_LOW_INCOME_FPL_THRESHOLD,
+  MEDIGAP_DRUG_OOP_BY_USAGE,
+  MEDIGAP_PLAN_N_COPAYS_BY_USAGE,
+  MEDIGAP_PLANS_COVERING_PART_B_DEDUCTIBLE,
   METAL_TIER_PRESETS,
   NATIONAL_BENCHMARK_SILVER_BASE_21,
   OOP_USAGE_PRESETS,
   PART_B_BASE_PREMIUM_2026,
+  PART_B_DEDUCTIBLE_2026,
+  PART_D_OOP_CAP_2026,
   REGION_MULTIPLIERS,
   acaAgeCurveFactor,
+  csrSilverOopMaxPerPerson,
   federalPovertyLevel,
   type IrmaaTier,
   type MetalTier,
@@ -49,6 +55,11 @@ export type HealthcareCostInput = {
   acaOutOfPocketMax: number;
   acaOopUsage: OopUsage;
   acaInflation: number;
+  // The chosen metal tier, when known (estimate mode). Cost-Sharing Reductions
+  // (CSR) only apply to SILVER plans at 100–250% FPL, so the engine needs to
+  // know the tier to apply the reduced Silver out-of-pocket maximum. Left
+  // undefined in exact mode, where the user's entered OOP max is used as-is.
+  acaMetalTier?: MetalTier;
 
   // Medicare inputs (premiums are PER PERSON).
   medicareCoverage: MedicareCoverage;
@@ -141,6 +152,10 @@ export type HealthcareCostResult = {
   applicablePercent: number;
   aboveSubsidyCliff: boolean;
   firstYearSubsidy: number;
+  // ACA out-of-pocket maximum actually applied this year (household total), and
+  // whether a CSR-reduced Silver maximum was substituted for the standard one.
+  acaOutOfPocketMaxApplied: number;
+  csrSilverApplied: boolean;
   // Medicare snapshot.
   irmaaTierIndex: number;
   partBMonthlyPerPerson: number;
@@ -151,13 +166,14 @@ export type HealthcareCostResult = {
 const DEFAULT_GENERAL_INFLATION = 0.03;
 
 // 2026 applicable percentage: piecewise-linear interpolation across the table
-// nodes, floored at 2.10% below 150% FPL, with no credit at or above the 400%
-// FPL cliff. Source: Rev. Proc. 2025-25.
+// nodes, floored at 2.10% only below 133% FPL, with no credit at or above the
+// 400% FPL cliff. The 133–150% band ramps (3.14%→3.45%→4.19%) rather than
+// sitting flat at the floor. Source: Rev. Proc. 2025-25.
 export function acaApplicablePercent(incomePctFpl: number): number | null {
   if (incomePctFpl >= ACA_SUBSIDY_CLIFF_FPL) return null; // subsidy cliff
   const nodes = ACA_APPLICABLE_PERCENT_NODES_2026;
-  // Below 150% FPL the percentage floors at 2.10%; at exactly 150% it picks up
-  // the first table node (4.19%).
+  // Below 133% FPL the percentage floors at 2.10%; at exactly 133% it picks up
+  // the first table node (3.14%) and interpolates upward from there.
   if (incomePctFpl < nodes[0].fplPct) return ACA_APPLICABLE_PERCENT_FLOOR_2026;
 
   for (let i = 1; i < nodes.length; i += 1) {
@@ -272,6 +288,27 @@ function expectedOutOfPocket(usage: OopUsage, oopMax: number): number {
   return OOP_USAGE_PRESETS[usage] * Math.max(0, oopMax);
 }
 
+// Expected annual out-of-pocket for the Original Medicare + Medigap path, per
+// person, in today's dollars. Original Medicare + Medigap has NO out-of-pocket
+// maximum, so the Medicare-Advantage-style "OOP max × usage" model does not
+// apply. Instead the predictable exposure is the Part B deductible (Plan G's
+// only routine cost), plus small Plan N copays, plus Part D drug cost-sharing
+// capped at the 2026 Part D OOP ceiling.
+// Source: medicare.gov Medigap; CMS 2026 Part B deductible & Part D redesign.
+function medigapExpectedOutOfPocket(usage: OopUsage, planLetter?: string): number {
+  // An explicit dollar override always wins.
+  if (typeof usage === "object") return Math.max(0, usage.expectedAnnualOop);
+
+  const letter = (planLetter ?? "G").toUpperCase();
+  const coversPartBDeductible = (
+    MEDIGAP_PLANS_COVERING_PART_B_DEDUCTIBLE as readonly string[]
+  ).includes(letter);
+  const partBDeductible = coversPartBDeductible ? 0 : PART_B_DEDUCTIBLE_2026;
+  const planCopays = letter === "N" ? MEDIGAP_PLAN_N_COPAYS_BY_USAGE[usage] : 0;
+  const drugOop = Math.min(PART_D_OOP_CAP_2026, MEDIGAP_DRUG_OOP_BY_USAGE[usage]);
+  return partBDeductible + planCopays + drugOop;
+}
+
 function round2(value: number) {
   return Math.round(value * 100) / 100;
 }
@@ -315,7 +352,15 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
   const chosenAnnual0 = input.chosenPlanMonthly * 12;
   const acaNetPremium0 = Math.max(0, chosenAnnual0 - ptc.premiumTaxCredit);
   const acaSubsidy0 = chosenAnnual0 - acaNetPremium0;
-  const acaOop0 = expectedOutOfPocket(input.acaOopUsage, input.acaOutOfPocketMax);
+  // Cost-Sharing Reductions: a SILVER plan at 100–250% FPL gets a reduced OOP
+  // maximum (per person), so override the plan's standard OOP max before
+  // computing expected out-of-pocket. Non-silver or out-of-band income keeps the
+  // entered max. CSR is Silver-only and never reconciled at tax time.
+  const csrOopMaxPerPerson =
+    input.acaMetalTier === "silver" ? csrSilverOopMaxPerPerson(ptc.incomePctFpl) : null;
+  const effectiveAcaOopMax =
+    csrOopMaxPerPerson !== null ? csrOopMaxPerPerson * people : input.acaOutOfPocketMax;
+  const acaOop0 = expectedOutOfPocket(input.acaOopUsage, effectiveAcaOopMax);
 
   // Low-income public-coverage flags (household-size-aware via the PTC's FPL%).
   // Below the Medicaid threshold the pre-65 ACA premium and out-of-pocket are
@@ -334,11 +379,16 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     input.medicareCoverage === "medigap"
       ? (input.medigapMonthly + input.partDMonthly) * 12 * people
       : input.advantageMonthly * 12 * people;
-  // The Medicare out-of-pocket figure is entered PER PERSON, so scale it by the
-  // number of people to match the premium columns (which are already ×people).
-  // Previously this was not multiplied, under-charging couples' Medicare OOP.
+  // Medicare out-of-pocket is modeled differently by coverage type. Medicare
+  // Advantage has a real annual out-of-pocket maximum, so the "OOP max × usage"
+  // model applies. Original Medicare + Medigap has NO OOP max — its predictable
+  // exposure is the Part B deductible plus small plan/drug cost-sharing — so it
+  // uses a plan-letter model instead. Both are PER PERSON, scaled by people to
+  // match the premium columns (which are already ×people).
   const medicareOop0 =
-    expectedOutOfPocket(input.medicareOopUsage, input.medicareOutOfPocketMax) * people;
+    input.medicareCoverage === "advantage"
+      ? expectedOutOfPocket(input.medicareOopUsage, input.medicareOutOfPocketMax) * people
+      : medigapExpectedOutOfPocket(input.medicareOopUsage, input.medigapPlanLetter) * people;
   // HSA-eligible Medicare premium portion (excludes Medigap premiums, which are
   // not HSA-qualified; Part D and Medicare Advantage premiums are).
   const medicareEligiblePremium0 =
@@ -528,6 +578,8 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     applicablePercent: ptc.applicablePercent,
     aboveSubsidyCliff: ptc.aboveSubsidyCliff,
     firstYearSubsidy: round2(acaSubsidy0),
+    acaOutOfPocketMaxApplied: round2(effectiveAcaOopMax),
+    csrSilverApplied: csrOopMaxPerPerson !== null,
     irmaaTierIndex: irmaa.index,
     partBMonthlyPerPerson: round2(partBMonthlyPerPerson),
     acaNotRequiredAbroad: input.daysAbroadPerYear >= 330

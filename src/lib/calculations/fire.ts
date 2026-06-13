@@ -128,6 +128,14 @@ async function evaluateWithdrawalRateCandidate(
 ): Promise<CandidateFireResult> {
   const horizonMonths = getPlanningHorizonMonths(plan, candidateRetirementDate);
   const monthlyReturn = Math.pow(1 + estimateAnnualReturn(savedPath.allocation), 1 / 12) - 1;
+  // The portfolio compounds at a NOMINAL return, so spending (and inflation-
+  // adjusted income) must grow with inflation over time to stay consistent with
+  // the Monte-Carlo and phase-1 engines. Each expense/income honors its own
+  // `inflationAdjusted` flag; flat items stay level. Without this the evaluator
+  // overstates survival and two plans differing only in that flag would produce
+  // identical results.
+  const monthlyInflation =
+    Math.pow(1 + (savedPath.assumptions.globalInflationRate ?? 0), 1 / 12) - 1;
   let portfolio = await calculateFireAssetValueAsOf(plan, candidateRetirementDate);
   const accountLevelEffectiveTaxRate =
     savedPath.taxSettings.mode === "account_level" && savedPath.taxSettings.accountTaxRates
@@ -142,10 +150,22 @@ async function evaluateWithdrawalRateCandidate(
 
   for (let month = 0; month <= horizonMonths; month += 1) {
     const date = currentDate.toISOString().slice(0, 10);
-    const annualExpenses = getAnnualExpensesForDate(savedPath.expenses, date, savedPath.planningEvents);
-    const annualIncome = getAnnualIncomeForDate(savedPath.incomeStreams, date, savedPath.planningEvents, {
-      includeEarned: true
-    });
+    // Months elapsed since retirement drive the inflation factor applied to
+    // inflation-adjusted expenses and income.
+    const inflationFactor = Math.pow(1 + monthlyInflation, month);
+    const annualExpenses = getAnnualExpensesForDate(
+      savedPath.expenses,
+      date,
+      savedPath.planningEvents,
+      inflationFactor
+    );
+    const annualIncome = getAnnualIncomeForDate(
+      savedPath.incomeStreams,
+      date,
+      savedPath.planningEvents,
+      { includeEarned: true },
+      inflationFactor
+    );
     const afterTaxGap = Math.max(0, annualExpenses - annualIncome);
     const grossWithdrawal = taxAdjustedWithdrawal(
       afterTaxGap / 12,
@@ -218,7 +238,8 @@ function evaluateIncomeStreamCandidate(
 function getAnnualExpensesForDate(
   expenses: RecurringExpense[],
   date: string,
-  planningEvents: PlanningEvent[]
+  planningEvents: PlanningEvent[],
+  inflationFactor = 1
 ) {
   return expenses
     .filter(
@@ -226,14 +247,18 @@ function getAnnualExpensesForDate(
         expense.includedInFirePath &&
         isTimingWindowActive(expense.startTiming, expense.endTiming, planningEvents, date)
     )
-    .reduce((sum, expense) => sum + toAnnualAmount(expense.amount, expense.frequency), 0);
+    .reduce((sum, expense) => {
+      const factor = expense.inflationAdjusted ? inflationFactor : 1;
+      return sum + toAnnualAmount(expense.amount, expense.frequency) * factor;
+    }, 0);
 }
 
 function getAnnualIncomeForDate(
   incomeStreams: RetirementIncomeStream[],
   date: string,
   planningEvents: PlanningEvent[],
-  options: { includeEarned: boolean }
+  options: { includeEarned: boolean },
+  inflationFactor = 1
 ) {
   return incomeStreams
     .filter((stream) => {
@@ -244,7 +269,10 @@ function getAnnualIncomeForDate(
       }
       return true;
     })
-    .reduce((sum, stream) => sum + toAnnualAmount(stream.amount, stream.frequency), 0);
+    .reduce((sum, stream) => {
+      const factor = stream.inflationAdjusted ? inflationFactor : 1;
+      return sum + toAnnualAmount(stream.amount, stream.frequency) * factor;
+    }, 0);
 }
 
 function isTimingWindowActive(

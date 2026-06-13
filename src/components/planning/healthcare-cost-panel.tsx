@@ -25,6 +25,8 @@ import {
   type TravelMode
 } from "@/lib/calculations/healthcare-cost";
 import {
+  csrSilverOopMaxPerPerson,
+  federalPovertyLevel,
   medicaidIncomeThreshold,
   subsidyCliffIncome
 } from "@/lib/calculations/healthcare-data";
@@ -149,6 +151,7 @@ export function HealthcareCostPanel() {
 
   // Medicare
   const [medicareCoverage, setMedicareCoverage] = useState<MedicareCoverage>("medigap");
+  const [medigapPlanLetter, setMedigapPlanLetter] = useState("G");
   const [medigapMonthly, setMedigapMonthly] = useState(155);
   const [partDMonthly, setPartDMonthly] = useState(40);
   const [advantageMonthly, setAdvantageMonthly] = useState(15);
@@ -187,6 +190,13 @@ export function HealthcareCostPanel() {
   const effectiveChosenPlanMonthly = isEstimateMode ? tierFill.chosenPlanMonthly : chosenPlanMonthly;
   const effectiveAcaDeductible = isEstimateMode ? tierFill.acaDeductible : acaDeductible;
   const effectiveAcaOopMax = isEstimateMode ? tierFill.acaOutOfPocketMax : acaOutOfPocketMax;
+  // CSR-reduced Silver out-of-pocket max for the live inputs, shown in the
+  // estimate summary so the number on screen matches what the engine applies.
+  const liveIncomePctFpl = annualMagi / federalPovertyLevel(people);
+  const csrLiveOopMaxPerPerson =
+    isEstimateMode && metalTier === "silver" ? csrSilverOopMaxPerPerson(liveIncomePctFpl) : null;
+  const displayAcaOopMax =
+    csrLiveOopMaxPerPerson !== null ? csrLiveOopMaxPerPerson * people : effectiveAcaOopMax;
 
   const liveInput = useMemo<HealthcareCostInput>(
     () => ({
@@ -202,8 +212,12 @@ export function HealthcareCostPanel() {
       acaOutOfPocketMax: effectiveAcaOopMax,
       acaOopUsage: oopUsageValue(acaUsage, acaCustomOop),
       acaInflation: percentToDecimal(acaInflationPercent),
+      // CSR (reduced Silver OOP max) only applies when we know the tier is
+      // Silver — i.e. in estimate mode. Exact mode uses the entered OOP max.
+      acaMetalTier: isEstimateMode ? metalTier : undefined,
       medicareCoverage,
       medigapMonthly,
+      medigapPlanLetter,
       partDMonthly,
       advantageMonthly,
       medicareOutOfPocketMax,
@@ -231,8 +245,11 @@ export function HealthcareCostPanel() {
       acaUsage,
       acaCustomOop,
       acaInflationPercent,
+      isEstimateMode,
+      metalTier,
       medicareCoverage,
       medigapMonthly,
+      medigapPlanLetter,
       partDMonthly,
       advantageMonthly,
       medicareOutOfPocketMax,
@@ -434,8 +451,15 @@ export function HealthcareCostPanel() {
                     Benchmark silver premium: {formatCurrency(estimatedBenchmarkMonthly)}/mo ·
                     Your {metalTier} plan: {formatCurrency(effectiveChosenPlanMonthly)}/mo ·
                     Deductible: {formatCurrency(effectiveAcaDeductible)} ·
-                    Out-of-pocket max: {formatCurrency(effectiveAcaOopMax)}
+                    Out-of-pocket max: {formatCurrency(displayAcaOopMax)}
                   </p>
+                  {csrLiveOopMaxPerPerson !== null ? (
+                    <p className="mt-1 text-xs font-medium text-[var(--primary-hover)]">
+                      Cost-Sharing Reduction applied: at {Math.round(liveIncomePctFpl * 100)}% of the
+                      Federal Poverty Level, a Silver plan&apos;s out-of-pocket max is reduced to{" "}
+                      {formatCurrency(displayAcaOopMax)} (2026 CSR rule, Fed. Register 2025-11606).
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-xs text-gray-500">
                     Based on age {acaPhaseStartAge} at FIRE{household === "couple" ? " (×2 adults)" : ""}, CMS
                     age rating, and national averages. Switch to exact mode to enter real quotes.
@@ -536,6 +560,19 @@ export function HealthcareCostPanel() {
             />
             {medicareCoverage === "medigap" ? (
               <>
+                <SelectField
+                  id="hc-medigap-plan"
+                  label="Medigap plan letter"
+                  value={medigapPlanLetter}
+                  onChange={setMedigapPlanLetter}
+                  options={[
+                    { value: "G", label: "Plan G — most popular (covers all but the Part B deductible)" },
+                    { value: "N", label: "Plan N — lower premium, small office/ER copays" },
+                    { value: "F", label: "Plan F — covers everything (closed to new enrollees)" }
+                  ]}
+                  help="Original Medicare + Medigap has NO out-of-pocket maximum, but the supplement caps your cost-sharing tightly. Plan G's only routine medical cost is the $283 Part B deductible; Plan N adds small copays; Plan F (older enrollees) covers even the deductible. This sets your expected out-of-pocket below."
+                  note="Default Plan G — the most-chosen Medigap plan; its only routine cost is the 2026 $283 Part B deductible (CMS)."
+                />
                 <NumberInput
                   id="hc-medigap"
                   label="Medigap premium (monthly, per person)"
@@ -556,32 +593,38 @@ export function HealthcareCostPanel() {
                 />
               </>
             ) : (
-              <NumberInput
-                id="hc-advantage"
-                label="Medicare Advantage premium (monthly, per person)"
-                value={advantageMonthly}
-                onChange={setAdvantageMonthly}
-                step={5}
-                help="Monthly MA plan premium per person. Many MA plans are $0 premium but still require the Part B premium."
-                note="Default ~$15/mo — near the 2026 average MA premium (~$11, KFF/CMS). Many plans are $0; you still pay Part B."
-              />
+              <>
+                <NumberInput
+                  id="hc-advantage"
+                  label="Medicare Advantage premium (monthly, per person)"
+                  value={advantageMonthly}
+                  onChange={setAdvantageMonthly}
+                  step={5}
+                  help="Monthly MA plan premium per person. Many MA plans are $0 premium but still require the Part B premium."
+                  note="Default ~$15/mo — near the 2026 average MA premium (~$11, KFF/CMS). Many plans are $0; you still pay Part B."
+                />
+                <NumberInput
+                  id="hc-medicare-oop-max"
+                  label="Medicare out-of-pocket max (annual, per person)"
+                  value={medicareOutOfPocketMax}
+                  onChange={setMedicareOutOfPocketMax}
+                  step={100}
+                  help="Medicare Advantage plans have a real annual out-of-pocket maximum (Medigap does not). Your expected spend is estimated as a share of this ceiling."
+                  note="Default $6,000 — about the 2026 average Medicare Advantage in-network out-of-pocket (~$5,400; legal cap $9,250, KFF). Set to your plan's max."
+                />
+              </>
             )}
-            <NumberInput
-              id="hc-medicare-oop-max"
-              label="Medicare out-of-pocket (annual, per person)"
-              value={medicareOutOfPocketMax}
-              onChange={setMedicareOutOfPocketMax}
-              step={100}
-              help="Estimated yearly out-of-pocket ceiling per person — low for Medigap, the plan maximum for Advantage. Expected spend is a share of this."
-              note="Default $6,000 — about the 2026 average Medicare Advantage in-network out-of-pocket (~$5,400; legal cap $9,250, KFF). Medigap users usually pay far less."
-            />
             <SelectField
               id="hc-medicare-usage"
               label="Expected care usage"
               value={medicareUsage}
               onChange={setMedicareUsage}
               options={usageOptions}
-              help="Low ≈ 15%, Moderate ≈ 30%, High ≈ 85% of the per-person out-of-pocket figure."
+              help={
+                medicareCoverage === "medigap"
+                  ? "How much care you expect. With Medigap your routine cost is the Part B deductible regardless; higher usage adds modest drug/copay cost-sharing on top."
+                  : "Low ≈ 15%, Moderate ≈ 30%, High ≈ 85% of the per-person out-of-pocket maximum."
+              }
             />
             <NumberInput
               id="hc-medicare-custom-oop"
