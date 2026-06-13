@@ -172,7 +172,7 @@ export const samplePlan: PlanDocument = {
       isDefault: true,
       isArchived: false,
       assumptions: {
-        withdrawalRate: 0.05,
+        withdrawalRate: 0.04,
         globalInflationRate: 0.03,
         annualSavings: 24000,
         fireAssetBasis: "investable_only",

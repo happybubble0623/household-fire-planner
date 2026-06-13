@@ -371,7 +371,8 @@ describe("FIRE engines — rule-pinned", () => {
   // §5.3 (CONFIRMED BUG) The simple-FIRE-number DEFAULT withdrawal rate is 5%
   // (20× expenses), not the app's headline 4% rule (25×).
   // Rule/app framing: default → 4% → $1,200,000. ACTUAL today: $960,000 (5%).
-  it.skip("FIRE-5 [BUG §5.3]: default simple FIRE number uses the 4% rule", () => {
+  it("FIRE-5 [BUG §5.3]: default simple FIRE number uses the 4% rule", () => {
+    // 4% rule → 25× the spending gap: (60,000 − 12,000) / 0.04 = 1,200,000.
     expect(calculateSimpleFireNumber(60_000, 12_000)).toBe(1_200_000);
   });
 

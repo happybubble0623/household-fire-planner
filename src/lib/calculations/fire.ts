@@ -22,7 +22,7 @@ export function toAnnualAmount(amount: number, frequency: "monthly" | "annual") 
 export function calculateSimpleFireNumber(
   annualExpenses: number,
   annualIncome: number,
-  withdrawalRate = 0.05
+  withdrawalRate = 0.04
 ) {
   const gap = Math.max(0, annualExpenses - annualIncome);
   return gap / withdrawalRate;
