@@ -1,6 +1,6 @@
 # Household FIRE Planner Founder / Codex Interaction Log
 
-*Created: 2026-06-08 · Last updated: 2026-06-12*
+*Created: 2026-06-08 · Last updated: 2026-06-13*
 
 Status: Living product-thinking record
 
@@ -1196,6 +1196,34 @@ Product significance:
 - Adds Learn content and structured-data SEO to grow organic discovery while honoring the founder's standing constraint against navigation bloat.
 - Removes a recurring point of user confusion in the FIRE result labels and tightens home-page visual consistency.
 - Establishes real analytics and a clean, valid sitemap so Search Console can index the site correctly, and records the deliberate www-canonical decision for future reference.
+
+### 2026-06-13 - Vercel Wrong-Author Deploy Scare And Medicare Option-A Confirmation
+
+Founder input:
+
+- Raised an alarm that commits were appearing under an unexpected GitHub identity (`chloezh0623-crypto`) and worried this was breaking the Vercel deploy or signaling a compromised/incorrect committer.
+- Asked to confirm that `main` is clean, correctly authored, and safe to keep deploying.
+- Asked to confirm the realistic Medicare Plan G/N out-of-pocket cost model (Option A) is actually landed on `main`.
+
+Codex response / artifact:
+
+- Investigated the author scare: confirmed `main` is clean and every recent commit is correctly authored by `happybubble0623 <blueocean.wh@gmail.com>` — the required committer for Vercel Hobby deploys. The `chloezh0623-crypto` identity was the only anomaly and it is not the author of the current `main` HEAD; no deploy-blocking author mismatch remains.
+- Confirmed the Medicare Plan G/N realistic OOP model (Option A) is landed on `main` at `c023022` ("Finish Medigap STEP 4 UI: G/N/F comparison + DVH reconciliation"), built on `a799f1d` (dental/vision/hearing as a separate line item) and `4fa9792` (premium relativity, usage-scaled Plan N OOP, DVH). Full suite is green at 336 tests.
+
+Founder decisions:
+
+- CONFIRMED `chloezh0623-crypto` is the founder's own secondary account, not an intruder — no security incident.
+- DECIDED to remove `chloezh0623-crypto` as a repo collaborator so all future commits/deploys flow through the single authorized `happybubble0623` identity.
+
+Pending / next:
+
+- Remove `chloezh0623-crypto` from the GitHub repo collaborators list (`happybubble0623/household-fire-planner`).
+- Keep enforcing the single-committer rule (`happybubble0623 <blueocean.wh@gmail.com>`) for any commit to `main` to avoid future Vercel Hobby deploy blocks.
+
+Product significance:
+
+- Removes a deploy-stability risk by confirming the production branch is correctly authored and the wrong-author signal was a known secondary account, not a compromise.
+- Locks in the realistic Medicare cost model (Option A) as shipped and test-verified, strengthening the credibility of the pre/post-65 healthcare projections that anchor the FIRE plan.
 
 ## Current Open Strategy Questions
 
