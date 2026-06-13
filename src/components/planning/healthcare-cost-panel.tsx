@@ -1079,9 +1079,11 @@ export function HealthcareCostPanel() {
               <Callout tone="amber">
                 Your income is at or above 400% of the Federal Poverty Level —{" "}
                 {formatCurrency(cliffIncomeDollars)} for a household of {committedHouseholdSize}{" "}
-                (you&apos;re at {Math.round(result.incomePctFpl * 100)}%) — so you don&apos;t qualify
-                for a premium subsidy and pay the full unsubsidized premium. Keeping income below the
-                cliff can save thousands per year.
+                ({result.incomePctFpl >= 5
+                  ? "well above the 400% cliff"
+                  : `you're at ${Math.round(result.incomePctFpl * 100)}%`}
+                ) — so you don&apos;t qualify for a premium subsidy and pay the full unsubsidized
+                premium. Keeping income below the cliff can save thousands per year.
               </Callout>
             ) : (
               <Callout tone="gray">
