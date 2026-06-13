@@ -885,15 +885,16 @@ export function HealthcareCostPanel() {
       {/* Two-card summary — reconciles with the breakdown below: the Lifetime
           card equals the Net cost column plus HSA funds used across all rows
           (the gross lifetime total / headline), and the Average card spreads
-          that lifetime over the projected years. Both are costs, so both read
-          red, and both follow the Today's/Future toggle instantly. */}
+          that lifetime over the projected years. Values render neutral (dark)
+          to match the other site summary cards, and both follow the
+          Today's/Future toggle instantly. */}
       <div className="grid grid-cols-2 gap-3">
         <SummaryCard
           label={isToday ? "Lifetime · today's $" : "Lifetime · future $"}
           value={formatCurrency(heroValue)}
-          tone="negative"
+          tone="neutral"
         />
-        <SummaryCard label="Average / year" value={formatCurrency(avgPerYear)} tone="negative" />
+        <SummaryCard label="Average / year" value={formatCurrency(avgPerYear)} tone="neutral" />
       </div>
 
       {/* TODO(save-image): a "Save image" button + wordmark would sit here to
