@@ -15,6 +15,10 @@ import {
   reconcileWorkbook,
   resolveWorkbookConflict
 } from "@/lib/storage/workbook-sync";
+import {
+  hasReconciledMetadata,
+  markWorkbookReconciled
+} from "@/lib/storage/workbook-reconcile-flag";
 import { useSession } from "@/lib/auth/use-session";
 import type { Phase1Workbook } from "@/types/phase1";
 import { PathToFirePanel } from "@/components/planning/path-to-fire-panel";
@@ -175,6 +179,10 @@ export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1Workspac
           }
         }
 
+        // Record the durable per-account marker so this one-time prompt never
+        // fires again on any device — the account plan is now established.
+        void markWorkbookReconciled();
+
         // Resume cloud sync now that the user has chosen.
         conflictPendingRef.current = false;
         if (mountedRef.current) {
@@ -250,11 +258,24 @@ export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1Workspac
         if (cancelled || !mountedRef.current) return;
 
         if (result.status === "conflict") {
-          // Both sides hold real, differing data — never auto-overwrite. Pause
-          // cloud pushes and ask the user which plan to keep.
-          conflictPendingRef.current = true;
-          setConflict({ local: result.local, cloud: result.cloud });
-          setStatus("Action needed: choose which plan to keep.");
+          if (!hasReconciledMetadata(user)) {
+            // FIRST reconciliation only: both sides hold real, differing data.
+            // Never auto-overwrite — pause cloud pushes and ask the user once
+            // which plan to keep. The choice sets the durable marker below.
+            conflictPendingRef.current = true;
+            setConflict({ local: result.local, cloud: result.cloud });
+            setStatus("Action needed: choose which plan to keep.");
+            return;
+          }
+
+          // Already reconciled once → the account plan is the source of truth.
+          // Silently adopt the cloud plan; never re-prompt on later logins or
+          // navigation.
+          await persistPhase1Workbook(result.cloud);
+          if (cancelled || !mountedRef.current) return;
+          latestWorkbookRef.current = result.cloud;
+          setWorkbook(result.cloud);
+          if (!cancelled && mountedRef.current) setStatus("Synced to your account.");
           return;
         }
 
@@ -264,6 +285,13 @@ export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1Workspac
           if (cancelled || !mountedRef.current) return;
           latestWorkbookRef.current = result.workbook;
           setWorkbook(result.workbook);
+        }
+
+        // The initial reconciliation completed without needing a prompt (cloud
+        // was seeded, adopted, or already in sync). Record the durable
+        // per-account marker so future logins silently trust the account plan.
+        if (!hasReconciledMetadata(user)) {
+          void markWorkbookReconciled();
         }
 
         if (!cancelled && mountedRef.current) setStatus("Synced to your account.");
