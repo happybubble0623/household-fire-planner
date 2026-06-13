@@ -898,33 +898,24 @@ export function HealthcareCostPanel() {
           {/* HERO — present-value headline (today's dollars) with the labeled
               future-dollars alternative. */}
           <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-md before:absolute before:inset-y-0 before:left-0 before:w-[5px] before:bg-[var(--primary)] before:content-['']">
-            <p className="text-[42px] font-extrabold leading-none tracking-tight text-gray-900 tabular-nums sm:text-[52px]">
-              {formatCurrency(heroValue)}
-            </p>
-            <p className="mt-2 max-w-[520px] text-[15px] font-semibold leading-snug text-gray-800">
+            <p className="max-w-[520px] text-[15px] font-semibold leading-snug text-gray-800">
               {isToday ? (
                 <>
                   What to set aside today to cover a lifetime of healthcare
                   <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-[var(--positive-bg)] px-2.5 py-0.5 align-middle text-[11px] font-semibold text-[var(--positive)]">
                     ● today&apos;s $
                   </span>
+                  <span className="ml-1.5 align-middle text-[12px] font-normal text-gray-500">
+                    with a {discountRatePct} discount rate
+                  </span>
                 </>
               ) : (
                 "What you'd actually pay over the years, added up in future (inflated) dollars"
               )}
             </p>
-            <p className="mt-3.5 max-w-[520px] text-[13.5px] leading-relaxed text-gray-500">
-              ≈ <b className="text-gray-800">{formatCurrency(avgPerYear)}/yr</b> on average over{" "}
-              <b className="text-gray-800">~{totalYears} years</b> — higher before 65, lower once
-              you&apos;re on Medicare.
+            <p className="mt-2 text-[42px] font-extrabold leading-none tracking-tight text-gray-900 tabular-nums sm:text-[52px]">
+              {formatCurrency(heroValue)}
             </p>
-            {isToday ? (
-              <p className="mt-2 max-w-[520px] text-[12.5px] leading-relaxed text-gray-500">
-                It assumes the money you set aside keeps earning about{" "}
-                <b className="text-gray-700">{discountRatePct} a year above inflation</b> until it&apos;s
-                spent — so that {discountRatePct} is the return on the money, not medical inflation.
-              </p>
-            ) : null}
 
             {/* Today's / Future toggle */}
             <div className="mt-4">
@@ -982,8 +973,9 @@ export function HealthcareCostPanel() {
                 </svg>
                 {isToday ? (
                   <span>
-                    This is a <b>present value in today&apos;s dollars</b> — directly comparable to
-                    published estimates like Fidelity&apos;s.
+                    Built the same way as published estimates like Fidelity&apos;s — a{" "}
+                    <b>present value in today&apos;s dollars</b>. (Ours also covers pre-65 years and
+                    dental/vision, which Fidelity&apos;s leaves out.)
                   </span>
                 ) : (
                   <span>

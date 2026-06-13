@@ -669,11 +669,12 @@ describe("PathToFirePanel", () => {
     expect(screen.getByLabelText("Household")).toBeInTheDocument();
     expect(screen.getByLabelText("FIRE / retirement age")).toBeInTheDocument();
     expect(screen.getByLabelText("Annual retirement MAGI")).toBeInTheDocument();
-    // Present-value hero, per-year sub-line, and the Today's/Future basis toggle.
+    // Present-value hero label (now with the discount-rate note) and the
+    // Today's/Future basis toggle.
     expect(
       screen.getByText(/What to set aside today to cover a lifetime of healthcare/i)
     ).toBeInTheDocument();
-    expect(screen.getByText(/on average over/i)).toBeInTheDocument();
+    expect(screen.getByText(/with a .* discount rate/i)).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Dollar basis" })).toBeInTheDocument();
     expect(screen.getByText(/Before 65 · ACA gap/i)).toBeInTheDocument();
     expect(screen.getByText(/Medicare years · 65\+/i)).toBeInTheDocument();
@@ -708,9 +709,9 @@ describe("PathToFirePanel", () => {
     render(<PlanningToolPanel tool="healthcare" />);
 
     // Today's mode is the default; the caption reassures that the present-value
-    // figure is directly comparable to published estimates.
+    // figure is built the same way as published estimates.
     expect(
-      screen.getByText(/directly comparable to published estimates/i)
+      screen.getByText(/Built the same way as published estimates/i)
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Future dollars" }));
