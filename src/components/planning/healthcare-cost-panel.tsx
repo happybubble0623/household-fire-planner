@@ -1023,15 +1023,20 @@ export function HealthcareCostPanel() {
           </table>
         </div>
         <p className="mt-3 text-[12.5px] leading-relaxed text-gray-500">
-          Net cost <b className="text-gray-700">{formatCurrency(displayNetTotal)}</b>
           {displayHsaUsedTotal > 0 ? (
             <>
-              {" "}
-              + HSA funds used <b className="text-gray-700">{formatCurrency(displayHsaUsedTotal)}</b>
+              Your costs total <b className="text-gray-700">{formatCurrency(displayGrossTotal)}</b> over all
+              years (the lifetime total shown above); after{" "}
+              <b className="text-gray-700">{formatCurrency(displayHsaUsedTotal)}</b> drawn from your HSA, you
+              pay <b className="text-gray-700">{formatCurrency(displayNetTotal)}</b> out of pocket
+              {isToday ? " (today's dollars)" : " (future dollars)"}.
             </>
-          ) : null}{" "}
-          = <b className="text-gray-700">{formatCurrency(displayGrossTotal)}</b> gross lifetime total —
-          the {isToday ? "today's-dollar" : "future-dollar"} headline above.
+          ) : (
+            <>
+              These yearly costs add up to <b className="text-gray-700">{formatCurrency(displayGrossTotal)}</b> —
+              the lifetime total shown above{isToday ? " (today's dollars)" : " (future dollars)"}.
+            </>
+          )}
         </p>
       </details>
     </ToolShell>
