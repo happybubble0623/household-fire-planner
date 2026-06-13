@@ -898,12 +898,7 @@ export function HealthcareCostPanel() {
           {/* HERO — present-value headline (today's dollars) with the labeled
               future-dollars alternative. */}
           <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-md before:absolute before:inset-y-0 before:left-0 before:w-[5px] before:bg-[var(--primary)] before:content-['']">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-gray-500">
-              {isToday
-                ? "Lifetime healthcare · present value · today's dollars"
-                : "Lifetime healthcare · cumulative total · future dollars"}
-            </p>
-            <p className="mt-2 text-[42px] font-extrabold leading-none tracking-tight text-gray-900 tabular-nums sm:text-[52px]">
+            <p className="text-[42px] font-extrabold leading-none tracking-tight text-gray-900 tabular-nums sm:text-[52px]">
               {formatCurrency(heroValue)}
             </p>
             <p className="mt-2 max-w-[520px] text-[15px] font-semibold leading-snug text-gray-800">
@@ -925,10 +920,9 @@ export function HealthcareCostPanel() {
             </p>
             {isToday ? (
               <p className="mt-2 max-w-[520px] text-[12.5px] leading-relaxed text-gray-500">
-                This is the lump sum to set aside <b className="text-gray-700">now</b> — a discounted
-                present value, assuming it grows about{" "}
-                <b className="text-gray-700">{discountRatePct} a year faster than inflation</b> until
-                spent (not just an inflation-adjusted sum).
+                It assumes the money you set aside keeps earning about{" "}
+                <b className="text-gray-700">{discountRatePct} a year above inflation</b> until it&apos;s
+                spent — so that {discountRatePct} is the return on the money, not medical inflation.
               </p>
             ) : null}
 
@@ -989,7 +983,7 @@ export function HealthcareCostPanel() {
                 {isToday ? (
                   <span>
                     This is a <b>present value in today&apos;s dollars</b> — directly comparable to
-                    published estimates like Fidelity&apos;s. It&apos;s the lump sum to set aside now.
+                    published estimates like Fidelity&apos;s.
                   </span>
                 ) : (
                   <span>
