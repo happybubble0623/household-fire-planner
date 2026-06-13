@@ -17,8 +17,7 @@ import {
   applyMetalTierPreset,
   estimateBenchmarkPremium,
   estimateHealthcareCosts,
-  medigapEffectiveMonthlyPremium,
-  medigapExpectedOutOfPocket,
+  medigapPlanEstimate,
   type HealthcareCostInput,
   type HealthcareHousehold,
   type HsaStrategy,
@@ -204,16 +203,37 @@ export function HealthcareCostPanel() {
   const displayAcaOopMax =
     csrLiveOopMaxPerPerson !== null ? csrLiveOopMaxPerPerson * people : effectiveAcaOopMax;
 
-  // Live preview for the selected Medigap plan letter (per person). The entered
-  // premium is the Plan-G base; the letter's relativity re-prices it, and the
-  // annual out-of-pocket scales with the chosen usage level. These use the same
-  // engine helpers the projection does, so the picker label can never drift from
-  // the modeled numbers.
-  const medigapPreviewMonthly = medigapEffectiveMonthlyPremium(medigapMonthly, medigapPlanLetter);
-  const medigapPreviewOop = medigapExpectedOutOfPocket(
-    oopUsageValue(medicareUsage, medicareCustomOop),
-    medigapPlanLetter
-  );
+  // Live per-letter estimates at the chosen usage, from the entered Plan-G base.
+  // Computed with the same engine helper the projection uses, so the picker can
+  // never drift from the modeled numbers. The array drives the G/N/F comparison
+  // table; the selected letter's row also feeds the headline preview line.
+  const medigapUsage = oopUsageValue(medicareUsage, medicareCustomOop);
+  const medigapPlanComparison = ["G", "N", "F"].map((letter) => {
+    const est = medigapPlanEstimate({
+      baseMonthlyPremium: medigapMonthly,
+      planLetter: letter,
+      usage: medigapUsage
+    });
+    return {
+      letter,
+      monthly: est.effectiveMonthlyPremium,
+      oopYr: est.annualMedicalOutOfPocket,
+      // Apples-to-apples plan-choice cost: premium + medical out-of-pocket only.
+      // Part B, Part D, IRMAA and dental/vision/hearing are identical across
+      // letters, so they're excluded here.
+      comparableYr: est.effectiveMonthlyPremium * 12 + est.annualMedicalOutOfPocket
+    };
+  });
+  const selectedPlan =
+    medigapPlanComparison.find((plan) => plan.letter === medigapPlanLetter) ??
+    medigapPlanComparison[0];
+  const medigapPreviewMonthly = selectedPlan.monthly;
+  const medigapPreviewOop = selectedPlan.oopYr;
+  // Lowest premium + out-of-pocket letter at the current usage — surfaces the
+  // crossover (Plan N at low/moderate, Plan G catching up at high).
+  const cheapestPlanLetter = medigapPlanComparison.reduce((min, plan) =>
+    plan.comparableYr < min.comparableYr ? plan : min
+  ).letter;
 
   const liveInput = useMemo<HealthcareCostInput>(
     () => ({
@@ -316,7 +336,13 @@ export function HealthcareCostPanel() {
           ...row,
           premium: row.premium * m,
           subsidy: row.subsidy * m,
-          outOfPocket: row.outOfPocket * m,
+          // The displayed out-of-pocket folds in dental/vision/hearing (a real
+          // 65+ cost the engine tracks separately to keep the per-plan medical
+          // OOP honest). Folding it here makes the table's Net column and the
+          // chart's stacked bars reconcile: premium + shown-OOP (+ travel) − HSA
+          // = net, with no hidden DVH gap. The plan-picker preview above still
+          // shows medical-only OOP for an apples-to-apples letter comparison.
+          outOfPocket: (row.outOfPocket + row.dvh) * m,
           travelPremium: row.travelPremium * m,
           hsaDraw: row.hsaDraw * m,
           grossCost: row.grossCost * m,
@@ -341,6 +367,9 @@ export function HealthcareCostPanel() {
   // it (PV split in today's mode; future-dollar split in future mode).
   const acaPhaseValue = isToday ? result.presentValueAcaCost : result.totalAcaCost;
   const medicarePhaseValue = isToday ? result.presentValueMedicareCost : result.totalMedicareCost;
+  // Dental/vision/hearing slice of the lifetime total, in the displayed basis —
+  // part of the Medicare total above, surfaced as its own labeled line.
+  const dvhLifetime = isToday ? result.presentValueDvhCost : result.nominalDvhCost;
   const lowIncome = result.medicaidEligiblePre65 || result.medicareLowIncome;
   // FPL threshold dollars for the eligibility callouts, computed from the
   // committed household size (so the wording matches the result it explains) via
@@ -361,8 +390,8 @@ export function HealthcareCostPanel() {
     ? ` These amounts follow the "Show amounts in" toggle. You're viewing today's dollars, so each figure is a present value — what that future year's cost is worth in today's money after discounting.`
     : ` These amounts follow the "Show amounts in" toggle. You're viewing future dollars, so each figure is the actual amount you'd pay that year, once prices have risen with inflation.`;
   const premiumColumnInfo = `The insurance premium for that year — an ACA marketplace plan before 65, or Medicare (Part B + Medigap + Part D) after 65 — after any subsidy is taken off.${columnBasisNote}`;
-  const oopColumnInfo = `Out-of-pocket: what you expect to spend on care beyond premiums that year — deductibles, copays, and coinsurance — capped at your plan's out-of-pocket maximum.${columnBasisNote}`;
-  const netCostColumnInfo = `Net cost = premium + out-of-pocket (plus any travel/global premium) for that year, minus any HSA funds applied. It's what actually comes out of pocket that year.${columnBasisNote}`;
+  const oopColumnInfo = `Out-of-pocket: what you expect to spend on care beyond premiums that year — deductibles, copays, and coinsurance — plus routine dental, vision & hearing in the Medicare years, which Original Medicare doesn't cover. Medicare Advantage caps the medical share at your plan's out-of-pocket maximum; Original Medicare + Medigap has no annual cap.${columnBasisNote}`;
+  const netCostColumnInfo = `Net cost = premium + out-of-pocket (which includes dental/vision/hearing after 65) plus any travel/global premium for that year, minus any HSA funds applied. It's what actually comes out of pocket that year.${columnBasisNote}`;
 
   return (
     <ToolShell
@@ -623,6 +652,73 @@ export function HealthcareCostPanel() {
                     planning estimate, not a quote, and it excludes long-term care.
                   </p>
                 </div>
+                {/* Compact G/N/F comparison at the chosen usage, so the
+                    premium-vs-out-of-pocket crossover is visible: Plan N is
+                    cheapest at low/moderate usage, but its per-visit copays and
+                    excess-charge exposure let Plan G catch up (or win) at high
+                    usage. Premium + medical out-of-pocket only — Part B, Part D,
+                    IRMAA and dental/vision/hearing are identical across letters. */}
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                  <table
+                    className="w-full text-sm"
+                    aria-label="Medigap plan comparison at your usage"
+                  >
+                    <thead className="border-b border-gray-200 bg-gray-50 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Plan</th>
+                        <th className="px-3 py-2 text-right">Premium/mo</th>
+                        <th className="px-3 py-2 text-right">Med. OOP/yr</th>
+                        <th className="px-3 py-2 text-right">Premium + OOP/yr</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {medigapPlanComparison.map((plan) => {
+                        const isSelected = plan.letter === medigapPlanLetter;
+                        return (
+                          <tr
+                            key={plan.letter}
+                            className={isSelected ? "bg-[var(--green-50)]" : undefined}
+                          >
+                            <td className="px-3 py-2 text-left font-medium text-gray-900">
+                              Plan {plan.letter}
+                              {isSelected ? (
+                                <span className="ml-1.5 text-[11px] font-semibold text-[var(--primary-hover)]">
+                                  ● selected
+                                </span>
+                              ) : null}
+                              {plan.letter === cheapestPlanLetter && !isSelected ? (
+                                <span className="ml-1.5 rounded-full bg-[var(--positive-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--positive)]">
+                                  lowest here
+                                </span>
+                              ) : null}
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                              {formatCurrency(plan.monthly)}
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                              {formatCurrency(plan.oopYr)}
+                            </td>
+                            <td
+                              className={
+                                plan.letter === cheapestPlanLetter
+                                  ? "px-3 py-2 text-right font-semibold tabular-nums text-[var(--positive)]"
+                                  : "px-3 py-2 text-right font-semibold tabular-nums text-gray-900"
+                              }
+                            >
+                              {formatCurrency(plan.comparableYr)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs leading-relaxed text-gray-500">
+                  Premium + medical out-of-pocket only, at <b>{medicareUsage}</b> usage — Part B, Part
+                  D, IRMAA, and dental/vision/hearing are the same across letters, so they&apos;re left
+                  out here for an apples-to-apples plan choice. Plan N usually wins at low/moderate
+                  usage; Plan G catches up at high usage as N&apos;s copays and excess charges add up.
+                </p>
                 <NumberInput
                   id="hc-medigap"
                   label="Medigap premium (monthly, per person) — Plan-G base"
@@ -928,6 +1024,17 @@ export function HealthcareCostPanel() {
             />
             <ResultCard label="HSA funds used" value={formatCurrency(result.totalHsaUsed)} />
           </div>
+
+          {/* Dental/vision/hearing slice — uncovered by Original Medicare, so a
+              real 65+ cost; part of the Medicare total above, surfaced here as
+              its own labeled line in the displayed dollar basis. */}
+          {result.medicareYears > 0 && dvhLifetime > 0 ? (
+            <p className="text-[12.5px] leading-relaxed text-gray-500">
+              Includes ≈ <b className="text-gray-700">{formatCurrency(dvhLifetime)}</b> for routine
+              dental, vision &amp; hearing over the Medicare years — uncovered by Original Medicare,
+              and counted in the totals above{isToday ? " (today's dollars)" : " (future dollars)"}.
+            </p>
+          ) : null}
 
           {/* Low-income public-coverage callout — Medicaid (pre-65) / MSP + Extra
               Help (65+). Shown only when income falls below the thresholds. */}

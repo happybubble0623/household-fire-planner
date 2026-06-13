@@ -7,6 +7,7 @@ import {
   estimatePremiumTaxCredit,
   medigapEffectiveMonthlyPremium,
   medigapExpectedOutOfPocket,
+  medigapPlanEstimate,
   selectIrmaaTier,
   type HealthcareCostInput
 } from "@/lib/calculations/healthcare-cost";
@@ -494,6 +495,40 @@ describe("healthcare cost projection", () => {
       });
       expect(couple.rows[0].dvh - coupleWithout.rows[0].dvh).toBeCloseTo(2_400, 2);
       expect(couple.rows[0].outOfPocket).toBeCloseTo(coupleWithout.rows[0].outOfPocket, 2);
+    });
+
+    it("medigapPlanEstimate packages the premium + medical OOP for the UI picker", () => {
+      const g = medigapPlanEstimate({
+        baseMonthlyPremium: PLAN_G_BASE,
+        planLetter: "G",
+        usage: "moderate"
+      });
+      const n = medigapPlanEstimate({
+        baseMonthlyPremium: PLAN_G_BASE,
+        planLetter: "N",
+        usage: "moderate"
+      });
+      // It returns exactly the two underlying helpers, packaged together — so the
+      // picker can never drift from the projection's numbers.
+      expect(g.effectiveMonthlyPremium).toBeCloseTo(
+        medigapEffectiveMonthlyPremium(PLAN_G_BASE, "G"),
+        2
+      );
+      expect(g.annualMedicalOutOfPocket).toBeCloseTo(
+        medigapExpectedOutOfPocket("moderate", "G"),
+        2
+      );
+      // Plan N: cheaper premium, higher medical OOP than Plan G at moderate usage
+      // (the crossover the comparison table surfaces).
+      expect(n.effectiveMonthlyPremium).toBeLessThan(g.effectiveMonthlyPremium);
+      expect(n.annualMedicalOutOfPocket).toBeGreaterThan(g.annualMedicalOutOfPocket);
+      // An explicit-dollar usage override flows straight through.
+      const override = medigapPlanEstimate({
+        baseMonthlyPremium: PLAN_G_BASE,
+        planLetter: "N",
+        usage: { expectedAnnualOop: 999 }
+      });
+      expect(override.annualMedicalOutOfPocket).toBeCloseTo(999, 2);
     });
 
     it("prints the worked G/N/F × low/moderate/high crossover table (default scenario)", () => {

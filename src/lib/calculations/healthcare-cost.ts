@@ -373,6 +373,32 @@ export function medigapExpectedOutOfPocket(usage: OopUsage, planLetter?: string)
   return medical + drugOop;
 }
 
+export type MedigapPlanEstimate = {
+  effectiveMonthlyPremium: number;
+  annualMedicalOutOfPocket: number;
+};
+
+// Convenience wrapper for the UI: the effective monthly premium and the annual
+// medical out-of-pocket for one plan letter at a usage level, from the entered
+// Plan-G base. It just packages medigapEffectiveMonthlyPremium together with
+// medigapExpectedOutOfPocket so a plan picker / comparison view can render both
+// numbers from a single call without re-deriving them (and never drift from the
+// projection, which uses the same two helpers).
+export function medigapPlanEstimate({
+  baseMonthlyPremium,
+  planLetter,
+  usage
+}: {
+  baseMonthlyPremium: number;
+  planLetter: string;
+  usage: OopUsage;
+}): MedigapPlanEstimate {
+  return {
+    effectiveMonthlyPremium: medigapEffectiveMonthlyPremium(baseMonthlyPremium, planLetter),
+    annualMedicalOutOfPocket: medigapExpectedOutOfPocket(usage, planLetter)
+  };
+}
+
 function round2(value: number) {
   return Math.round(value * 100) / 100;
 }
