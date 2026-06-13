@@ -368,6 +368,7 @@ export function ResultCard({
   value,
   help,
   context,
+  description,
   hero = false,
   highlight = false
 }: {
@@ -375,6 +376,9 @@ export function ResultCard({
   value: string;
   help?: string;
   context?: string;
+  // Optional plain-language line under the value — used to explain what a
+  // phase/label means in normal sentence case (the eyebrow `label` is uppercase).
+  description?: ReactNode;
   hero?: boolean;
   highlight?: boolean;
 }) {
@@ -399,6 +403,9 @@ export function ResultCard({
       </p>
       {context ? (
         <p className="mt-1.5 text-xs font-semibold text-[var(--primary)]">{context}</p>
+      ) : null}
+      {description ? (
+        <p className="mt-2 text-xs font-normal leading-relaxed text-gray-500">{description}</p>
       ) : null}
     </Card>
   );

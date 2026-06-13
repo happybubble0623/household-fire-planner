@@ -1075,14 +1075,16 @@ export function HealthcareCostPanel() {
           {/* Supporting KPI cards */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <ResultCard
-              label={`Before 65 · ACA gap · ${result.acaYears} yrs`}
+              label={`Retiring before 65? · ACA gap · ${result.acaYears} yrs`}
               value={formatCurrency(acaPhaseValue)}
               context={isToday ? "present value · pre-Medicare" : "pre-Medicare · future $"}
+              description="Before Medicare starts at 65, you buy your own coverage through the ACA (Obamacare) marketplace. This is the cost of those gap years."
             />
             <ResultCard
-              label={`Medicare years · 65+ · ${result.medicareYears} yrs`}
+              label={`Reached 65? · Medicare years · ${result.medicareYears} yrs`}
               value={formatCurrency(medicarePhaseValue)}
               context={isToday ? "present value · Part B/D + supplement" : "Part B/D + supplement · future $"}
+              description="At 65 you qualify for Medicare, the federal health program. This is your cost on Medicare (plus any supplement you choose)."
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
