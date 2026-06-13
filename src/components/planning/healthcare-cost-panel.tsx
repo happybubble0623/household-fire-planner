@@ -658,7 +658,69 @@ export function HealthcareCostPanel() {
                     excess-charge exposure let Plan G catch up (or win) at high
                     usage. Premium + medical out-of-pocket only — Part B, Part D,
                     IRMAA and dental/vision/hearing are identical across letters. */}
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                {/* Mobile (< sm): stacked cards so nothing overflows a ~375px
+                    phone — each plan becomes a labeled card with the total
+                    (Premium + OOP/yr), the decision-relevant figure, on its own
+                    emphasized row. The wide table below takes over at sm+. */}
+                <div className="space-y-2 sm:hidden">
+                  {medigapPlanComparison.map((plan) => {
+                    const isSelected = plan.letter === medigapPlanLetter;
+                    const isLowest = plan.letter === cheapestPlanLetter;
+                    return (
+                      <div
+                        key={plan.letter}
+                        className={
+                          isSelected
+                            ? "rounded-xl border border-[var(--primary)] bg-[var(--green-50)] px-4 py-3"
+                            : "rounded-xl border border-gray-200 bg-white px-4 py-3"
+                        }
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-gray-900">
+                            Plan {plan.letter}
+                            {isSelected ? (
+                              <span className="ml-1.5 text-[11px] font-semibold text-[var(--primary-hover)]">
+                                ● selected
+                              </span>
+                            ) : null}
+                          </span>
+                          {isLowest && !isSelected ? (
+                            <span className="shrink-0 rounded-full bg-[var(--positive-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--positive)]">
+                              lowest here
+                            </span>
+                          ) : null}
+                        </div>
+                        <dl className="mt-2 space-y-1 text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <dt className="text-gray-500">Premium/mo</dt>
+                            <dd className="tabular-nums text-gray-700">
+                              {formatCurrency(plan.monthly)}
+                            </dd>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <dt className="text-gray-500">Med. OOP/yr</dt>
+                            <dd className="tabular-nums text-gray-700">
+                              {formatCurrency(plan.oopYr)}
+                            </dd>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 border-t border-gray-100 pt-1.5">
+                            <dt className="font-medium text-gray-700">Premium + OOP/yr</dt>
+                            <dd
+                              className={
+                                isLowest
+                                  ? "font-semibold tabular-nums text-[var(--positive)]"
+                                  : "font-semibold tabular-nums text-gray-900"
+                              }
+                            >
+                              {formatCurrency(plan.comparableYr)}
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white sm:block">
                   <table
                     className="w-full text-sm"
                     aria-label="Medigap plan comparison at your usage"
