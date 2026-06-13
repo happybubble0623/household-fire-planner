@@ -466,6 +466,36 @@ function ResultCard({
   );
 }
 
+// Two-card summary band shown directly above a projection table (REDESIGN §1).
+// Clean white tile: muted label, value below at ~19px/500. The value color
+// follows the same green-positive / red-negative rule the table uses
+// (gains/assets = green; shortfall/draw = red); "neutral" stays dark.
+function SummaryCard({
+  label,
+  value,
+  tone = "neutral"
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "positive" | "negative";
+}) {
+  const valueClass =
+    tone === "positive"
+      ? "text-[var(--positive)]"
+      : tone === "negative"
+        ? "text-[var(--negative)]"
+        : "text-gray-900";
+
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-white p-4 shadow-sm">
+      <p className="text-xs font-medium text-gray-500">{label}</p>
+      <p className={cn("mt-1 text-[19px] font-medium leading-tight tabular-nums", valueClass)}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function ProgressBar({
   label,
   value,
@@ -1520,6 +1550,29 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
           fireAge={result.estimatedFireAge}
         />
       </section>
+      {/* Two-card summary above the table (REDESIGN §1): the FIRE number is the
+          assets this plan builds to, and "Lasts to age" is the final age the
+          projection below reaches — so the second card reconciles with the
+          table's last row. Both are positive outcomes, so both read green. */}
+      <div className="grid grid-cols-2 gap-3">
+        <SummaryCard
+          label="FIRE number"
+          value={formatCurrency(result.targetFireNumber ?? result.assetsAtFire)}
+          tone="positive"
+        />
+        <SummaryCard
+          label="Lasts to age"
+          value={
+            result.projectionRows.length > 0
+              ? formatNumber(result.projectionRows[result.projectionRows.length - 1].age)
+              : "—"
+          }
+          tone="positive"
+        />
+      </div>
+      {/* TODO(save-image): a "Save image" button + wordmark would sit here to
+          export this result card + table as a shareable PNG. Deferred to a
+          follow-up task. */}
       <ProjectionTable
         label="Portfolio Drawdown FIRE projection"
         rows={result.projectionRows}
@@ -1569,6 +1622,25 @@ function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps[
         value={progress}
         note={`${formatPercent(result.incomeCoverageRatio)} of annual expenses`}
       />
+      {/* Two-card summary above the table (REDESIGN §1): coverage and the
+          surplus/shortfall are the two figures the year-by-year rows reconcile
+          to. Coverage reads green at or above 100%, red below; a surplus is
+          green and a shortfall red. */}
+      <div className="grid grid-cols-2 gap-3">
+        <SummaryCard
+          label="Income coverage"
+          value={formatPercent(result.incomeCoverageRatio)}
+          tone={result.incomeCoverageRatio >= 1 ? "positive" : "negative"}
+        />
+        <SummaryCard
+          label={result.shortfallOrSurplus < 0 ? "Shortfall" : "Surplus"}
+          value={formatSignedCurrency(result.shortfallOrSurplus)}
+          tone={result.shortfallOrSurplus < 0 ? "negative" : "positive"}
+        />
+      </div>
+      {/* TODO(save-image): a "Save image" button + wordmark would sit here to
+          export this result card + table as a shareable PNG. Deferred to a
+          follow-up task. */}
       <IncomeStreamProjectionTable
         label="Income Stream FIRE projection"
         rows={result.projectionRows}
@@ -1644,6 +1716,21 @@ function PrincipalPreservingResults({
           Try a higher savings rate, lower expenses, more income, or a higher cash-generating return.
         </div>
       )}
+      {/* Two-card summary above the table (REDESIGN §1): the earliest qualifying
+          FIRE age and the principal floor the table is tested against — assets
+          in the rows below stay at or above this floor when the plan passes.
+          The age reads green when the plan passes, red when it does not. */}
+      <div className="grid grid-cols-2 gap-3">
+        <SummaryCard label="FIRE age" value={fireAge} tone={result.passes ? "positive" : "negative"} />
+        <SummaryCard
+          label="Principal floor"
+          value={formatCurrency(result.principalFloor)}
+          tone="positive"
+        />
+      </div>
+      {/* TODO(save-image): a "Save image" button + wordmark would sit here to
+          export this result card + table as a shareable PNG. Deferred to a
+          follow-up task. */}
       <ProjectionTable
         label="Principal-Preserving FIRE projection"
         rows={result.projectionRows}
@@ -1714,7 +1801,10 @@ function ProjectionTable({
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-gray-200 p-5 sm:p-6">
-        <h2 className="text-xl font-semibold tracking-tight text-gray-900">Year-by-year projection</h2>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-xl font-semibold tracking-tight text-gray-900">By year</h2>
+          <span className="text-[11px] text-gray-400">balance over time</span>
+        </div>
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
           A compact audit trail for how assets move over time. Currency values are shown in compact
           form ($k / $M).
@@ -1726,13 +1816,13 @@ function ProjectionTable({
         ) : null}
       </div>
       <div className="max-h-[560px] overflow-auto">
-        <table
-          aria-label={label}
-          className="min-w-full border-collapse text-sm [&_td]:border [&_td]:border-[var(--border)] [&_td]:text-center [&_th]:border [&_th]:border-[var(--border)] [&_th]:text-center"
-        >
-          <thead className="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {/* Soft hairline rows, right-aligned tabular numbers, no heavy grid or
+            zebra (REDESIGN §2). Returns read green, withdrawals red, and the
+            leading Age + Ending assets columns stay dark. */}
+        <table aria-label={label} className="min-w-full text-sm">
+          <thead className="sticky top-0 border-b border-gray-200 bg-white text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
-              <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">Age</th>
+              <th className="px-2.5 py-2.5 text-left sm:px-4 sm:py-3">Age</th>
               <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                 <InfoLabel
                   label="Starting assets"
@@ -1740,52 +1830,52 @@ function ProjectionTable({
                 />
               </th>
               {showCashFlow ? (
-                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                   <InfoLabel label="Cash flow" />
                 </th>
               ) : null}
               {showInvestmentReturn ? (
-                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                   <InfoLabel label={investmentReturnLabel} />
                 </th>
               ) : null}
               {showAnnualIncome ? (
-                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                   <InfoLabel label={incomeLabel} help={incomeHelp} />
                 </th>
               ) : null}
               {showExpenses ? (
-                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                   <InfoLabel label="Expenses" />
                 </th>
               ) : null}
               {showAssetsWithdrawn ? (
-                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                   <InfoLabel label="Assets withdrawn" />
                 </th>
               ) : null}
               {showCashGeneratingReturn ? (
-                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                   <InfoLabel label={cashGeneratingReturnLabel} />
                 </th>
               ) : null}
               {showFireTarget ? (
-                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                   <InfoLabel label="FIRE target" />
                 </th>
               ) : null}
               {showIncomeCoverage ? (
-                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                   <InfoLabel label="Income coverage" />
                 </th>
               ) : null}
               {showPrincipalFloor ? (
-                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                   <InfoLabel label="Principal floor" />
                 </th>
               ) : null}
               {showFireGap ? (
-                <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">
+                <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                   <InfoLabel label="FIRE gap" />
                 </th>
               ) : null}
@@ -1798,89 +1888,111 @@ function ProjectionTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
-            {rows.map((row) => {
-              const dipHighlight = highlightDip && row.principalPreserved === false;
-
-              return (
-                <tr
-                  key={`${row.year}-${row.age}`}
-                  className={
-                    row.depleted || dipHighlight
-                      ? "bg-[var(--negative-bg)]"
-                      : "odd:bg-white even:bg-gray-50 hover:bg-[var(--green-50)]"
-                  }
-                >
-                  <td className="whitespace-nowrap px-2.5 py-2.5 font-medium text-gray-900 tabular-nums sm:px-4 sm:py-3">
-                    {row.age}
-                  </td>
-                  <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                    {formatCompactCurrency(row.startingAssets)}
-                  </td>
-                  {showCashFlow ? (
-                    <td
-                      className={cn(
-                        "whitespace-nowrap px-2.5 py-2.5 text-right font-medium tabular-nums sm:px-4 sm:py-3",
-                        row.cashFlow >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
-                      )}
-                    >
-                      {formatSignedCompactCurrency(row.cashFlow)}
-                    </td>
-                  ) : null}
-                  {showInvestmentReturn ? (
-                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-[var(--positive)] tabular-nums sm:px-4 sm:py-3">
-                      {formatSignedCompactCurrency(row.investmentReturn ?? 0)}
-                    </td>
-                  ) : null}
-                  {showAnnualIncome ? (
-                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                      {formatCompactCurrency(row.annualIncome ?? 0)}
-                    </td>
-                  ) : null}
-                  {showExpenses ? (
-                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                      {formatCompactCurrency(row.annualExpenses ?? 0)}
-                    </td>
-                  ) : null}
-                  {showAssetsWithdrawn ? (
-                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                      {formatCompactCurrency(row.assetsWithdrawn ?? 0)}
-                    </td>
-                  ) : null}
-                  {showCashGeneratingReturn ? (
-                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                      {formatCompactCurrency(row.cashGeneratingReturn ?? 0)}
-                    </td>
-                  ) : null}
-                  {showFireTarget ? (
-                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                      {formatCompactCurrency(row.fireTarget ?? 0)}
-                    </td>
-                  ) : null}
-                  {showIncomeCoverage ? (
-                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                      {row.incomeCoverageRatio === undefined
-                        ? "--"
-                        : formatPercent(row.incomeCoverageRatio)}
-                    </td>
-                  ) : null}
-                  {showPrincipalFloor ? (
-                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                      {row.principalFloor === undefined
-                        ? "--"
-                        : formatCompactCurrency(row.principalFloor)}
-                    </td>
-                  ) : null}
-                  {showFireGap ? (
-                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                      {formatCompactCurrency(row.fireGap)}
-                    </td>
-                  ) : null}
-                  <td className="whitespace-nowrap px-2.5 py-2.5 text-right font-semibold text-gray-900 tabular-nums sm:px-4 sm:py-3">
-                    {formatCompactCurrency(row.endingAssets)}
-                  </td>
-                </tr>
+            {(() => {
+              // Scale the inline Ending-assets bar to the largest row.
+              const maxEndingAssets = rows.reduce(
+                (max, row) => Math.max(max, row.endingAssets),
+                0
               );
-            })}
+              return rows.map((row, index) => {
+                const dipHighlight = highlightDip && row.principalPreserved === false;
+                const isNegativeRow = row.depleted || dipHighlight;
+                const isFinalRow = index === rows.length - 1;
+                const endingBarPct =
+                  maxEndingAssets > 0
+                    ? Math.max(0, Math.min(100, (row.endingAssets / maxEndingAssets) * 100))
+                    : 0;
+
+                return (
+                  <tr
+                    key={`${row.year}-${row.age}`}
+                    className={
+                      isNegativeRow
+                        ? "bg-[var(--negative-bg)]"
+                        : isFinalRow
+                          ? "bg-[var(--green-50)]"
+                          : "hover:bg-gray-50"
+                    }
+                  >
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-left font-medium text-gray-900 tabular-nums sm:px-4 sm:py-3">
+                      {row.age}
+                    </td>
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {formatCompactCurrency(row.startingAssets)}
+                    </td>
+                    {showCashFlow ? (
+                      <td
+                        className={cn(
+                          "whitespace-nowrap px-2.5 py-2.5 text-right font-medium tabular-nums sm:px-4 sm:py-3",
+                          row.cashFlow >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
+                        )}
+                      >
+                        {formatSignedCompactCurrency(row.cashFlow)}
+                      </td>
+                    ) : null}
+                    {showInvestmentReturn ? (
+                      <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-[var(--positive)] tabular-nums sm:px-4 sm:py-3">
+                        {formatSignedCompactCurrency(row.investmentReturn ?? 0)}
+                      </td>
+                    ) : null}
+                    {showAnnualIncome ? (
+                      <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                        {formatCompactCurrency(row.annualIncome ?? 0)}
+                      </td>
+                    ) : null}
+                    {showExpenses ? (
+                      <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                        {formatCompactCurrency(row.annualExpenses ?? 0)}
+                      </td>
+                    ) : null}
+                    {showAssetsWithdrawn ? (
+                      <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-[var(--negative)] tabular-nums sm:px-4 sm:py-3">
+                        {formatCompactCurrency(row.assetsWithdrawn ?? 0)}
+                      </td>
+                    ) : null}
+                    {showCashGeneratingReturn ? (
+                      <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-[var(--positive)] tabular-nums sm:px-4 sm:py-3">
+                        {formatCompactCurrency(row.cashGeneratingReturn ?? 0)}
+                      </td>
+                    ) : null}
+                    {showFireTarget ? (
+                      <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                        {formatCompactCurrency(row.fireTarget ?? 0)}
+                      </td>
+                    ) : null}
+                    {showIncomeCoverage ? (
+                      <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                        {row.incomeCoverageRatio === undefined
+                          ? "--"
+                          : formatPercent(row.incomeCoverageRatio)}
+                      </td>
+                    ) : null}
+                    {showPrincipalFloor ? (
+                      <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                        {row.principalFloor === undefined
+                          ? "--"
+                          : formatCompactCurrency(row.principalFloor)}
+                      </td>
+                    ) : null}
+                    {showFireGap ? (
+                      <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                        {formatCompactCurrency(row.fireGap)}
+                      </td>
+                    ) : null}
+                    {/* Ending assets carries the inline bar — width scaled to
+                        the largest row, in a light green (assets) tint. */}
+                    <td className="relative whitespace-nowrap px-2.5 py-2.5 text-right font-semibold text-gray-900 tabular-nums sm:px-4 sm:py-3">
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-y-1.5 right-2 rounded-[3px] bg-[var(--green-100)]"
+                        style={{ width: `${endingBarPct}%`, maxWidth: "calc(100% - 1rem)" }}
+                      />
+                      <span className="relative">{formatCompactCurrency(row.endingAssets)}</span>
+                    </td>
+                  </tr>
+                );
+              });
+            })()}
           </tbody>
         </table>
       </div>
@@ -1910,20 +2022,22 @@ function IncomeStreamProjectionTable({
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-gray-200 p-5 sm:p-6">
-        <h2 className="text-xl font-semibold tracking-tight text-gray-900">Year-by-year projection</h2>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-xl font-semibold tracking-tight text-gray-900">By year</h2>
+          <span className="text-[11px] text-gray-400">coverage over time</span>
+        </div>
         <p className="mt-2 text-sm leading-relaxed text-gray-500">
           A compact audit trail for income-stream coverage. Currency values are shown in compact
           form ($k / $M).
         </p>
       </div>
       <div className="max-h-[560px] overflow-auto">
-        <table
-          aria-label={label}
-          className="min-w-full border-collapse text-sm [&_td]:border [&_td]:border-[var(--border)] [&_td]:text-center [&_th]:border [&_th]:border-[var(--border)] [&_th]:text-center"
-        >
-          <thead className="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {/* Soft hairline rows, right-aligned tabular numbers, no heavy grid or
+            zebra (REDESIGN §2). Surplus reads green, shortfall red. */}
+        <table aria-label={label} className="min-w-full text-sm">
+          <thead className="sticky top-0 border-b border-gray-200 bg-white text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
-              <th className="px-2.5 py-2.5 sm:px-4 sm:py-3">Age</th>
+              <th className="px-2.5 py-2.5 text-left sm:px-4 sm:py-3">Age</th>
               <th className="px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
                 <InfoLabel label="Income" />
               </th>
@@ -1939,35 +2053,62 @@ function IncomeStreamProjectionTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
-            {rows.map((row) => (
-              <tr
-                key={`${row.year}-${row.age}`}
-                className="odd:bg-white even:bg-gray-50 hover:bg-[var(--green-50)]"
-              >
-                <td className="whitespace-nowrap px-2.5 py-2.5 font-medium text-gray-900 tabular-nums sm:px-4 sm:py-3">
-                  {row.age}
-                </td>
-                <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                  {formatCompactCurrency(row.annualIncome ?? 0)}
-                </td>
-                <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                  {formatCompactCurrency(row.annualExpenses ?? 0)}
-                </td>
-                <td
-                  className={cn(
-                    "whitespace-nowrap px-2.5 py-2.5 text-right font-medium tabular-nums sm:px-4 sm:py-3",
-                    row.cashFlow >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
-                  )}
-                >
-                  {formatSignedCompactCurrency(row.cashFlow)}
-                </td>
-                <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
-                  {row.incomeCoverageRatio === undefined
-                    ? "--"
-                    : formatPercent(row.incomeCoverageRatio)}
-                </td>
-              </tr>
-            ))}
+            {(() => {
+              // Scale the inline Surplus/shortfall bar to the largest absolute
+              // gap so the column reads as a shape, not just numbers.
+              const maxAbsCashFlow = rows.reduce(
+                (max, row) => Math.max(max, Math.abs(row.cashFlow)),
+                0
+              );
+              return rows.map((row, index) => {
+                const isFinalRow = index === rows.length - 1;
+                const isSurplus = row.cashFlow >= 0;
+                const barPct =
+                  maxAbsCashFlow > 0
+                    ? Math.max(0, Math.min(100, (Math.abs(row.cashFlow) / maxAbsCashFlow) * 100))
+                    : 0;
+
+                return (
+                  <tr
+                    key={`${row.year}-${row.age}`}
+                    className={isFinalRow ? "bg-[var(--green-50)]" : "hover:bg-gray-50"}
+                  >
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-left font-medium text-gray-900 tabular-nums sm:px-4 sm:py-3">
+                      {row.age}
+                    </td>
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {formatCompactCurrency(row.annualIncome ?? 0)}
+                    </td>
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {formatCompactCurrency(row.annualExpenses ?? 0)}
+                    </td>
+                    {/* Surplus/shortfall carries the inline bar — tinted green
+                        for a surplus, red for a shortfall. */}
+                    <td
+                      className={cn(
+                        "relative whitespace-nowrap px-2.5 py-2.5 text-right font-medium tabular-nums sm:px-4 sm:py-3",
+                        isSurplus ? "text-[var(--positive)]" : "text-[var(--negative)]"
+                      )}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "pointer-events-none absolute inset-y-1.5 right-2 rounded-[3px]",
+                          isSurplus ? "bg-[var(--green-100)]" : "bg-[var(--negative-bg)]"
+                        )}
+                        style={{ width: `${barPct}%`, maxWidth: "calc(100% - 1rem)" }}
+                      />
+                      <span className="relative">{formatSignedCompactCurrency(row.cashFlow)}</span>
+                    </td>
+                    <td className="whitespace-nowrap px-2.5 py-2.5 text-right text-gray-700 tabular-nums sm:px-4 sm:py-3">
+                      {row.incomeCoverageRatio === undefined
+                        ? "--"
+                        : formatPercent(row.incomeCoverageRatio)}
+                    </td>
+                  </tr>
+                );
+              });
+            })()}
           </tbody>
         </table>
       </div>

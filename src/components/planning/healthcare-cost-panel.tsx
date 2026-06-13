@@ -85,6 +85,35 @@ function Callout({ tone, children }: { tone: "amber" | "gray"; children: ReactNo
   return <p className={className}>{children}</p>;
 }
 
+// Two-card summary band shown directly above a result table (REDESIGN). Each is
+// a clean white tile: muted label, value below at ~19px/500. The value color
+// follows the same green-positive / red-negative rule the tables use
+// (gains/assets = green; costs/spend/shortfall = red); "neutral" stays dark.
+function SummaryCard({
+  label,
+  value,
+  tone = "neutral"
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "positive" | "negative";
+}) {
+  const valueClass =
+    tone === "positive"
+      ? "text-[var(--positive)]"
+      : tone === "negative"
+        ? "text-[var(--negative)]"
+        : "text-gray-900";
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-white p-4 shadow-sm">
+      <p className="text-xs font-medium text-gray-500">{label}</p>
+      <p className={`mt-1 text-[19px] font-medium leading-tight tabular-nums ${valueClass}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function oopUsageValue(level: OopUsageLevel, custom: number): OopUsage {
   return custom > 0 ? { expectedAnnualOop: custom } : level;
 }
@@ -261,6 +290,10 @@ export function HealthcareCostPanel() {
   const displayGrossTotal = displayRows.reduce((sum, row) => sum + row.grossCost, 0);
   const displayHsaUsedTotal = displayRows.reduce((sum, row) => sum + row.hsaDraw, 0);
   const displayNetTotal = displayRows.reduce((sum, row) => sum + row.netPortfolioCost, 0);
+  // Largest net-cost row, used to scale the inline bar behind each Net value so
+  // the table reads as a shape, not just a column of numbers (REDESIGN §2).
+  const displayMaxNet = displayRows.reduce((max, row) => Math.max(max, row.netPortfolioCost), 0);
+  const medicareTransitionAge = committedInput.medicareAge || 65;
   // Average per year is derived from the displayed headline so that
   // avg × years ≈ headline in either basis.
   const avgPerYear = totalYears > 0 ? heroValue / totalYears : 0;
@@ -849,6 +882,24 @@ export function HealthcareCostPanel() {
         }
       />
 
+      {/* Two-card summary — reconciles with the breakdown below: the Lifetime
+          card equals the Net cost column plus HSA funds used across all rows
+          (the gross lifetime total / headline), and the Average card spreads
+          that lifetime over the projected years. Both are costs, so both read
+          red, and both follow the Today's/Future toggle instantly. */}
+      <div className="grid grid-cols-2 gap-3">
+        <SummaryCard
+          label={isToday ? "Lifetime · today's $" : "Lifetime · future $"}
+          value={formatCurrency(heroValue)}
+          tone="negative"
+        />
+        <SummaryCard label="Average / year" value={formatCurrency(avgPerYear)} tone="negative" />
+      </div>
+
+      {/* TODO(save-image): a "Save image" button + wordmark would sit here to
+          export this result card + table as a shareable PNG. The PNG export is
+          intentionally deferred to a follow-up task. */}
+
       <details className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <summary className="cursor-pointer text-base font-semibold text-gray-900">
           Year-by-year breakdown
@@ -858,20 +909,27 @@ export function HealthcareCostPanel() {
             ? "Shown in today's dollars — each row is that year's discounted present value, so the Net cost column plus HSA funds used adds up to the headline."
             : "Shown in future dollars — the actual amounts you'd pay each year, once prices have risen with inflation."}
         </p>
-        <div className="mt-4 max-h-96 overflow-auto rounded-xl border border-gray-200">
+        {/* Section label + right-aligned caption (REDESIGN §2). */}
+        <div className="mt-4 flex items-baseline justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-gray-500">
+            By age
+          </span>
+          <span className="text-[11px] text-gray-400">net cost / year</span>
+        </div>
+        <div className="mt-2 max-h-96 overflow-auto rounded-xl border border-gray-200">
           <table className="w-full min-w-[640px] text-sm" aria-label="Healthcare cost projection">
-            <thead className="sticky top-0 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <thead className="sticky top-0 border-b border-gray-200 bg-white text-xs font-semibold uppercase tracking-wide text-gray-500">
               <tr>
-                <th className="px-3 py-2 text-left">Year / Age</th>
-                <th className="px-3 py-2 text-left">Phase</th>
-                <th className="px-3 py-2 text-right">
+                <th className="px-3 py-2.5 text-left">Year / Age</th>
+                <th className="px-3 py-2.5 text-left">Phase</th>
+                <th className="px-3 py-2.5 text-right">
                   <span className="inline-flex items-center justify-end gap-1">
                     Premium
                     <InfoPopover label="Premium" content={premiumColumnInfo} />
                   </span>
                 </th>
-                <th className="px-3 py-2 text-right">
-                  <span className="inline-flex items-center gap-1">
+                <th className="px-3 py-2.5 text-right">
+                  <span className="inline-flex items-center justify-end gap-1">
                     Subsidy
                     <InfoPopover
                       label="Subsidy"
@@ -879,14 +937,14 @@ export function HealthcareCostPanel() {
                     />
                   </span>
                 </th>
-                <th className="px-3 py-2 text-right">
+                <th className="px-3 py-2.5 text-right">
                   <span className="inline-flex items-center justify-end gap-1">
                     Out-of-pocket
                     <InfoPopover label="Out-of-pocket" content={oopColumnInfo} />
                   </span>
                 </th>
-                <th className="px-3 py-2 text-right">HSA draw</th>
-                <th className="px-3 py-2 text-right">
+                <th className="px-3 py-2.5 text-right">HSA draw</th>
+                <th className="px-3 py-2.5 text-right">
                   <span className="inline-flex items-center justify-end gap-1">
                     Net cost
                     <InfoPopover label="Net cost" content={netCostColumnInfo} />
@@ -895,47 +953,68 @@ export function HealthcareCostPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {displayRows.map((row) => (
-                <tr key={row.age} className="odd:bg-white even:bg-gray-50 hover:bg-[var(--green-50)]">
-                  <td className="px-3 py-2 text-left font-medium text-gray-900 tabular-nums">
-                    {row.year} / {row.age}
-                  </td>
-                  <td className="px-3 py-2 text-left">
-                    <span
-                      className={
-                        row.phase === "aca"
-                          ? "inline-flex rounded-full bg-[var(--gold-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--gold-text)]"
-                          : "inline-flex rounded-full bg-[var(--green-50)] px-2 py-0.5 text-[11px] font-semibold text-[var(--primary-hover)]"
-                      }
-                    >
-                      {row.phase === "aca" ? "ACA" : "Medicare"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(row.premium)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-[var(--positive)]">
-                    {row.subsidy > 0 ? `-${formatCurrency(row.subsidy)}` : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {formatCurrency(row.outOfPocket)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-[var(--positive)]">
-                    {row.hsaDraw > 0 ? `-${formatCurrency(row.hsaDraw)}` : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-right font-semibold tabular-nums text-gray-900">
-                    {formatCurrency(row.netPortfolioCost)}
-                  </td>
-                </tr>
-              ))}
+              {displayRows.map((row) => {
+                // Soft green tint marks the Medicare-transition milestone (the
+                // age coverage flips from an ACA plan to Medicare).
+                const isMedicareStart = row.age === medicareTransitionAge;
+                const netBarPct =
+                  displayMaxNet > 0
+                    ? Math.max(0, Math.min(100, (row.netPortfolioCost / displayMaxNet) * 100))
+                    : 0;
+                return (
+                  <tr
+                    key={row.age}
+                    className={isMedicareStart ? "bg-[var(--green-50)]" : "hover:bg-gray-50"}
+                  >
+                    <td className="px-3 py-2.5 text-left font-medium text-gray-900 tabular-nums">
+                      {row.year} / {row.age}
+                    </td>
+                    <td className="px-3 py-2.5 text-left">
+                      <span
+                        className={
+                          row.phase === "aca"
+                            ? "inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
+                            : "inline-flex rounded-full bg-[var(--green-50)] px-2 py-0.5 text-[11px] font-semibold text-[var(--primary-hover)]"
+                        }
+                      >
+                        {row.phase === "aca" ? "ACA" : "Medicare"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-[var(--negative)]">
+                      {formatCurrency(row.premium)}
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-[var(--positive)]">
+                      {row.subsidy > 0 ? `-${formatCurrency(row.subsidy)}` : "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-[var(--negative)]">
+                      {formatCurrency(row.outOfPocket)}
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-[var(--positive)]">
+                      {row.hsaDraw > 0 ? `-${formatCurrency(row.hsaDraw)}` : "—"}
+                    </td>
+                    {/* Net cost carries the inline bar — width scaled to the
+                        largest net-cost row, in a light red (cost) tint. */}
+                    <td className="relative px-3 py-2.5 text-right font-semibold tabular-nums text-gray-900">
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-y-1.5 right-2 rounded-[3px] bg-[var(--negative-bg)]"
+                        style={{ width: `${netBarPct}%`, maxWidth: "calc(100% - 1rem)" }}
+                      />
+                      <span className="relative">{formatCurrency(row.netPortfolioCost)}</span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
-            <tfoot className="sticky bottom-0 border-t-2 border-gray-200 bg-gray-50 text-sm font-semibold text-gray-900">
+            <tfoot className="sticky bottom-0 border-t-2 border-gray-200 bg-white text-sm font-semibold text-gray-900">
               <tr>
-                <td className="px-3 py-2 text-left" colSpan={4}>
+                <td className="px-3 py-2.5 text-left" colSpan={4}>
                   Net cost (after HSA)
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-[var(--positive)]">
+                <td className="px-3 py-2.5 text-right tabular-nums text-[var(--positive)]">
                   {displayHsaUsedTotal > 0 ? `-${formatCurrency(displayHsaUsedTotal)}` : "—"}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums" colSpan={2}>
+                <td className="px-3 py-2.5 text-right tabular-nums" colSpan={2}>
                   {formatCurrency(displayNetTotal)}
                 </td>
               </tr>
