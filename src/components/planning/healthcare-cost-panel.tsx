@@ -24,6 +24,10 @@ import {
   type OopUsage,
   type TravelMode
 } from "@/lib/calculations/healthcare-cost";
+import {
+  medicaidIncomeThreshold,
+  subsidyCliffIncome
+} from "@/lib/calculations/healthcare-data";
 import type { MetalTier, OopUsageLevel, RegionCostLevel } from "@/lib/calculations/healthcare-data";
 
 function SelectField<T extends string>({
@@ -302,6 +306,12 @@ export function HealthcareCostPanel() {
   const acaPhaseValue = isToday ? result.presentValueAcaCost : result.totalAcaCost;
   const medicarePhaseValue = isToday ? result.presentValueMedicareCost : result.totalMedicareCost;
   const lowIncome = result.medicaidEligiblePre65 || result.medicareLowIncome;
+  // FPL threshold dollars for the eligibility callouts, computed from the
+  // committed household size (so the wording matches the result it explains) via
+  // the single source of truth in healthcare-data.ts — no inline FPL numbers.
+  const committedHouseholdSize = committedInput.household === "couple" ? 2 : 1;
+  const cliffIncomeDollars = subsidyCliffIncome(committedHouseholdSize);
+  const medicaidIncomeDollars = medicaidIncomeThreshold(committedHouseholdSize);
   // Plain-language explanation of the fixed 3% real discount rate, formatted
   // from the value the engine returns (never hardcoded in the copy).
   const discountRatePct = `${Math.round(result.realDiscountRate * 100)}%`;
@@ -829,6 +839,13 @@ export function HealthcareCostPanel() {
                 ) : null}
                 {" "}— so your real out-of-pocket cost would be far lower than the figure above (which
                 is why it&apos;s shown near $0).
+                {result.medicaidEligiblePre65 ? (
+                  <>
+                    {" "}Your income is below 138% of the Federal Poverty Level (
+                    {formatCurrency(medicaidIncomeDollars)} for a household of{" "}
+                    {committedHouseholdSize}), so you&apos;d likely qualify for Medicaid.
+                  </>
+                ) : null}
                 <span className="mt-1.5 block text-[12px] text-gray-500">
                   Estimate only; eligibility and benefits vary by state (some states did not expand
                   Medicaid). Confirm on Medicaid.gov and Medicare.gov.
@@ -840,10 +857,11 @@ export function HealthcareCostPanel() {
           {result.acaYears > 0 && !result.medicaidEligiblePre65 ? (
             result.aboveSubsidyCliff ? (
               <Callout tone="amber">
-                Your MAGI is at or above 400% of the Federal Poverty Level (
-                {Math.round(result.incomePctFpl * 100)}%), so no ACA premium tax credit applies — you
-                pay the full unsubsidized premium. Keeping MAGI below the cliff can save thousands per
-                year.
+                Your income is at or above 400% of the Federal Poverty Level —{" "}
+                {formatCurrency(cliffIncomeDollars)} for a household of {committedHouseholdSize}{" "}
+                (you&apos;re at {Math.round(result.incomePctFpl * 100)}%) — so you don&apos;t qualify
+                for a premium subsidy and pay the full unsubsidized premium. Keeping income below the
+                cliff can save thousands per year.
               </Callout>
             ) : (
               <Callout tone="gray">

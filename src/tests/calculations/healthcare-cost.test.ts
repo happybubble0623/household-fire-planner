@@ -18,7 +18,9 @@ import {
   PART_B_BASE_PREMIUM_2026,
   REGION_MULTIPLIERS,
   acaAgeCurveFactor,
-  federalPovertyLevel
+  federalPovertyLevel,
+  medicaidIncomeThreshold,
+  subsidyCliffIncome
 } from "@/lib/calculations/healthcare-data";
 
 function baseInput(overrides: Partial<HealthcareCostInput> = {}): HealthcareCostInput {
@@ -72,6 +74,21 @@ describe("ACA applicable percentage", () => {
   it("returns null at or above the 400% FPL cliff", () => {
     expect(acaApplicablePercent(4.0)).toBeNull();
     expect(acaApplicablePercent(4.5)).toBeNull();
+  });
+});
+
+describe("eligibility threshold dollars (callout text)", () => {
+  // The concrete dollars shown in the pre-65 eligibility/subsidy callouts must
+  // match the published 2026 figures (2025 FPL guidelines) in
+  // HEALTHCARE_2026_DATA.md, derived from the single FPL source of truth.
+  it("matches the documented Medicaid (138%) line for a household of 1 and 2", () => {
+    expect(medicaidIncomeThreshold(1)).toBe(21_597);
+    expect(medicaidIncomeThreshold(2)).toBe(29_187);
+  });
+
+  it("matches the documented subsidy cliff (400%) for a household of 1 and 2", () => {
+    expect(subsidyCliffIncome(1)).toBe(62_600);
+    expect(subsidyCliffIncome(2)).toBe(84_600);
   });
 });
 

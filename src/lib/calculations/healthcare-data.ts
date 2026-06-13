@@ -12,8 +12,13 @@
 // ---------------------------------------------------------------------------
 
 // 2025 HHS poverty guidelines, 48 contiguous states + DC. 2026 marketplace
-// coverage uses the *prior* year's (2025) guidelines.
-// Source: HHS ASPE 2025 Poverty Guidelines.
+// coverage uses the *prior* year's (2025) guidelines. This is the single source
+// of truth for every Federal Poverty Level dollar shown anywhere in the app —
+// the threshold dollars in the eligibility callouts are derived from these
+// figures and the multiples below, never hardcoded separately.
+// Source: HHS ASPE 2025 Poverty Guidelines, as compiled in
+// docs/product-strategy/HEALTHCARE_2026_DATA.md (2026 coverage / 2025 FPL
+// guidelines). 100% FPL = $15,650 (1 person), $21,150 (2), +$5,500 each more.
 // LIMITATION: Alaska and Hawaii have separate, higher poverty guidelines that
 // this calculator does not model. Residents of those states will see ACA
 // subsidies estimated slightly low.
@@ -66,6 +71,20 @@ export const DEFAULT_REAL_DISCOUNT_RATE = 0.03;
 //           Extra Help; 135% FPL is used as one simplifying threshold for both.
 export const MEDICAID_FPL_THRESHOLD = 1.38;
 export const MEDICARE_LOW_INCOME_FPL_THRESHOLD = 1.35;
+
+// Concrete income thresholds (whole dollars) used by the eligibility callouts,
+// derived from the household-size-aware FPL above and the SAME multiples the
+// subsidy engine uses — so the dollar shown to the user can never drift from the
+// number the model actually applies. With the 2026 figures these resolve to the
+// values in HEALTHCARE_2026_DATA.md: e.g. household of 2 → Medicaid line (138%)
+// $29,187, subsidy cliff (400%) $84,600; household of 1 → $21,597 and $62,600.
+export function medicaidIncomeThreshold(householdSize: number) {
+  return Math.round(federalPovertyLevel(householdSize) * MEDICAID_FPL_THRESHOLD);
+}
+
+export function subsidyCliffIncome(householdSize: number) {
+  return Math.round(federalPovertyLevel(householdSize) * ACA_SUBSIDY_CLIFF_FPL);
+}
 
 // ---------------------------------------------------------------------------
 // Internal benchmark-premium estimate (so users don't have to look up their
