@@ -619,7 +619,8 @@ export function HealthcareCostPanel() {
                       </>
                     ) : null}
                     Relativity factors and copays are 2026 estimates (medicare.gov / KFF national
-                    averages). Dental, vision &amp; hearing is added separately below.
+                    averages). Dental, vision &amp; hearing is added separately below. This is a
+                    planning estimate, not a quote, and it excludes long-term care.
                   </p>
                 </div>
                 <NumberInput

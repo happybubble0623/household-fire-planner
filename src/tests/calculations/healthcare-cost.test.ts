@@ -463,15 +463,25 @@ describe("healthcare cost projection", () => {
       expect(grossAt("G", "high")).toBeLessThanOrEqual(grossAt("N", "high"));
     });
 
-    it("includes dental/vision/hearing in the Medicare-years totals", () => {
+    it("counts dental/vision/hearing in the lifetime total but NOT in the per-plan out-of-pocket figure", () => {
       const without = medicareYear0({ medigapPlanLetter: "G", dentalVisionHearingAnnual: 0 });
       const withDvh = medicareYear0({ medigapPlanLetter: "G", dentalVisionHearingAnnual: 1_200 });
-      // The $1,200 lands in out-of-pocket, gross cost, lifetime, and present value.
-      expect(withDvh.rows[0].outOfPocket - without.rows[0].outOfPocket).toBeCloseTo(1_200, 2);
+      // DVH stays OUT of the medical out-of-pocket figure — Plan G's OOP is the
+      // ~$283 Part B deductible whether or not DVH is included. It's a separate
+      // line (its own `dvh` field), so the per-plan OOP number stays honest.
+      expect(withDvh.rows[0].outOfPocket).toBeCloseTo(without.rows[0].outOfPocket, 2);
+      expect(withDvh.rows[0].outOfPocket).toBeLessThanOrEqual(300);
+      expect(without.rows[0].dvh).toBe(0);
+      expect(withDvh.rows[0].dvh).toBeCloseTo(1_200, 2);
+      // ...but it DOES land in gross cost, the lifetime Medicare total, the
+      // present-value headline, and the separate DVH present-value slice.
       expect(withDvh.rows[0].grossCost - without.rows[0].grossCost).toBeCloseTo(1_200, 2);
       expect(withDvh.totalMedicareCost - without.totalMedicareCost).toBeCloseTo(1_200, 2);
       expect(withDvh.presentValueTotal).toBeGreaterThan(without.presentValueTotal);
-      // Per person: a couple incurs twice the DVH cost.
+      expect(withDvh.presentValueDvhCost).toBeGreaterThan(0);
+      expect(without.presentValueDvhCost).toBe(0);
+      // Per person: a couple incurs twice the DVH cost — in the `dvh` line and
+      // gross cost, still NOT in the out-of-pocket figure.
       const couple = medicareYear0({
         household: "couple",
         medigapPlanLetter: "G",
@@ -482,7 +492,8 @@ describe("healthcare cost projection", () => {
         medigapPlanLetter: "G",
         dentalVisionHearingAnnual: 0
       });
-      expect(couple.rows[0].outOfPocket - coupleWithout.rows[0].outOfPocket).toBeCloseTo(2_400, 2);
+      expect(couple.rows[0].dvh - coupleWithout.rows[0].dvh).toBeCloseTo(2_400, 2);
+      expect(couple.rows[0].outOfPocket).toBeCloseTo(coupleWithout.rows[0].outOfPocket, 2);
     });
 
     it("prints the worked G/N/F × low/moderate/high crossover table (default scenario)", () => {

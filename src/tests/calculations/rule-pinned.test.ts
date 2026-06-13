@@ -237,11 +237,10 @@ describe("Healthcare / ACA / Medicare — rule-pinned (IRS / CMS / healthcare.go
   // ACTUAL today: 0.30 × $6,000 (an MA-style OOP-max) = $1,800/yr/person.
   // Impact: ≈ $1,517/yr/person overstatement, compounding over the Medicare years.
   it("HC-7 [BUG §2.1]: Medigap Plan G annual medical OOP ≈ Part B deductible (~$283), not $1,800", () => {
-    // DVH pinned to 0 so this isolates the medical cost-sharing (the bug under
-    // test); routine dental/vision/hearing is a separate, non-medical add-on.
-    const r = estimateHealthcareCosts(
-      hcInput({ medicareCoverage: "medigap", medicareOopUsage: "moderate", dentalVisionHearingAnnual: 0 })
-    );
+    // The default input carries the $1,200 DVH; this STILL passes because DVH is
+    // a SEPARATE line item (its own `dvh` field), never folded into outOfPocket —
+    // so the per-plan medical OOP genuinely stays ≈ the $283 Part B deductible.
+    const r = estimateHealthcareCosts(hcInput({ medicareCoverage: "medigap", medicareOopUsage: "moderate" }));
     // Year-0 (no inflation) Medicare OOP for a single Plan G enrollee.
     expect(r.rows[0].outOfPocket).toBeLessThanOrEqual(300);
   });

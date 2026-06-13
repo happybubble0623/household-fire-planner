@@ -113,6 +113,12 @@ export type HealthcareYearRow = {
   // ACA premium tax credit applied this year (0 during Medicare).
   subsidy: number;
   outOfPocket: number;
+  // Routine dental, vision & hearing — Original Medicare does not cover these.
+  // Kept as a SEPARATE field (NOT folded into outOfPocket) so the per-plan
+  // out-of-pocket figure stays honest (Plan G ≈ the $283 Part B deductible),
+  // while still counting toward grossCost / the lifetime total for the 65+
+  // years. Zero in the pre-65 ACA years.
+  dvh: number;
   travelPremium: number;
   hsaDraw: number;
   // Total economic cost this year.
@@ -148,6 +154,13 @@ export type HealthcareCostResult = {
   presentValueTotal: number;
   presentValueAcaCost: number;
   presentValueMedicareCost: number;
+  // Dental, vision & hearing slice of the lifetime cost, surfaced separately so
+  // the UI can show it as its own labeled line. It IS included in the totals
+  // above (it is part of the Medicare-years grossCost), just not in the medical
+  // out-of-pocket figure.
+  presentValueDvhCost: number;
+  nominalDvhCost: number;
+  todayDollarsDvhTotal: number;
   // Undiscounted average yearly cost in today's dollars (the sub-line figure).
   averageAnnualTodayDollars: number;
   // Undiscounted real (today's-dollar) lifetime sum, for reference.
@@ -477,6 +490,11 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
   let realMedicareCost = 0;
   let nominalAcaCost = 0;
   let nominalMedicareCost = 0;
+  // Dental, vision & hearing slice (part of the Medicare totals above), tracked
+  // separately so the UI can label it as its own line.
+  let presentValueDvhCost = 0;
+  let realDvhCost = 0;
+  let nominalDvhCost = 0;
 
   for (let age = startAge; age <= endAge; age += 1) {
     const phase: HealthcarePhase = age < medicareAge ? "aca" : "medicare";
@@ -492,6 +510,10 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     let subsidy0: number;
     let oop0: number;
     let eligiblePremium0: number; // HSA-qualified premium portion
+    // Dental, vision & hearing — a SEPARATE line from medical out-of-pocket.
+    // Only the Medicare (65+) years carry it, and the low-income (MSP/Medicaid)
+    // override drives it to ~free alongside the rest.
+    let dvh0 = 0;
 
     if (phase === "aca") {
       if (medicaidEligiblePre65) {
@@ -525,12 +547,15 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
         // plan replaces the supplemental coverage and Part D. Dental/vision/
         // hearing stays a cost — it's uncovered either way.
         premium0 = annualPartB0;
-        oop0 = medicareOop0 + dvhAnnual0;
+        oop0 = medicareOop0;
+        dvh0 = dvhAnnual0;
         eligiblePremium0 = annualPartB0;
       } else {
         premium0 = annualPartB0 + medicareCoverage0 + annualPartDSurcharge0;
-        // Add routine dental/vision/hearing — uncovered by Medicare + Medigap.
-        oop0 = medicareOop0 + dvhAnnual0;
+        oop0 = medicareOop0;
+        // Routine dental/vision/hearing — uncovered by Medicare + Medigap. Kept
+        // SEPARATE from oop0 so the per-plan out-of-pocket figure stays honest.
+        dvh0 = dvhAnnual0;
         eligiblePremium0 = medicareEligiblePremium0;
       }
     }
@@ -541,10 +566,13 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     const premium = premium0 * nominalFactor;
     const subsidy = subsidy0 * nominalFactor;
     const outOfPocket = oop0 * nominalFactor;
+    const dvh = dvh0 * nominalFactor;
     const travelPremium = travelAnnual0 * nominalFactor;
     const eligiblePremium = eligiblePremium0 * nominalFactor;
 
-    const grossCost = premium + outOfPocket + travelPremium;
+    // DVH is a real cost but a SEPARATE line from medical out-of-pocket; it still
+    // belongs in the total the household sets aside for the 65+ years.
+    const grossCost = premium + outOfPocket + dvh + travelPremium;
 
     // The same nominal gross expressed in the three reconciling bases: nominal
     // (sticker), undiscounted today's-dollar (real), and discounted present
@@ -564,14 +592,20 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
       nominalMedicareCost += nominalGross;
     }
 
+    // Accumulate the DVH slice in all three bases (it is part of the Medicare
+    // totals above; surfaced separately for the labeled line item).
+    presentValueDvhCost += dvh * presentValueDeflator;
+    realDvhCost += dvh * realDeflator;
+    nominalDvhCost += dvh;
+
     // HSA drawdown. gap_first draws in both phases; medicare_first reserves the
     // HSA for the Medicare years; off never draws.
     const strategyActive =
       input.hsaStrategy === "gap_first" ||
       (input.hsaStrategy === "medicare_first" && phase === "medicare");
-    // HSA can fund qualified premiums plus all out-of-pocket spend (and travel
-    // premiums are not qualified).
-    const hsaEligibleExpense = eligiblePremium + outOfPocket;
+    // HSA can fund qualified premiums plus all out-of-pocket spend, including
+    // dental/vision/hearing (all HSA-qualified); travel premiums are not.
+    const hsaEligibleExpense = eligiblePremium + outOfPocket + dvh;
     hsaBalance *= 1 + input.hsaGrowth;
     let hsaDraw = 0;
     if (strategyActive && hsaBalance > 0 && hsaEligibleExpense > 0) {
@@ -592,6 +626,7 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
       premium: round2(premium),
       subsidy: round2(subsidy),
       outOfPocket: round2(outOfPocket),
+      dvh: round2(dvh),
       travelPremium: round2(travelPremium),
       hsaDraw: round2(hsaDraw),
       grossCost: round2(grossCost),
@@ -634,6 +669,9 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     presentValueTotal: round2(presentValueTotal),
     presentValueAcaCost: round2(presentValueAcaCost),
     presentValueMedicareCost: round2(presentValueMedicareCost),
+    presentValueDvhCost: round2(presentValueDvhCost),
+    nominalDvhCost: round2(nominalDvhCost),
+    todayDollarsDvhTotal: round2(realDvhCost),
     averageAnnualTodayDollars: totalYears ? round2(todayDollarsLifetimeTotal / totalYears) : 0,
     todayDollarsLifetimeTotal: round2(todayDollarsLifetimeTotal),
     nominalLifetimeTotal: round2(nominalLifetimeTotal),
