@@ -351,6 +351,9 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
             <Link href="/what-is-fire" style={{ color: "var(--g700)", fontWeight: 600 }}>
               What is FIRE?
             </Link>
+            <Link href="/early-retirement-guide" style={{ color: "var(--g700)", fontWeight: 600 }}>
+              Early Retirement Guide
+            </Link>
             <Link href="/fire-glossary" style={{ color: "var(--g700)", fontWeight: 600 }}>
               Glossary
             </Link>

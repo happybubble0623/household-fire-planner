@@ -328,7 +328,17 @@ export default function WhatIsFirePage() {
                 How to start
               </h2>
               <div className={proseClass}>
-                <p>You do not need to have it all figured out. A practical first pass looks like this:</p>
+                <p>
+                  You do not need to have it all figured out. A practical first pass looks like
+                  this — or follow the full{" "}
+                  <Link
+                    href="/early-retirement-guide"
+                    className="font-medium text-[var(--primary)] hover:underline"
+                  >
+                    early retirement planning guide
+                  </Link>
+                  :
+                </p>
                 <ol className="list-decimal space-y-2 pl-5">
                   <li>
                     <strong className="text-gray-900">Know your yearly spending.</strong> This is

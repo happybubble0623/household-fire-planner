@@ -12,6 +12,11 @@ import { AccountNav } from "@/components/layout/account-nav";
 // source so the desktop dropdown and the mobile menu stay in sync.
 const LEARN_LINKS: Array<{ href: string; label: string; blurb: string }> = [
   { href: "/what-is-fire", label: "What is FIRE?", blurb: "Plain-English beginner's guide" },
+  {
+    href: "/early-retirement-guide",
+    label: "Early Retirement Guide",
+    blurb: "Step-by-step FIRE planning roadmap"
+  },
   { href: "/fire-glossary", label: "Glossary", blurb: "FIRE & retirement terms defined" }
 ];
 
