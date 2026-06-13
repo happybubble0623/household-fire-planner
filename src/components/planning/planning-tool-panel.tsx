@@ -434,6 +434,27 @@ export function RelatedTools({ current }: { current: PlanningTool }) {
       <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
         More planning tools
       </h2>
+      <Link
+        href="/app/portfolio-lab"
+        className="group block rounded-2xl border-[1.5px] border-[var(--gold)] bg-[var(--surface)] p-5 shadow-md ring-4 ring-[var(--gold-bg)] transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+      >
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-2.5 py-1 text-[11px] font-bold text-gray-900">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
+            <path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z" />
+          </svg>
+          Our flagship
+        </span>
+        <span className="mt-3 block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
+          Understand Your Portfolio
+        </span>
+        <span className="mt-2 block text-sm leading-relaxed text-gray-500">
+          See every account in one place — your whole household portfolio, with daily prices. Free,
+          no login.
+        </span>
+        <span className="mt-3 inline-block text-[13px] font-semibold text-[var(--primary-hover)]">
+          Open the Portfolio Tracker &rarr;
+        </span>
+      </Link>
       <div className="grid gap-4 md:grid-cols-3">
         {tools.map((tool) => (
           <Link

@@ -26,6 +26,7 @@ const toc = [
   { id: "overview", label: "What this guide covers" },
   { id: "fire-number", label: "Start with your FIRE number" },
   { id: "stages", label: "The journey, in three stages" },
+  { id: "portfolio", label: "See your whole portfolio" },
   { id: "pieces", label: "The pieces to plan" },
   { id: "models", label: "Choose how you'll fund it" },
   { id: "mistakes", label: "What people get wrong" },
@@ -214,6 +215,30 @@ export default function EarlyRetirementGuidePage() {
                   Medicare, with new premiums and IRMAA surcharges to plan for.
                 </li>
               </ol>
+            </section>
+
+            <section aria-labelledby="portfolio">
+              <Link
+                href="/app/portfolio-lab"
+                className="group block rounded-2xl border-[1.5px] border-[var(--gold)] bg-[var(--surface)] p-7 shadow-md ring-4 ring-[var(--gold-bg)] transition-all hover:-translate-y-0.5 hover:shadow-lg sm:p-8"
+              >
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-3 py-1 text-xs font-bold text-gray-900">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z" />
+                  </svg>
+                  Our flagship — start here
+                </span>
+                <h2 id="portfolio" className="mt-4 scroll-mt-24 text-2xl font-bold tracking-[-0.01em] text-gray-900 sm:text-[1.7rem]">
+                  Understand Your Portfolio
+                </h2>
+                <p className="mt-3 max-w-2xl text-base leading-relaxed text-gray-600">
+                  See every account in one place — your whole household portfolio, with daily
+                  prices. Free, no login.
+                </p>
+                <span className="mt-4 inline-block text-sm font-semibold text-[var(--primary)]">
+                  Open the Portfolio Tracker &rarr;
+                </span>
+              </Link>
             </section>
 
             <section aria-labelledby="pieces" className="space-y-4">

@@ -405,6 +405,26 @@ export default function WhatIsFirePage() {
                 choose to create an account.
               </p>
 
+              <Link
+                href="/app/portfolio-lab"
+                className="group block rounded-2xl border-[1.5px] border-[var(--gold)] bg-[var(--surface)] p-6 shadow-md ring-4 ring-[var(--gold-bg)] transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-3 py-1 text-xs font-bold text-gray-900">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z" />
+                  </svg>
+                  Our flagship — start here
+                </span>
+                <h3 className="mt-3 text-lg font-semibold text-gray-900">Understand Your Portfolio</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-600">
+                  See every account in one place — your whole household portfolio, with daily
+                  prices. Free, no login.
+                </p>
+                <span className="mt-3 inline-block text-sm font-semibold text-[var(--primary)]">
+                  Open the Portfolio Tracker &rarr;
+                </span>
+              </Link>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 {[
                   {

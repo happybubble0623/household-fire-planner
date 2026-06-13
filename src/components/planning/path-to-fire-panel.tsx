@@ -73,6 +73,8 @@ const auroraCss = `
 .aurora-home .btn.p:hover{background:var(--g700)}
 .aurora-home .btn.g{border:1px solid var(--n200);background:#fff;color:var(--n900)}
 .aurora-home .btn.g:hover{border-color:var(--n300)}
+.aurora-home .btn.gold{background:var(--gold);color:var(--n900);box-shadow:0 6px 18px rgba(245,179,1,.28)}
+.aurora-home .btn.gold:hover{background:#e3a600}
 .aurora-home .btn.lg{height:50px;padding:0 22px;font-size:15px}
 .aurora-home .hcenter{text-align:center;padding:40px 0 56px;max-width:1000px;margin:0 auto}
 .aurora-home .tag{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);backdrop-filter:blur(6px);padding:7px 15px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--g700);box-shadow:0 2px 10px rgba(16,40,24,.05)}
@@ -220,12 +222,15 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
               </Link>
             </p>
             <div className="cta">
+              <Link href="/app/portfolio-lab" className="btn gold lg">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z" />
+                </svg>
+                Track your whole portfolio
+              </Link>
               <a href="#strategies" className="btn p lg">
                 Map your path →
               </a>
-              <Link href="/app/portfolio-lab" className="btn g lg">
-                Track your whole portfolio
-              </Link>
             </div>
             <div className="glass floatkpi">
               <div className="kpis">

@@ -27,6 +27,12 @@ const navItemClass =
 const navItemHoverClass = "hover:bg-[rgba(16,40,24,0.05)] hover:text-gray-900";
 const navItemActiveClass = "bg-[rgba(16,40,24,0.05)] text-gray-900";
 
+// Flagship "Portfolio Tracker" link — a gold-accent pill (same gold tokens used
+// for "featured" surfaces sitewide) so it reads as the lead, marquee feature,
+// more prominent than the Calculators dropdown. Used on desktop and mobile.
+const navPortfolioClass =
+  "inline-flex items-center gap-[5px] rounded-lg border border-[var(--gold-border)] bg-[var(--gold-bg)] px-[11px] py-2 text-sm font-semibold text-[var(--gold-text)] transition-colors duration-150 hover:bg-[var(--gold-border)]";
+
 const dropdownClass =
   "invisible absolute left-0 top-full z-30 min-w-[248px] -translate-y-1 rounded-xl border border-[var(--border)] bg-white p-1.5 opacity-0 shadow-[0_18px_40px_rgba(16,40,24,0.14)] transition-all duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100";
 const dropdownItemClass =
@@ -110,6 +116,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="hidden items-center gap-1.5 min-[880px]:flex"
             aria-label="Primary navigation"
           >
+            <Link
+              href="/app/portfolio-lab"
+              className={cn(
+                navPortfolioClass,
+                isActive("/app/portfolio-lab") && "border-[var(--gold)]"
+              )}
+              aria-current={isActive("/app/portfolio-lab") ? "page" : undefined}
+            >
+              Portfolio Tracker
+            </Link>
+
             <div className="group relative">
               <button
                 type="button"
@@ -168,18 +185,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 ))}
               </div>
             </div>
-
-            <Link
-              href="/app/portfolio-lab"
-              className={cn(
-                navItemClass,
-                navItemHoverClass,
-                isActive("/app/portfolio-lab") && navItemActiveClass
-              )}
-              aria-current={isActive("/app/portfolio-lab") ? "page" : undefined}
-            >
-              Portfolio
-            </Link>
 
             <div className="group relative">
               <button
@@ -253,6 +258,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if ((event.target as HTMLElement).closest("a")) setMenuOpen(false);
             }}
           >
+            <Link
+              href="/app/portfolio-lab"
+              className={cn(
+                "mb-2 block rounded-lg border border-[var(--gold-border)] bg-[var(--gold-bg)] px-[11px] py-2.5 text-sm font-semibold text-[var(--gold-text)]",
+                isActive("/app/portfolio-lab") && "border-[var(--gold)]"
+              )}
+              aria-current={isActive("/app/portfolio-lab") ? "page" : undefined}
+            >
+              Portfolio Tracker
+            </Link>
             <p className="px-[11px] pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
               Strategies
             </p>
@@ -286,16 +301,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
             <div className="mt-2 border-t border-[var(--border)] pt-2">
-              <Link
-                href="/app/portfolio-lab"
-                className={cn(
-                  mobileLinkClass,
-                  isActive("/app/portfolio-lab") && navItemActiveClass
-                )}
-                aria-current={isActive("/app/portfolio-lab") ? "page" : undefined}
-              >
-                Portfolio
-              </Link>
               <Link
                 href="/about"
                 className={cn(

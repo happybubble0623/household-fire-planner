@@ -27,7 +27,7 @@ describe("AppShell header", () => {
     const desktopNav = primaryNavs[0];
     expect(within(desktopNav).getByRole("button", { name: /Strategies/i })).toBeInTheDocument();
     expect(within(desktopNav).getByRole("button", { name: /Calculators/i })).toBeInTheDocument();
-    expect(within(desktopNav).getByRole("link", { name: "Portfolio" })).toHaveAttribute(
+    expect(within(desktopNav).getByRole("link", { name: "Portfolio Tracker" })).toHaveAttribute(
       "href",
       "/app/portfolio-lab"
     );
@@ -61,7 +61,7 @@ describe("AppShell header", () => {
     const mobilePanel = document.getElementById("mobile-navigation");
     expect(mobilePanel).not.toBeNull();
     // Mobile menu carries the same destinations.
-    expect(within(mobilePanel as HTMLElement).getByRole("link", { name: "Portfolio" })).toHaveAttribute(
+    expect(within(mobilePanel as HTMLElement).getByRole("link", { name: "Portfolio Tracker" })).toHaveAttribute(
       "href",
       "/app/portfolio-lab"
     );
