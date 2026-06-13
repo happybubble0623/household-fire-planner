@@ -16,7 +16,11 @@ import {
   METAL_TIER_PRESETS,
   NATIONAL_BENCHMARK_SILVER_BASE_21,
   OOP_USAGE_PRESETS,
+  PART_A_DEDUCTIBLE_2026,
+  PART_A_HOSPITALIZATION_LIKELIHOOD_BY_USAGE,
+  PART_B_ASSUMED_SPEND_BY_USAGE,
   PART_B_BASE_PREMIUM_2026,
+  PART_B_COINSURANCE_RATE,
   PART_B_DEDUCTIBLE_2026,
   PART_D_OOP_CAP_2026,
   PLAN_N_ER_COPAY,
@@ -33,7 +37,7 @@ import {
 } from "@/lib/calculations/healthcare-data";
 
 export type HealthcareHousehold = "single" | "couple";
-export type MedicareCoverage = "medigap" | "advantage";
+export type MedicareCoverage = "medigap" | "advantage" | "original_only";
 export type HsaStrategy = "gap_first" | "medicare_first" | "off";
 export type TravelMode = "off" | "supplement" | "replace";
 export type HealthcarePhase = "aca" | "medicare";
@@ -373,6 +377,32 @@ export function medigapExpectedOutOfPocket(usage: OopUsage, planLetter?: string)
   return medical + drugOop;
 }
 
+// Expected annual out-of-pocket for going bare on ORIGINAL MEDICARE with no
+// supplement and no Advantage plan, per person, in today's dollars. This is an
+// estimate of an AVERAGE year — and crucially it applies NO annual ceiling,
+// because Original Medicare alone has none. That is the whole point: a low
+// average here is NOT a low risk. A single serious illness can run to tens of
+// thousands in one year because the 20% Part B coinsurance is uncapped.
+//   • Part B annual deductible ($283).
+//   • + 20% coinsurance on an assumed annual Part-B-covered spend (by usage),
+//     with NO cap.
+//   • + an expected-value Part A inpatient deductible allowance (the Part A
+//     deductible × an assumed hospitalization likelihood by usage).
+//   • + the SAME Part D drug component used in the Medigap path (drug spend is
+//     a Part D matter, not a supplement one), capped at the Part D OOP ceiling.
+// Routine dental/vision/hearing is added separately by the caller, as with the
+// Medigap path. Source: CMS 2026 Part A & B deductibles; CMS Part D redesign.
+export function originalMedicareExpectedOutOfPocket(usage: OopUsage): number {
+  // An explicit dollar override always wins.
+  if (typeof usage === "object") return Math.max(0, usage.expectedAnnualOop);
+
+  const partBCoinsurance = PART_B_ASSUMED_SPEND_BY_USAGE[usage] * PART_B_COINSURANCE_RATE;
+  const partAAllowance = PART_A_DEDUCTIBLE_2026 * PART_A_HOSPITALIZATION_LIKELIHOOD_BY_USAGE[usage];
+  const drugOop = Math.min(PART_D_OOP_CAP_2026, MEDIGAP_DRUG_OOP_BY_USAGE[usage]);
+  // NO annual ceiling is applied here — Original Medicare alone has none.
+  return PART_B_DEDUCTIBLE_2026 + partBCoinsurance + partAAllowance + drugOop;
+}
+
 export type MedigapPlanEstimate = {
   effectiveMonthlyPremium: number;
   annualMedicalOutOfPocket: number;
@@ -472,22 +502,34 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     input.medigapMonthly,
     input.medigapPlanLetter
   );
+  // Coverage premium added on top of Part B (per person, scaled by people):
+  //   • medigap        → Medigap supplement + Part D
+  //   • advantage      → the single Advantage premium (bundles drug coverage)
+  //   • original_only  → Part D ONLY (no supplement, no Advantage premium)
   const medicareCoverage0 =
     input.medicareCoverage === "medigap"
       ? (effectiveMedigapMonthly + input.partDMonthly) * 12 * people
-      : input.advantageMonthly * 12 * people;
+      : input.medicareCoverage === "advantage"
+        ? input.advantageMonthly * 12 * people
+        : input.partDMonthly * 12 * people;
   // Medicare out-of-pocket is modeled differently by coverage type. Medicare
   // Advantage has a real annual out-of-pocket maximum, so the "OOP max × usage"
   // model applies. Original Medicare + Medigap has NO OOP max — its predictable
   // exposure is the Part B deductible plus small plan/drug cost-sharing — so it
-  // uses a plan-letter model instead. Both are PER PERSON, scaled by people to
-  // match the premium columns (which are already ×people).
+  // uses a plan-letter model. Original Medicare with NO supplement also has no
+  // OOP max, but unlike Medigap its 20% coinsurance is fully exposed, so it uses
+  // the uncapped going-bare model. All are PER PERSON, scaled by people to match
+  // the premium columns (which are already ×people).
   const medicareOop0 =
     input.medicareCoverage === "advantage"
       ? expectedOutOfPocket(input.medicareOopUsage, input.medicareOutOfPocketMax) * people
-      : medigapExpectedOutOfPocket(input.medicareOopUsage, input.medigapPlanLetter) * people;
+      : input.medicareCoverage === "original_only"
+        ? originalMedicareExpectedOutOfPocket(input.medicareOopUsage) * people
+        : medigapExpectedOutOfPocket(input.medicareOopUsage, input.medigapPlanLetter) * people;
   // HSA-eligible Medicare premium portion (excludes Medigap premiums, which are
-  // not HSA-qualified; Part D and Medicare Advantage premiums are).
+  // not HSA-qualified; Part B, Part D, and Medicare Advantage premiums are). For
+  // original_only there is no supplement, so medicareCoverage0 is Part D only —
+  // fully HSA-qualified — and the else branch below covers it correctly.
   const medicareEligiblePremium0 =
     input.medicareCoverage === "medigap"
       ? annualPartB0 + input.partDMonthly * 12 * people + annualPartDSurcharge0

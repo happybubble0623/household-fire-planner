@@ -185,6 +185,12 @@ export function csrSilverOopMaxPerPerson(incomePctFpl: number): number | null {
 // Source: CMS 2026 Medicare Parts B Premiums & Deductibles fact sheet.
 export const PART_B_BASE_PREMIUM_2026 = 202.9; // per person, per month
 export const PART_B_DEDUCTIBLE_2026 = 283; // per person, per year
+// 2026 Part A inpatient hospital deductible, charged once per benefit period
+// (NOT annual — a new period can start after 60 days out of hospital, so a bad
+// year can incur it more than once). Original Medicare with no supplement
+// leaves the enrollee on the hook for this; Medigap covers it.
+// Source: CMS 2026 Medicare Parts A Premiums & Deductibles fact sheet.
+export const PART_A_DEDUCTIBLE_2026 = 1_676; // per benefit period
 export const MEDICARE_AGE = 65;
 
 // 2026 IRMAA brackets. IRMAA is determined by MAGI from two years prior (2024
@@ -238,6 +244,44 @@ export const MEDIGAP_DRUG_OOP_BY_USAGE: Record<OopUsageLevel, number> = {
   low: 0,
   moderate: 0,
   high: 1_700
+};
+
+// ---------------------------------------------------------------------------
+// Original Medicare with NO supplement ("going bare") cost model
+// ---------------------------------------------------------------------------
+// Original Medicare alone (Parts A & B, no Medigap and no Advantage) has NO
+// annual out-of-pocket maximum. The enrollee pays the Part B deductible, then
+// 20% coinsurance on every Part-B-covered service with no ceiling, plus the
+// Part A inpatient deductible for any hospital stay. The constants below model
+// an AVERAGE year by usage level; the real risk is the uncapped worst case,
+// which this average cannot capture (a single serious illness can run to tens
+// of thousands). All figures are per person, in today's dollars, and are 2026
+// planning ESTIMATES — adjustable.
+
+// Assumed annual Medicare-approved Part-B-covered charges, by usage level. The
+// enrollee pays 20% of this as coinsurance (after the Part B deductible) with
+// no cap. Low ≈ a healthy year of routine office visits and labs; moderate ≈ a
+// typical year with some imaging/specialist care; high ≈ a heavy year with
+// outpatient procedures or chemo-style drugs billed under Part B.
+// Estimate, adjustable — order-of-magnitude from CMS Part B utilization data.
+export const PART_B_ASSUMED_SPEND_BY_USAGE: Record<OopUsageLevel, number> = {
+  low: 3_000, // → $600 coinsurance
+  moderate: 8_000, // → $1,600 coinsurance
+  high: 22_000 // → $4,400 coinsurance
+};
+
+// The 20% Part B coinsurance share the enrollee pays out of pocket (no cap on
+// Original Medicare without a supplement).
+export const PART_B_COINSURANCE_RATE = 0.2;
+
+// Assumed likelihood of at least one inpatient hospital stay (incurring the
+// Part A deductible) in a year, by usage level. Multiplied by the Part A
+// deductible as an expected-value allowance for the average year.
+// Estimate, adjustable — rough order-of-magnitude for the 65+ population.
+export const PART_A_HOSPITALIZATION_LIKELIHOOD_BY_USAGE: Record<OopUsageLevel, number> = {
+  low: 0.05,
+  moderate: 0.15,
+  high: 0.4
 };
 
 // ---------------------------------------------------------------------------

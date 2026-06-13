@@ -8,6 +8,7 @@ import {
   medigapEffectiveMonthlyPremium,
   medigapExpectedOutOfPocket,
   medigapPlanEstimate,
+  originalMedicareExpectedOutOfPocket,
   selectIrmaaTier,
   type HealthcareCostInput
 } from "@/lib/calculations/healthcare-cost";
@@ -19,7 +20,11 @@ import {
   METAL_TIER_PRESETS,
   NATIONAL_BENCHMARK_SILVER_BASE_21,
   OOP_USAGE_PRESETS,
+  PART_A_DEDUCTIBLE_2026,
+  PART_A_HOSPITALIZATION_LIKELIHOOD_BY_USAGE,
+  PART_B_ASSUMED_SPEND_BY_USAGE,
   PART_B_BASE_PREMIUM_2026,
+  PART_B_COINSURANCE_RATE,
   PART_B_DEDUCTIBLE_2026,
   REGION_MULTIPLIERS,
   acaAgeCurveFactor,
@@ -556,6 +561,100 @@ describe("healthcare cost projection", () => {
       // Acceptance proof, asserted as well as printed:
       expect(totals.low.N).toBeLessThan(totals.low.G); // N cheapest at low usage
       expect(totals.high.G).toBeLessThanOrEqual(totals.high.N); // G ≤ N at high usage
+    });
+  });
+
+  describe("Original Medicare with NO supplement (going bare)", () => {
+    // A single Medicare year at growth factor 1 (year 0) so the figures are
+    // exact and free of inflation rounding. DVH pinned to 0 (via baseInput) so
+    // the totals isolate the going-bare medical/drug economics.
+    const PLAN_G_BASE = 155;
+    const PART_D = 40;
+    const bareYear0 = (overrides: Partial<HealthcareCostInput> = {}) =>
+      estimateHealthcareCosts(
+        baseInput({
+          household: "single",
+          currentAge: 65,
+          fireAge: 65,
+          planToAge: 65,
+          medicareCoverage: "original_only",
+          medigapMonthly: PLAN_G_BASE,
+          partDMonthly: PART_D,
+          ...overrides
+        })
+      );
+
+    it("models an uncapped average-year out-of-pocket from the documented constants", () => {
+      // Part B deductible + 20% coinsurance on the assumed Part-B-covered spend
+      // + (Part A deductible × hospitalization likelihood) + shared Part D drug.
+      const expected = (usage: "low" | "moderate" | "high") =>
+        PART_B_DEDUCTIBLE_2026 +
+        PART_B_ASSUMED_SPEND_BY_USAGE[usage] * PART_B_COINSURANCE_RATE +
+        PART_A_DEDUCTIBLE_2026 * PART_A_HOSPITALIZATION_LIKELIHOOD_BY_USAGE[usage] +
+        (usage === "high" ? 1_700 : 0);
+      expect(originalMedicareExpectedOutOfPocket("low")).toBeCloseTo(expected("low"), 2); // 966.80
+      expect(originalMedicareExpectedOutOfPocket("moderate")).toBeCloseTo(expected("moderate"), 2); // 2134.40
+      expect(originalMedicareExpectedOutOfPocket("high")).toBeCloseTo(expected("high"), 2); // 7053.40
+      // Strictly increasing with usage (no ceiling clamps the high tier down).
+      expect(originalMedicareExpectedOutOfPocket("moderate")).toBeGreaterThan(
+        originalMedicareExpectedOutOfPocket("low")
+      );
+      expect(originalMedicareExpectedOutOfPocket("high")).toBeGreaterThan(
+        originalMedicareExpectedOutOfPocket("moderate")
+      );
+      // An explicit-dollar usage override flows straight through.
+      expect(originalMedicareExpectedOutOfPocket({ expectedAnnualOop: 1_234 })).toBeCloseTo(1_234, 2);
+    });
+
+    it("(a) at high usage exposes more out-of-pocket than ANY Medigap letter (uncapped)", () => {
+      const bareHigh = bareYear0({ medicareOopUsage: "high" }).rows[0].outOfPocket;
+      // The whole point: with no supplement the 20% coinsurance is uncapped, so
+      // the going-bare exposure exceeds every Medigap letter's tight cost-sharing
+      // at the same usage.
+      for (const letter of ["G", "N", "F"]) {
+        const medigapHigh = estimateHealthcareCosts(
+          baseInput({
+            household: "single",
+            currentAge: 65,
+            fireAge: 65,
+            planToAge: 65,
+            medicareCoverage: "medigap",
+            medigapPlanLetter: letter,
+            medicareOopUsage: "high"
+          })
+        ).rows[0].outOfPocket;
+        expect(bareHigh).toBeGreaterThan(medigapHigh);
+      }
+    });
+
+    it("(b) premium excludes the supplement — lower than Medigap, same Part B/D/IRMAA", () => {
+      const bare = bareYear0({ medicareOopUsage: "moderate" }).rows[0];
+      const medigap = estimateHealthcareCosts(
+        baseInput({
+          household: "single",
+          currentAge: 65,
+          fireAge: 65,
+          planToAge: 65,
+          medicareCoverage: "medigap",
+          medigapPlanLetter: "G",
+          medigapMonthly: PLAN_G_BASE,
+          partDMonthly: PART_D,
+          medicareOopUsage: "moderate"
+        })
+      ).rows[0];
+      // No supplement premium → strictly lower than Medigap.
+      expect(bare.premium).toBeLessThan(medigap.premium);
+      // The only difference is the Plan-G effective premium (no other terms move).
+      expect(medigap.premium - bare.premium).toBeCloseTo(PLAN_G_BASE * 12, 2);
+      // Going-bare premium is exactly Part B + Part D (IRMAA tier 0 at this MAGI).
+      expect(bare.premium).toBeCloseTo(PART_B_BASE_PREMIUM_2026 * 12 + PART_D * 12, 2);
+    });
+
+    it("(c) couple mode doubles both the premium and the out-of-pocket", () => {
+      const single = bareYear0({ household: "single", medicareOopUsage: "high" }).rows[0];
+      const couple = bareYear0({ household: "couple", medicareOopUsage: "high" }).rows[0];
+      expect(couple.premium).toBeCloseTo(single.premium * 2, 2);
+      expect(couple.outOfPocket).toBeCloseTo(single.outOfPocket * 2, 2);
     });
   });
 

@@ -602,10 +602,21 @@ export function HealthcareCostPanel() {
               onChange={setMedicareCoverage}
               options={[
                 { value: "medigap", label: "Original Medicare + Medigap + Part D" },
-                { value: "advantage", label: "Medicare Advantage" }
+                { value: "advantage", label: "Medicare Advantage" },
+                { value: "original_only", label: "No supplement (Original Medicare only)" }
               ]}
-              help="Medigap = higher fixed premium, low predictable out-of-pocket. Medicare Advantage = low premium, higher variable out-of-pocket capped at the plan maximum."
+              help="Medigap = higher fixed premium, low predictable out-of-pocket. Medicare Advantage = low premium, higher variable out-of-pocket capped at the plan maximum. No supplement = Original Medicare alone, lowest premium but NO out-of-pocket maximum — the 20% coinsurance is fully exposed."
             />
+            {medicareCoverage === "original_only" ? (
+              <div
+                role="alert"
+                className="rounded-2xl border-2 border-[var(--negative)] bg-[var(--negative-bg)] p-4 text-sm font-medium leading-relaxed text-[var(--negative)] shadow-sm"
+              >
+                Original Medicare alone has no out-of-pocket maximum — a serious illness could cost
+                tens of thousands in a single year. Most people add Medigap or Medicare Advantage to
+                cap this.
+              </div>
+            ) : null}
             {medicareCoverage === "medigap" ? (
               <>
                 <SelectField
@@ -790,17 +801,9 @@ export function HealthcareCostPanel() {
                   help="Enter this as the Plan G premium for your age and area — the most common benchmark. The calculator re-prices the other letters from it automatically (Plan N ≈ 0.80×, Plan F ≈ 1.12×), so you only enter one number."
                   note="Estimate — default ~$155/mo is the 2025 national-average Medigap Plan G base; your premium varies by state, age, and carrier. The selected letter is re-priced from it (see the line above). Edit to a real quote."
                 />
-                <NumberInput
-                  id="hc-partd"
-                  label="Part D premium (monthly, per person)"
-                  value={partDMonthly}
-                  onChange={setPartDMonthly}
-                  step={5}
-                  help="Standalone Part D drug plan premium per person (before any IRMAA surcharge)."
-                  note="Default ~$40/mo — near the 2026 national base Part D premium ($38.99, CMS); plans range widely. Edit to yours."
-                />
               </>
-            ) : (
+            ) : null}
+            {medicareCoverage === "advantage" ? (
               <>
                 <NumberInput
                   id="hc-advantage"
@@ -821,7 +824,21 @@ export function HealthcareCostPanel() {
                   note="Default $6,000 — about the 2026 average Medicare Advantage in-network out-of-pocket (~$5,400; legal cap $9,250, KFF). Set to your plan's max."
                 />
               </>
-            )}
+            ) : null}
+            {/* Part D premium applies to both Medigap and the no-supplement
+                (Original Medicare only) path — Advantage bundles drug coverage
+                into its single premium, so it isn't shown there. */}
+            {medicareCoverage === "medigap" || medicareCoverage === "original_only" ? (
+              <NumberInput
+                id="hc-partd"
+                label="Part D premium (monthly, per person)"
+                value={partDMonthly}
+                onChange={setPartDMonthly}
+                step={5}
+                help="Standalone Part D drug plan premium per person (before any IRMAA surcharge)."
+                note="Default ~$40/mo — near the 2026 national base Part D premium ($38.99, CMS); plans range widely. Edit to yours."
+              />
+            ) : null}
             <SelectField
               id="hc-medicare-usage"
               label="Expected care usage"
@@ -831,12 +848,16 @@ export function HealthcareCostPanel() {
               help={
                 medicareCoverage === "medigap"
                   ? "How much care you expect. With Medigap your routine cost is the Part B deductible regardless; higher usage adds modest drug/copay cost-sharing on top. The levels map to typical visit counts — Low ≈ 4 office visits/yr, Moderate ≈ 8, High ≈ 16 plus an ER visit — which you can override with the explicit amount below."
-                  : "Low ≈ 15%, Moderate ≈ 30%, High ≈ 85% of the per-person out-of-pocket maximum."
+                  : medicareCoverage === "original_only"
+                    ? "How much care you expect. With no supplement you pay 20% of all Part-B-covered charges with no cap, so the level sets the assumed annual Part-B-covered spend — Low ≈ $3,000, Moderate ≈ $8,000, High ≈ $22,000 — plus an allowance for the Part A hospital deductible. This is only an average year; the real risk is the uncapped worst case."
+                    : "Low ≈ 15%, Moderate ≈ 30%, High ≈ 85% of the per-person out-of-pocket maximum."
               }
               note={
                 medicareCoverage === "medigap"
                   ? "Typical visit counts (≈ Medicare beneficiary averages); adjust to your situation, or set an explicit amount below."
-                  : undefined
+                  : medicareCoverage === "original_only"
+                    ? "Sets the assumed Part-B-covered spend you pay 20% of (uncapped); set an explicit amount below to override the average."
+                    : undefined
               }
             />
             <NumberInput
@@ -1154,6 +1175,35 @@ export function HealthcareCostPanel() {
                 ? `Your MAGI puts you in IRMAA tier ${result.irmaaTierIndex} — Part B rises to ${formatCurrency(result.partBMonthlyPerPerson, true)}/month per person plus a Part D surcharge.`
                 : "At your MAGI there's no IRMAA surcharge, so each person pays the standard Part B premium noted in the Medicare inputs above."}
             </Callout>
+          ) : null}
+
+          {result.medicareYears > 0 &&
+          committedInput.medicareCoverage === "original_only" &&
+          !result.medicareLowIncome ? (
+            <div className="flex items-start gap-3 rounded-2xl border-2 border-[var(--negative)] bg-[var(--negative-bg)] p-4 text-[13.5px] leading-relaxed text-[var(--negative)] shadow-sm">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mt-0.5 flex-none"
+                aria-hidden="true"
+              >
+                <path d="M9 2.2 1.5 15.5h15L9 2.2z" />
+                <path d="M9 7v3.5M9 13h.01" />
+              </svg>
+              <div>
+                <b>No out-of-pocket maximum.</b> The Medicare out-of-pocket above is an estimate of an{" "}
+                <b>average</b> year. With no Medigap or Advantage plan, your 20% Part B coinsurance is
+                uncapped — so the real risk is the worst case, not this headline. A single serious
+                illness could cost tens of thousands in one year. Don&apos;t read a low number here as
+                safety.
+              </div>
+            </div>
           ) : null}
 
           {result.acaNotRequiredAbroad ? (
