@@ -454,6 +454,10 @@ export function HealthcareCostPanel() {
             note="Starting example — set to your planned retirement income. Drives both the ACA subsidy and the IRMAA tier."
           />
           <Section title="Retiring before 65? — ACA gap">
+            <p className="text-xs leading-relaxed text-gray-500">
+              Before Medicare starts at 65, you buy your own coverage through the ACA (Obamacare)
+              marketplace. Estimate the cost of those gap years below.
+            </p>
             <SelectField
               id="hc-aca-plan-mode"
               label="How to set plan costs"
@@ -588,6 +592,10 @@ export function HealthcareCostPanel() {
           </Section>
 
           <Section title="Reached 65? — Medicare years">
+            <p className="text-xs leading-relaxed text-gray-500">
+              At 65 you qualify for Medicare, the federal health program. Refine your cost on Medicare
+              (plus any supplement you choose) below.
+            </p>
             <p className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-xs leading-relaxed text-gray-600">
               <span className="font-medium text-gray-800">Part B is automatic and added for you.</span>{" "}
               Everyone pays the 2026 standard Part B premium of $202.90/mo per person (plus a $283
