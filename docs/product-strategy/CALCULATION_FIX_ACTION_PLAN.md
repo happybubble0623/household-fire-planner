@@ -1,6 +1,6 @@
 # Calculation Fix Action Plan — Reconciled, Prioritized, Test-Pinned
 
-*Created: 2026-06-13 · Last updated: 2026-06-13*
+*Created: 2026-06-13 · Last updated: 2026-06-13 (decision #8 resolved)*
 
 > **What this is.** A single, decisive fix plan that reconciles the read-only
 > [`CALCULATION_AUDIT.md`](./CALCULATION_AUDIT.md) with the end-to-end
@@ -19,9 +19,10 @@
 **✅ ALL 7 CONFIRMED BUGS FIXED — commit `ac9b8f6` (2026-06-13).** The 2 Critical,
 3 Moderate, and 2 Minor bugs below are implemented to match their authoritative
 rules; each previously-queued `it.skip` regression test is now an active `it` that
-passes, plus a new `INV-fee` test guards the investment fee input. The 1 default-value
-decision (#8 `FIRE-5`, 4% vs 5%) is **not** a bug and remains a queued `it.skip`
-pending a founder decision. Suite: **329 passed, 1 skipped** · lint clean · build
+passes, plus a new `INV-fee` test guards the investment fee input. **✅ The 1 default-value
+decision (#8 `FIRE-5`, 4% vs 5%) is now RESOLVED — founder approved 4%; default set to
+`0.04` in commit `37bfac7` (2026-06-13)**, and its `it.skip` test is now active and green.
+Suite: **330 passed, 0 skipped** · lint clean · build
 succeeds. Validated actuals vs targets: HC-7 $283 (was $1,800); FIRE-6 inflation-adjusted
 ≠ flat; HC-5 3.61% (was 2.10%); HC-6 $3,500 (was $8,500); MTG-3 PMI ends ~2033 (was
 ~2038); SS-6 $6,676 (was $6,676.50); INV-fee net = gross − fee.
@@ -52,7 +53,7 @@ gaps.
 | 5 | Mortgage (`planning-tool-panel.tsx` `calculateMortgage`) | PMI cancels at 80% of the original **loan**, and there is **no home-value input**, so PMI runs years too long. Rule pins to 80%/78% of original **home value**. | **Moderate** | [CFPB / Homeowners Protection Act](https://www.consumerfinance.gov/ask-cfpb/when-can-i-remove-private-mortgage-insurance-pmi-from-my-loan-en-202/): cancel at 80%, auto-terminate at 78% of original value (lesser of price/appraisal) | PMI gone once balance ≤ **$320,000** (80% of $400k value, ~2033) vs actual drops only at ≤ **$288,000** (80% of $360k loan, ~2038) → **~5 extra yrs × $1,800 ≈ $9,000** overcharged | Add a **home-value / purchase-price** input; cancel PMI at 80% and auto-terminate at 78% of that value; suppress cancellation for FHA <10% down (MIP for life of loan). | ✅ **FIXED** `MTG-3` | **M** |
 | 6 | Social Security (`social-security.ts`) | Final monthly benefit is rounded to cents, not floored to the whole dollar SSA actually pays. | **Minor** | [SSA — Benefits computation](https://www.ssa.gov/oact/cola/Benefits.html): "round down to the next lower dollar" | Whole-dollar (e.g. **$6,676**) expected vs **$6,676.50** actual → off by up to ~$0.99/mo (cosmetic) | Apply `Math.floor` to whole dollars on the final monthly benefit (PIA stays dime-rounded). | ✅ **FIXED** `SS-6` | **S** |
 | 7 | Investment (`planning-tool-panel.tsx` `calculateInvestment`) | No expense-ratio / fee input; returns applied gross, overstating ending balance. | **Minor** | Net-of-fee returns are standard; a 0.5% fee materially compounds | A 0.5% lower net return cuts the 15-yr balance **5.1%** ($918,819 → $871,510) — magnitude **corrected** from the audit's "7–8%" | Add an expense-ratio input and apply `(return − expenseRatio)`, or label the return field "net of fees." *(Pair with the §4.2 today's-dollar view if bundling investment-calc work.)* | ✅ **FIXED** — new `INV-fee` test added (net = gross − fee) | **S** |
-| 8 | FIRE — simple FIRE number (`calculations/fire.ts`) | **DECISION, not a bug.** `calculateSimpleFireNumber` default withdrawal rate is **5%** (20×), but the app's glossary/strategy copy headlines the **4% rule** (25×). The live saved-path passes the user's own rate, so 5% only fires on a bare default call. | **Minor** (decision) | App's own framing uses the 4% rule (`fire-glossary.ts`, `fire-strategies.ts`) | Default returns **$960,000** (20×) vs **$1,200,000** (25×) the copy implies → $240k / 20% gap when the default fires | **Decide:** change the default to `0.04` for consistency, or require the rate explicitly. Either flips the test. | `FIRE-5` | **S** |
+| 8 | FIRE — simple FIRE number (`calculations/fire.ts`) | **DECISION, not a bug.** `calculateSimpleFireNumber` default withdrawal rate is **5%** (20×), but the app's glossary/strategy copy headlines the **4% rule** (25×). The live saved-path passes the user's own rate, so 5% only fires on a bare default call. | **Minor** (decision) | App's own framing uses the 4% rule (`fire-glossary.ts`, `fire-strategies.ts`) | Default returns **$960,000** (20×) vs **$1,200,000** (25×) the copy implies → $240k / 20% gap when the default fires | **✅ RESOLVED (founder approved 4%)** — `calculateSimpleFireNumber` default and the seeded Base Path `withdrawalRate` both set to `0.04` (25× the spending gap); rate stays user-adjustable. Commit `37bfac7`. | ✅ **FIXED** `FIRE-5` | **S** |
 
 > Excluded as not-a-bug per validation: **§2.2 IRMAA** (code correct, audit example wrong — locked by HC-3) and **§6.1 tax gross-up** (formula correct; a documented simplification, not a math error — locked by FIRE-3). Other audit "minor structural" notes (§1.8 CPI-vs-wage deflator, §4.2 today's-dollar investment view, §2.8 Part D $2,100 cap, §2.9 Medicaid 5% cap) are real but have **no queued test** and are conservative/cosmetic; fold them in opportunistically when touching the same file — they are not gating.
 
@@ -83,8 +84,8 @@ one-offs. Do them together, on that branch.
    it as its own slice.
 4. **#6 SS dollar floor** (`SS-6`), **#7 investment fee input** (`INV-2` →
    queued bug-test), **#8 simple-FIRE default decision** (`FIRE-5`) — small, isolated,
-   batchable. #8 needs a founder decision (4% vs 5%) before coding; surface it, then
-   one-line the change.
+   batchable. #8 needed a founder decision (4% vs 5%); ✅ **resolved — founder approved 4%**,
+   default set to `0.04` (commit `37bfac7`).
 
 Rationale: dollar-moving Criticals first (user trust + headline accuracy); then ride
 the approved pre-65 scenario work for the two ACA fixes (no duplicated scenario plumbing);
@@ -142,9 +143,15 @@ Fix **#7** (investment fee input) shipped with a **new** `INV-fee` rule-pinned t
 (net = gross − fee) alongside the passing `INV-2` sensitivity test that motivated it.
 
 **Post-fix (commit `ac9b8f6`, 2026-06-13):** all six queued bug-tests above are flipped
-to active and pass; `INV-fee` is added and passes. Suite is now **329 passed, 1 skipped**
-(the lone skip is `FIRE-5`, the #8 4%-vs-5% default-rate **decision**, intentionally left
-queued) · lint clean · build succeeds. (Pre-fix baseline was 321 passed / 7 skipped.)
+to active and pass; `INV-fee` is added and passes. Suite was then **329 passed, 1 skipped**
+(the lone skip being `FIRE-5`, the #8 4%-vs-5% default-rate decision) · lint clean · build succeeds.
+(Pre-fix baseline was 321 passed / 7 skipped.)
+
+**Decision #8 resolved (commit `37bfac7`, 2026-06-13):** founder approved the **4% rule**.
+The simple-FIRE default withdrawal rate (`calculateSimpleFireNumber`) and the seeded Base
+Path `withdrawalRate` are both set to `0.04` (25× the spending gap; e.g. $48k gap → $1.2M),
+matching the app's 4%-rule headline copy; the rate stays user-adjustable. `FIRE-5` is now an
+active passing test. Suite is now **330 passed, 0 skipped** · lint clean · build succeeds.
 
 ---
 
