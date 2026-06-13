@@ -5,6 +5,8 @@ import {
   estimateBenchmarkPremium,
   estimateHealthcareCosts,
   estimatePremiumTaxCredit,
+  medigapEffectiveMonthlyPremium,
+  medigapExpectedOutOfPocket,
   selectIrmaaTier,
   type HealthcareCostInput
 } from "@/lib/calculations/healthcare-cost";
@@ -12,10 +14,12 @@ import {
   DEFAULT_REAL_DISCOUNT_RATE,
   MEDICAID_FPL_THRESHOLD,
   MEDICARE_LOW_INCOME_FPL_THRESHOLD,
+  MEDIGAP_PREMIUM_RELATIVITY,
   METAL_TIER_PRESETS,
   NATIONAL_BENCHMARK_SILVER_BASE_21,
   OOP_USAGE_PRESETS,
   PART_B_BASE_PREMIUM_2026,
+  PART_B_DEDUCTIBLE_2026,
   REGION_MULTIPLIERS,
   acaAgeCurveFactor,
   federalPovertyLevel,
@@ -44,6 +48,10 @@ function baseInput(overrides: Partial<HealthcareCostInput> = {}): HealthcareCost
     medicareOutOfPocketMax: 6_000,
     medicareOopUsage: "moderate",
     medigapPlanLetter: "G",
+    // Pin dental/vision/hearing to 0 in the shared fixture so existing OOP
+    // assertions isolate the medical/drug cost-sharing; the DVH tests set it
+    // explicitly. (The engine's real default is $1,200/yr.)
+    dentalVisionHearingAnnual: 0,
     medicareInflation: 0.05,
     generalInflation: 0.03,
     hsaBalance: 0,
@@ -373,6 +381,136 @@ describe("healthcare cost projection", () => {
     );
     expect(planN.rows[0].outOfPocket).toBeGreaterThan(single.rows[0].outOfPocket);
     expect(planN.rows[0].outOfPocket).toBeLessThan(600);
+  });
+
+  describe("realistic Medigap plan-letter model (Option A)", () => {
+    // A single Medicare year at growth factor 1 (year 0) so the figures are
+    // exact and free of inflation rounding. Plan-G base premium $155/mo, DVH
+    // pinned to 0 so the totals isolate the plan-letter economics.
+    const PLAN_G_BASE = 155;
+    const medicareYear0 = (overrides: Partial<HealthcareCostInput> = {}) =>
+      estimateHealthcareCosts(
+        baseInput({
+          household: "single",
+          currentAge: 65,
+          fireAge: 65,
+          planToAge: 65,
+          medicareCoverage: "medigap",
+          medigapMonthly: PLAN_G_BASE,
+          dentalVisionHearingAnnual: 0,
+          ...overrides
+        })
+      );
+
+    it("re-prices the premium by plan letter from the entered Plan-G base", () => {
+      expect(medigapEffectiveMonthlyPremium(PLAN_G_BASE, "G")).toBeCloseTo(155, 2);
+      expect(medigapEffectiveMonthlyPremium(PLAN_G_BASE, "N")).toBeCloseTo(124, 2); // ×0.80
+      expect(medigapEffectiveMonthlyPremium(PLAN_G_BASE, "F")).toBeCloseTo(173.6, 2); // ×1.12
+      // The relativity factors themselves are the named, adjustable constants.
+      expect(MEDIGAP_PREMIUM_RELATIVITY.G).toBe(1.0);
+      expect(MEDIGAP_PREMIUM_RELATIVITY.N).toBe(0.8);
+      expect(MEDIGAP_PREMIUM_RELATIVITY.F).toBe(1.12);
+      // The premium flows through the projection: Plan N's monthly premium is
+      // exactly 0.80× Plan G's at the same base.
+      const g = medicareYear0({ medigapPlanLetter: "G" }).rows[0];
+      const n = medicareYear0({ medigapPlanLetter: "N" }).rows[0];
+      const f = medicareYear0({ medigapPlanLetter: "F" }).rows[0];
+      // Premium row = Part B + (effective Medigap + Part D) + any IRMAA. The only
+      // term that differs across letters is the Medigap premium, so the row
+      // differences equal the annual premium relativity differences.
+      expect(g.premium - n.premium).toBeCloseTo((155 - 124) * 12, 2);
+      expect(f.premium - g.premium).toBeCloseTo((173.6 - 155) * 12, 2);
+    });
+
+    it("makes Plan N out-of-pocket rise with usage (Plan G stays flat)", () => {
+      const nLow = medigapExpectedOutOfPocket("low", "N");
+      const nMod = medigapExpectedOutOfPocket("moderate", "N");
+      const nHigh = medigapExpectedOutOfPocket("high", "N");
+      // 4 office visits → $80; 8 → $160 + $100 excess; 16 + 1 ER → $320 + $50 +
+      // $300 excess, all on top of the $283 Part B deductible (+ shared drug OOP
+      // at high). The series is strictly increasing.
+      expect(nLow).toBeCloseTo(PART_B_DEDUCTIBLE_2026 + 80, 2); // 363
+      expect(nMod).toBeCloseTo(PART_B_DEDUCTIBLE_2026 + 160 + 100, 2); // 543
+      expect(nHigh).toBeGreaterThan(nMod);
+      expect(nMod).toBeGreaterThan(nLow);
+      // Plan G's medical exposure is the flat Part B deductible at every usage
+      // level (only the shared Part D drug component moves it).
+      expect(medigapExpectedOutOfPocket("low", "G")).toBeCloseTo(PART_B_DEDUCTIBLE_2026, 2);
+      expect(medigapExpectedOutOfPocket("moderate", "G")).toBeCloseTo(PART_B_DEDUCTIBLE_2026, 2);
+      // Plan F has $0 medical cost-sharing at every usage level.
+      expect(medigapExpectedOutOfPocket("low", "F")).toBe(0);
+      expect(medigapExpectedOutOfPocket("moderate", "F")).toBe(0);
+    });
+
+    it("shows the G-vs-N crossover: Plan N cheaper at low usage, Plan G at high", () => {
+      // Comparable total = annual Medigap premium + annual out-of-pocket. Part B,
+      // the Part D premium, IRMAA, and DVH are identical across letters, so this
+      // is the apples-to-apples plan-choice cost.
+      const comparable = (letter: string, usage: "low" | "moderate" | "high") =>
+        medigapEffectiveMonthlyPremium(PLAN_G_BASE, letter) * 12 +
+        medigapExpectedOutOfPocket(usage, letter);
+
+      // LOW usage: Plan N's lower premium beats Plan G's deductible.
+      expect(comparable("N", "low")).toBeLessThan(comparable("G", "low"));
+      // HIGH usage: Plan N's copays + excess charges overtake Plan G — Plan N is
+      // no longer always-cheapest.
+      expect(comparable("G", "high")).toBeLessThanOrEqual(comparable("N", "high"));
+
+      // Same crossover end-to-end through the projection engine (grossCost).
+      const grossAt = (letter: string, usage: "low" | "high") =>
+        medicareYear0({ medigapPlanLetter: letter, medicareOopUsage: usage }).rows[0].grossCost;
+      expect(grossAt("N", "low")).toBeLessThan(grossAt("G", "low"));
+      expect(grossAt("G", "high")).toBeLessThanOrEqual(grossAt("N", "high"));
+    });
+
+    it("includes dental/vision/hearing in the Medicare-years totals", () => {
+      const without = medicareYear0({ medigapPlanLetter: "G", dentalVisionHearingAnnual: 0 });
+      const withDvh = medicareYear0({ medigapPlanLetter: "G", dentalVisionHearingAnnual: 1_200 });
+      // The $1,200 lands in out-of-pocket, gross cost, lifetime, and present value.
+      expect(withDvh.rows[0].outOfPocket - without.rows[0].outOfPocket).toBeCloseTo(1_200, 2);
+      expect(withDvh.rows[0].grossCost - without.rows[0].grossCost).toBeCloseTo(1_200, 2);
+      expect(withDvh.totalMedicareCost - without.totalMedicareCost).toBeCloseTo(1_200, 2);
+      expect(withDvh.presentValueTotal).toBeGreaterThan(without.presentValueTotal);
+      // Per person: a couple incurs twice the DVH cost.
+      const couple = medicareYear0({
+        household: "couple",
+        medigapPlanLetter: "G",
+        dentalVisionHearingAnnual: 1_200
+      });
+      const coupleWithout = medicareYear0({
+        household: "couple",
+        medigapPlanLetter: "G",
+        dentalVisionHearingAnnual: 0
+      });
+      expect(couple.rows[0].outOfPocket - coupleWithout.rows[0].outOfPocket).toBeCloseTo(2_400, 2);
+    });
+
+    it("prints the worked G/N/F × low/moderate/high crossover table (default scenario)", () => {
+      const usages: Array<"low" | "moderate" | "high"> = ["low", "moderate", "high"];
+      const letters = ["G", "N", "F"];
+      const lines = [
+        `Worked Medigap crossover — Plan-G base $${PLAN_G_BASE}/mo, single, year 0, DVH excluded:`,
+        "usage     plan  premium/yr   medicalOOP/yr   comparable total"
+      ];
+      const totals: Record<string, Record<string, number>> = {};
+      for (const usage of usages) {
+        totals[usage] = {};
+        for (const letter of letters) {
+          const premiumYr = medigapEffectiveMonthlyPremium(PLAN_G_BASE, letter) * 12;
+          const oopYr = medigapExpectedOutOfPocket(usage, letter);
+          const total = premiumYr + oopYr;
+          totals[usage][letter] = total;
+          lines.push(
+            `${usage.padEnd(9)} ${letter}     $${premiumYr.toFixed(2).padStart(8)}   ` +
+              `$${oopYr.toFixed(2).padStart(8)}      $${total.toFixed(2).padStart(8)}`
+          );
+        }
+      }
+      console.log(lines.join("\n"));
+      // Acceptance proof, asserted as well as printed:
+      expect(totals.low.N).toBeLessThan(totals.low.G); // N cheapest at low usage
+      expect(totals.high.G).toBeLessThanOrEqual(totals.high.N); // G ≤ N at high usage
+    });
   });
 
   describe("present-value headline", () => {

@@ -17,6 +17,8 @@ import {
   applyMetalTierPreset,
   estimateBenchmarkPremium,
   estimateHealthcareCosts,
+  medigapEffectiveMonthlyPremium,
+  medigapExpectedOutOfPocket,
   type HealthcareCostInput,
   type HealthcareHousehold,
   type HsaStrategy,
@@ -26,6 +28,7 @@ import {
 } from "@/lib/calculations/healthcare-cost";
 import {
   csrSilverOopMaxPerPerson,
+  DEFAULT_DENTAL_VISION_HEARING_ANNUAL,
   federalPovertyLevel,
   medicaidIncomeThreshold,
   subsidyCliffIncome
@@ -158,6 +161,9 @@ export function HealthcareCostPanel() {
   const [medicareOutOfPocketMax, setMedicareOutOfPocketMax] = useState(6_000);
   const [medicareUsage, setMedicareUsage] = useState<OopUsageLevel>("moderate");
   const [medicareCustomOop, setMedicareCustomOop] = useState(0);
+  const [dentalVisionHearing, setDentalVisionHearing] = useState(
+    DEFAULT_DENTAL_VISION_HEARING_ANNUAL
+  );
   const [medicareInflationPercent, setMedicareInflationPercent] = useState(5);
   const [generalInflationPercent, setGeneralInflationPercent] = useState(3);
 
@@ -198,6 +204,17 @@ export function HealthcareCostPanel() {
   const displayAcaOopMax =
     csrLiveOopMaxPerPerson !== null ? csrLiveOopMaxPerPerson * people : effectiveAcaOopMax;
 
+  // Live preview for the selected Medigap plan letter (per person). The entered
+  // premium is the Plan-G base; the letter's relativity re-prices it, and the
+  // annual out-of-pocket scales with the chosen usage level. These use the same
+  // engine helpers the projection does, so the picker label can never drift from
+  // the modeled numbers.
+  const medigapPreviewMonthly = medigapEffectiveMonthlyPremium(medigapMonthly, medigapPlanLetter);
+  const medigapPreviewOop = medigapExpectedOutOfPocket(
+    oopUsageValue(medicareUsage, medicareCustomOop),
+    medigapPlanLetter
+  );
+
   const liveInput = useMemo<HealthcareCostInput>(
     () => ({
       household,
@@ -222,6 +239,7 @@ export function HealthcareCostPanel() {
       advantageMonthly,
       medicareOutOfPocketMax,
       medicareOopUsage: oopUsageValue(medicareUsage, medicareCustomOop),
+      dentalVisionHearingAnnual: dentalVisionHearing,
       medicareInflation: percentToDecimal(medicareInflationPercent),
       generalInflation: percentToDecimal(generalInflationPercent),
       hsaBalance,
@@ -255,6 +273,7 @@ export function HealthcareCostPanel() {
       medicareOutOfPocketMax,
       medicareUsage,
       medicareCustomOop,
+      dentalVisionHearing,
       medicareInflationPercent,
       generalInflationPercent,
       hsaBalance,
@@ -573,14 +592,44 @@ export function HealthcareCostPanel() {
                   help="Original Medicare + Medigap has NO out-of-pocket maximum, but the supplement caps your cost-sharing tightly. Plan G's only routine medical cost is the $283 Part B deductible; Plan N adds small copays; Plan F (older enrollees) covers even the deductible. This sets your expected out-of-pocket below."
                   note="Default Plan G — the most-chosen Medigap plan; its only routine cost is the 2026 $283 Part B deductible (CMS)."
                 />
+                {/* Live per-plan preview: effective premium (Plan-G base × the
+                    letter's relativity) and the annual out-of-pocket at the
+                    chosen usage. Updates instantly as the letter, premium, or
+                    usage changes — so the trade-off (Plan N cheaper at low
+                    usage, Plan G steadier at high usage) is visible up front. */}
+                <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-relaxed text-gray-600">
+                  <p className="font-medium text-gray-800">
+                    Plan {medigapPlanLetter} ≈ {formatCurrency(medigapPreviewMonthly)}/mo ·
+                    ≈ {formatCurrency(medigapPreviewOop)}/yr out-of-pocket at your usage
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Per person, rounded. Premium = your Plan-G base ({formatCurrency(medigapMonthly)}/mo)
+                    × the plan&apos;s relativity (G 1.00, N 0.80, F 1.12). Out-of-pocket = the Part B
+                    deductible plus Plan N&apos;s office/ER copays and excess-charge allowance, plus a
+                    shared Part D drug amount — at {medicareUsage} usage.
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Estimate — your actual premium varies by state, age, and carrier; edit the base
+                    below to match a real quote.{" "}
+                    {medigapPlanLetter === "N" ? (
+                      <>
+                        Plan N also exposes you to Part B &ldquo;excess charges&rdquo; (up to 15% above
+                        the Medicare-approved amount from non-participating providers), which we only{" "}
+                        <em>approximate</em> here.{" "}
+                      </>
+                    ) : null}
+                    Relativity factors and copays are 2026 estimates (medicare.gov / KFF national
+                    averages). Dental, vision &amp; hearing is added separately below.
+                  </p>
+                </div>
                 <NumberInput
                   id="hc-medigap"
-                  label="Medigap premium (monthly, per person)"
+                  label="Medigap premium (monthly, per person) — Plan-G base"
                   value={medigapMonthly}
                   onChange={setMedigapMonthly}
                   step={10}
-                  help="Monthly Medigap supplement premium per person. Varies by plan letter (G, N, etc.), age, and area."
-                  note="Default ~$155/mo — 2025 national-average Medigap Plan G; varies by state, age & plan letter. Edit to your premium."
+                  help="Enter this as the Plan G premium for your age and area — the most common benchmark. The calculator re-prices the other letters from it automatically (Plan N ≈ 0.80×, Plan F ≈ 1.12×), so you only enter one number."
+                  note="Estimate — default ~$155/mo is the 2025 national-average Medigap Plan G base; your premium varies by state, age, and carrier. The selected letter is re-priced from it (see the line above). Edit to a real quote."
                 />
                 <NumberInput
                   id="hc-partd"
@@ -622,8 +671,13 @@ export function HealthcareCostPanel() {
               options={usageOptions}
               help={
                 medicareCoverage === "medigap"
-                  ? "How much care you expect. With Medigap your routine cost is the Part B deductible regardless; higher usage adds modest drug/copay cost-sharing on top."
+                  ? "How much care you expect. With Medigap your routine cost is the Part B deductible regardless; higher usage adds modest drug/copay cost-sharing on top. The levels map to typical visit counts — Low ≈ 4 office visits/yr, Moderate ≈ 8, High ≈ 16 plus an ER visit — which you can override with the explicit amount below."
                   : "Low ≈ 15%, Moderate ≈ 30%, High ≈ 85% of the per-person out-of-pocket maximum."
+              }
+              note={
+                medicareCoverage === "medigap"
+                  ? "Typical visit counts (≈ Medicare beneficiary averages); adjust to your situation, or set an explicit amount below."
+                  : undefined
               }
             />
             <NumberInput
@@ -633,6 +687,16 @@ export function HealthcareCostPanel() {
               onChange={setMedicareCustomOop}
               step={100}
               help="If greater than 0, this exact per-person amount replaces the usage preset for the Medicare years."
+            />
+            <NumberInput
+              id="hc-dental-vision-hearing"
+              label="Dental, vision & hearing (not covered by Medicare)"
+              value={dentalVisionHearing}
+              onChange={setDentalVisionHearing}
+              step={100}
+              suffix="/yr"
+              help="Routine dental, vision, and hearing care is not covered by Original Medicare or a Medigap supplement, so it's a real out-of-pocket cost in the Medicare years. This per-person annual amount is added to every 65+ year. Set to 0 if a Medicare Advantage or standalone plan covers it."
+              note="Estimate — default $1,200/yr per person is a rough national average of typical retiree out-of-pocket for routine dental, vision & hearing (2026, KFF). Costs vary widely by individual; adjust to your situation."
             />
             <NumberInput
               id="hc-medicare-inflation"
@@ -654,6 +718,17 @@ export function HealthcareCostPanel() {
               help="Overall price inflation (~3%). Medical costs growing faster than this is why healthcare takes a bigger bite over time — the gap between the two is what today's-dollar mode shows."
               note="Default 3%/yr — roughly the long-run U.S. CPI and the Fed's ~2% target plus headroom."
             />
+            <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs leading-relaxed text-gray-600">
+              <span className="font-medium text-gray-800">Honest about the limits.</span> This is a
+              planning estimate, not a quote — get real prices on medicare.gov before deciding. The
+              Part B premium ($202.90/mo) and deductible ($283/yr) are the 2026 published figures
+              (CMS); the Part D drug out-of-pocket is capped at the 2026 ~$2,000 ceiling (Inflation
+              Reduction Act). Premiums, copays, dental/vision/hearing, and visit counts are estimates
+              that vary by person. Plan N&apos;s Part B excess-charge risk is approximated, not
+              itemized. Figures <span className="font-medium">exclude long-term care</span> (nursing
+              home / in-home custodial care), which Medicare largely doesn&apos;t cover and which can
+              dwarf these costs.
+            </p>
           </Section>
 
           <Section title="HSA (optional)">

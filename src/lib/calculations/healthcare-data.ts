@@ -231,6 +231,8 @@ export const PART_D_OOP_CAP_2026 = 2_000;
 // the binding, predictable cost is the Part B deductible (Plan G covers
 // everything else). These usage tiers layer a small Part D drug allowance
 // (capped at PART_D_OOP_CAP_2026) on top of the plan-letter medical exposure.
+// This Part D drug component is applied the SAME across every Medigap letter —
+// drug spend is a Part D matter, not a Medigap-letter one.
 // Source: medicare.gov Medigap; CMS 2026 Part B deductible.
 export const MEDIGAP_DRUG_OOP_BY_USAGE: Record<OopUsageLevel, number> = {
   low: 0,
@@ -238,14 +240,65 @@ export const MEDIGAP_DRUG_OOP_BY_USAGE: Record<OopUsageLevel, number> = {
   high: 1_700
 };
 
-// Plan N adds modest office ($20) and ER ($50) copays that Plan G does not.
-// Expected annual copay total per person, by usage level. Plan G and the
-// deductible-covering letters (C/F) add $0 here.
-export const MEDIGAP_PLAN_N_COPAYS_BY_USAGE: Record<OopUsageLevel, number> = {
-  low: 60,
-  moderate: 180,
-  high: 360
+// ---------------------------------------------------------------------------
+// Realistic Medigap plan-letter cost model (Option A)
+// ---------------------------------------------------------------------------
+// Each constant below is a 2026 planning estimate and is ADJUSTABLE: edit the
+// number to refresh it for a new plan year or a more specific situation.
+
+// Medigap premium relativity. The premium the user enters is treated as the
+// Plan-G-equivalent base; each plan letter's effective premium is that base ×
+// the factor here. Plan N runs cheaper (it trades premium for small copays);
+// Plan F runs richer (it also covers the Part B deductible).
+// 2026 estimate, adjustable — source: medicare.gov / KFF national averages.
+export const MEDIGAP_PREMIUM_RELATIVITY: Record<string, number> = {
+  G: 1.0,
+  N: 0.8,
+  F: 1.12
 };
+
+// Usage level → estimated annual office (physician) visits per person. Roughly
+// the Medicare beneficiary averages: a healthy year, a typical year, and a
+// heavy-utilization year.
+// 2026 estimate, adjustable — source: medicare.gov / KFF national averages.
+export const MEDIGAP_OFFICE_VISITS_BY_USAGE: Record<OopUsageLevel, number> = {
+  low: 4,
+  moderate: 8,
+  high: 16
+};
+
+// Usage level → estimated annual emergency-room visits per person.
+// 2026 estimate, adjustable — source: medicare.gov / KFF national averages.
+export const MEDIGAP_ER_VISITS_BY_USAGE: Record<OopUsageLevel, number> = {
+  low: 0,
+  moderate: 0,
+  high: 1
+};
+
+// Plan N cost-sharing the enrollee pays directly: up to $20 per office visit
+// and up to $50 per ER visit (the ER copay is waived if admitted).
+// 2026 estimate, adjustable — source: medicare.gov.
+export const PLAN_N_OFFICE_COPAY = 20;
+export const PLAN_N_ER_COPAY = 50;
+
+// Plan N (unlike Plan G) does NOT cover Part B "excess charges" — the up-to-15%
+// a non-participating provider may bill above the Medicare-approved amount.
+// This is an estimated annual allowance for that exposure, by usage level. Plan
+// G covers excess charges, so this applies to Plan N only.
+// 2026 estimate, adjustable — source: medicare.gov.
+export const PLAN_N_EXCESS_CHARGE_BY_USAGE: Record<OopUsageLevel, number> = {
+  low: 0,
+  moderate: 100,
+  high: 300
+};
+
+// Routine dental, vision, and hearing are NOT covered by Original Medicare or a
+// Medigap supplement, so they are a real out-of-pocket cost in the Medicare
+// years. This is the default annual amount, per person; it is a user-adjustable
+// input in the UI.
+// 2026 estimate, adjustable — source: typical retiree out-of-pocket for routine
+// dental/vision/hearing (KFF national averages).
+export const DEFAULT_DENTAL_VISION_HEARING_ANNUAL = 1_200;
 
 // Medigap plan letters that cover the annual Part B deductible (so the enrollee
 // does not pay it out of pocket). Plans C and F are closed to enrollees who

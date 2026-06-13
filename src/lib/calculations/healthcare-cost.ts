@@ -2,20 +2,26 @@ import {
   ACA_APPLICABLE_PERCENT_FLOOR_2026,
   ACA_APPLICABLE_PERCENT_NODES_2026,
   ACA_SUBSIDY_CLIFF_FPL,
+  DEFAULT_DENTAL_VISION_HEARING_ANNUAL,
   DEFAULT_REAL_DISCOUNT_RATE,
   IRMAA_TIERS_2026,
   MEDICAID_FPL_THRESHOLD,
   MEDICARE_AGE,
   MEDICARE_LOW_INCOME_FPL_THRESHOLD,
   MEDIGAP_DRUG_OOP_BY_USAGE,
-  MEDIGAP_PLAN_N_COPAYS_BY_USAGE,
+  MEDIGAP_ER_VISITS_BY_USAGE,
+  MEDIGAP_OFFICE_VISITS_BY_USAGE,
   MEDIGAP_PLANS_COVERING_PART_B_DEDUCTIBLE,
+  MEDIGAP_PREMIUM_RELATIVITY,
   METAL_TIER_PRESETS,
   NATIONAL_BENCHMARK_SILVER_BASE_21,
   OOP_USAGE_PRESETS,
   PART_B_BASE_PREMIUM_2026,
   PART_B_DEDUCTIBLE_2026,
   PART_D_OOP_CAP_2026,
+  PLAN_N_ER_COPAY,
+  PLAN_N_EXCESS_CHARGE_BY_USAGE,
+  PLAN_N_OFFICE_COPAY,
   REGION_MULTIPLIERS,
   acaAgeCurveFactor,
   csrSilverOopMaxPerPerson,
@@ -70,6 +76,12 @@ export type HealthcareCostInput = {
   medicareOopUsage: OopUsage;
   medigapPlanLetter?: string;
   medicareInflation: number;
+
+  // Routine dental, vision & hearing — not covered by Original Medicare or
+  // Medigap, so a real out-of-pocket cost in the Medicare years. Per person,
+  // per year, in today's dollars. Defaults to
+  // DEFAULT_DENTAL_VISION_HEARING_ANNUAL when omitted.
+  dentalVisionHearingAnnual?: number;
 
   // General price inflation, used to convert nominal medical costs to today's
   // dollars. Defaults to 3%.
@@ -288,25 +300,64 @@ function expectedOutOfPocket(usage: OopUsage, oopMax: number): number {
   return OOP_USAGE_PRESETS[usage] * Math.max(0, oopMax);
 }
 
+// Effective monthly Medigap premium for a plan letter. The entered premium is
+// the Plan-G-equivalent base; the effective premium is that base × the letter's
+// relativity factor, so switching the plan letter re-prices the premium
+// automatically (Plan N cheaper, Plan F richer than Plan G).
+export function medigapEffectiveMonthlyPremium(
+  medigapMonthlyBase: number,
+  planLetter?: string
+): number {
+  const letter = (planLetter ?? "G").toUpperCase();
+  const relativity = MEDIGAP_PREMIUM_RELATIVITY[letter] ?? 1.0;
+  return round2(Math.max(0, medigapMonthlyBase) * relativity);
+}
+
+// Medical (non-drug) cost-sharing the enrollee pays out of pocket in a year,
+// per person, by Medigap plan letter and usage level. This is the part that
+// actually differs across letters — it is what drives the Plan G vs Plan N
+// crossover (Plan N is cheaper at low usage, but its per-visit copays and
+// excess-charge exposure overtake Plan G's flat deductible at high usage):
+//   • Plan F (and other deductible-covering letters): $0 — covers the Part B
+//     deductible and all other cost-sharing.
+//   • Plan N: Part B deductible + (office visits × $20) + (ER visits × $50) +
+//     an excess-charge allowance.
+//   • Plan G (and other deductible-exposing letters): the Part B deductible
+//     only — flat regardless of usage.
+// Source: medicare.gov Medigap; CMS 2026 Part B deductible.
+export function medigapMedicalCostSharing(planLetter: string, usage: OopUsageLevel): number {
+  const letter = planLetter.toUpperCase();
+  const coversPartBDeductible = (
+    MEDIGAP_PLANS_COVERING_PART_B_DEDUCTIBLE as readonly string[]
+  ).includes(letter);
+  // Plan F / C cover the Part B deductible AND all other cost-sharing → $0.
+  if (coversPartBDeductible) return 0;
+  if (letter === "N") {
+    const officeCopays = MEDIGAP_OFFICE_VISITS_BY_USAGE[usage] * PLAN_N_OFFICE_COPAY;
+    const erCopays = MEDIGAP_ER_VISITS_BY_USAGE[usage] * PLAN_N_ER_COPAY;
+    const excessCharges = PLAN_N_EXCESS_CHARGE_BY_USAGE[usage];
+    return PART_B_DEDUCTIBLE_2026 + officeCopays + erCopays + excessCharges;
+  }
+  // Plan G and other deductible-exposing letters: Part B deductible only.
+  return PART_B_DEDUCTIBLE_2026;
+}
+
 // Expected annual out-of-pocket for the Original Medicare + Medigap path, per
 // person, in today's dollars. Original Medicare + Medigap has NO out-of-pocket
 // maximum, so the Medicare-Advantage-style "OOP max × usage" model does not
-// apply. Instead the predictable exposure is the Part B deductible (Plan G's
-// only routine cost), plus small Plan N copays, plus Part D drug cost-sharing
-// capped at the 2026 Part D OOP ceiling.
+// apply. Instead the exposure is the plan letter's medical cost-sharing (above)
+// plus a Part D drug component that is identical across letters (drug spend is
+// a Part D matter, not a Medigap-letter one), capped at the 2026 Part D OOP
+// ceiling. Routine dental/vision/hearing is added separately by the caller.
 // Source: medicare.gov Medigap; CMS 2026 Part B deductible & Part D redesign.
-function medigapExpectedOutOfPocket(usage: OopUsage, planLetter?: string): number {
+export function medigapExpectedOutOfPocket(usage: OopUsage, planLetter?: string): number {
   // An explicit dollar override always wins.
   if (typeof usage === "object") return Math.max(0, usage.expectedAnnualOop);
 
   const letter = (planLetter ?? "G").toUpperCase();
-  const coversPartBDeductible = (
-    MEDIGAP_PLANS_COVERING_PART_B_DEDUCTIBLE as readonly string[]
-  ).includes(letter);
-  const partBDeductible = coversPartBDeductible ? 0 : PART_B_DEDUCTIBLE_2026;
-  const planCopays = letter === "N" ? MEDIGAP_PLAN_N_COPAYS_BY_USAGE[usage] : 0;
+  const medical = medigapMedicalCostSharing(letter, usage);
   const drugOop = Math.min(PART_D_OOP_CAP_2026, MEDIGAP_DRUG_OOP_BY_USAGE[usage]);
-  return partBDeductible + planCopays + drugOop;
+  return medical + drugOop;
 }
 
 function round2(value: number) {
@@ -375,9 +426,16 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
   const partBMonthlyPerPerson = PART_B_BASE_PREMIUM_2026 * irmaa.tier.partBMultiplier;
   const annualPartB0 = partBMonthlyPerPerson * 12 * people;
   const annualPartDSurcharge0 = irmaa.tier.partDMonthlySurcharge * 12 * people;
+  // The entered Medigap premium is the Plan-G-equivalent base; the plan letter's
+  // relativity factor re-prices it (Plan N cheaper, Plan F richer), so switching
+  // letter changes the premium automatically.
+  const effectiveMedigapMonthly = medigapEffectiveMonthlyPremium(
+    input.medigapMonthly,
+    input.medigapPlanLetter
+  );
   const medicareCoverage0 =
     input.medicareCoverage === "medigap"
-      ? (input.medigapMonthly + input.partDMonthly) * 12 * people
+      ? (effectiveMedigapMonthly + input.partDMonthly) * 12 * people
       : input.advantageMonthly * 12 * people;
   // Medicare out-of-pocket is modeled differently by coverage type. Medicare
   // Advantage has a real annual out-of-pocket maximum, so the "OOP max × usage"
@@ -395,6 +453,12 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
     input.medicareCoverage === "medigap"
       ? annualPartB0 + input.partDMonthly * 12 * people + annualPartDSurcharge0
       : annualPartB0 + medicareCoverage0 + annualPartDSurcharge0;
+
+  // Routine dental, vision & hearing — uncovered by Original Medicare/Medigap,
+  // so a real Medicare-years out-of-pocket cost. Per person, scaled by people to
+  // match the other per-person Medicare figures.
+  const dvhAnnual0 =
+    Math.max(0, input.dentalVisionHearingAnnual ?? DEFAULT_DENTAL_VISION_HEARING_ANNUAL) * people;
 
   const travelAnnual0 = input.travelMode === "off" ? 0 : input.travelAnnualPremium;
 
@@ -458,13 +522,15 @@ export function estimateHealthcareCosts(input: HealthcareCostInput): HealthcareC
         eligiblePremium0 = 0;
       } else if (input.travelMode === "replace") {
         // Part B must continue (late-enrollment penalty otherwise); the global
-        // plan replaces the supplemental coverage and Part D.
+        // plan replaces the supplemental coverage and Part D. Dental/vision/
+        // hearing stays a cost — it's uncovered either way.
         premium0 = annualPartB0;
-        oop0 = medicareOop0;
+        oop0 = medicareOop0 + dvhAnnual0;
         eligiblePremium0 = annualPartB0;
       } else {
         premium0 = annualPartB0 + medicareCoverage0 + annualPartDSurcharge0;
-        oop0 = medicareOop0;
+        // Add routine dental/vision/hearing — uncovered by Medicare + Medigap.
+        oop0 = medicareOop0 + dvhAnnual0;
         eligiblePremium0 = medicareEligiblePremium0;
       }
     }

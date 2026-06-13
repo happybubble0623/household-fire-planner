@@ -732,7 +732,9 @@ describe("PathToFirePanel", () => {
 
     expect(screen.getByText(/Low income\?/i)).toBeInTheDocument();
     expect(screen.getByText(/Medicaid before 65/i)).toBeInTheDocument();
-    expect(screen.getByText(/varies by state/i)).toBeInTheDocument();
+    // Specific to the low-income callout (other notes also mention premiums
+    // varying by state/age/carrier).
+    expect(screen.getByText(/eligibility and benefits vary by state/i)).toBeInTheDocument();
   });
 
   it("lets users temporarily clear calculator numeric fields while entering a replacement value", () => {
