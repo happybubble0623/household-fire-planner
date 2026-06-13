@@ -322,12 +322,11 @@ describe("PathToFirePanel", () => {
     );
     const projectionTable = screen.getByRole("table", { name: "Portfolio Drawdown FIRE projection" });
     expect(projectionTable).toBeInTheDocument();
-    // Redesign: no heavy grid or zebra — soft hairline row dividers instead, and
-    // tabular numbers right-align while the leading Age column stays left.
-    expect(projectionTable).not.toHaveClass("[&_td]:text-center");
-    expect(projectionTable).not.toHaveClass("[&_td]:border-[var(--border)]");
-    const projectionBody = projectionTable.querySelector("tbody");
-    expect(projectionBody).toHaveClass("divide-y");
+    // Cells are center-aligned and each column carries a subtle --border separator.
+    expect(projectionTable).toHaveClass("[&_td]:text-center");
+    expect(projectionTable).toHaveClass("[&_th]:text-center");
+    expect(projectionTable).toHaveClass("[&_td]:border-[var(--border)]");
+    expect(projectionTable).toHaveClass("[&_th]:border-[var(--border)]");
     expect(screen.getByRole("columnheader", { name: /^Age$/i })).toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: /Year/i })).not.toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: /Investment return/i })).toBeInTheDocument();
