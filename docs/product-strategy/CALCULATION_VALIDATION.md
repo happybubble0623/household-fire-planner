@@ -2,6 +2,19 @@
 
 *Created: 2026-06-13 · Last updated: 2026-06-13*
 
+> **✅ FIX UPDATE (commit `ac9b8f6`, 2026-06-13).** All 7 confirmed bugs queued below
+> are now FIXED in the calculator code and their rule-pinned tests are active and
+> passing: **SS-6** (final benefit floors to $6,676), **HC-5** (140.6% FPL → 3.61%),
+> **HC-6** (175% FPL Silver OOP max → $3,500 via the CSR band override), **HC-7**
+> (Medigap Plan G OOP → $283; OOP-max model kept only for Advantage), **MTG-3** (PMI
+> cancels at 80% of original home value → ends ~2033; home-value input added), and
+> **FIRE-6** (saved-path evaluator now inflates spending — the engine is LIVE, driving
+> `summarizeSavedPath`'s deterministic FIRE age and the workspace projection). A new
+> **INV-fee** test pins the investment fee input (net = gross − fee). Suite is now
+> **329 passed, 1 skipped** (the lone skip is **FIRE-5**, the 4%-vs-5% default-rate
+> *decision*, not a bug). The expected-vs-actual rows below record the **pre-fix**
+> state.
+
 > **What this is.** An *end-to-end numeric* validation of every calculator in the
 > app. For each calculator we (A) state the governing rule with a primary source,
 > (B) build concrete scenarios and derive the expected output **independently** by
@@ -39,7 +52,8 @@ expected-vs-actual figures, 1 finding's worked example **REFUTED** (the code is
 right, the audit's illustration was wrong), 1 finding's magnitude **corrected**,
 and all 13 "OK" rules **re-verified correct** by execution.
 
-`npm run lint` clean · `npm run build` succeeds · `npm test` → **321 passed, 7 skipped**.
+`npm run lint` clean · `npm run build` succeeds · `npm test` → **321 passed, 7 skipped**
+(pre-fix). After the fixes (commit `ac9b8f6`): **329 passed, 1 skipped**.
 
 ---
 
@@ -218,11 +232,14 @@ example wrong; **1 magnitude (4.3) corrected** (5.1%, not 7–8%); everything el
 
 - **Locked (19):** SS-1, SS-1b, SS-2, SS-2b, SS-3, SS-4, SS-5; HC-1, HC-2, HC-3,
   HC-4; MTG-1, MTG-2; INV-1, INV-2; FIRE-1, FIRE-2, FIRE-3, FIRE-4.
-- **Queued as confirmed bugs (7):** SS-6 (§1.7), HC-5 (§2.5), HC-6 (§2.6), HC-7
-  (§2.1), MTG-3 (§3.2), FIRE-5 (§5.3), FIRE-6 (§5.2). Each `it.skip` body asserts
-  the value the rule requires; flip `skip`→`it` when the calculator is fixed.
+- **Fixed & now active (commit `ac9b8f6`, 7):** SS-6 (§1.7), HC-5 (§2.5), HC-6 (§2.6),
+  HC-7 (§2.1), MTG-3 (§3.2), FIRE-6 (§5.2), and the new **INV-fee** (§4.3) — each
+  asserts the value its rule requires and passes.
+- **Still queued (1, a decision not a bug):** FIRE-5 (§5.3) — the 4%-vs-5% default
+  withdrawal rate. Left as `it.skip` pending a founder decision.
 
-Whole suite: **321 passed, 7 skipped** · lint clean · build succeeds.
+Whole suite (pre-fix): **321 passed, 7 skipped**. Post-fix: **329 passed, 1 skipped** ·
+lint clean · build succeeds.
 
 ---
 
