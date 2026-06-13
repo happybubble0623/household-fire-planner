@@ -244,11 +244,30 @@ export default function WhatIsFirePage() {
                 The main flavors of FIRE
               </h2>
               <p className={proseClass + " max-w-3xl"}>
-                FIRE is not one-size-fits-all. People pick a version that matches the life they
-                want and how soon they want to step back from work:
+                FIRE is not one-size-fits-all. The first three are about how you fund the years
+                after work — each is a model you can run here. The rest tune the lifestyle and
+                timing you are aiming for:
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {[
+                  {
+                    name: "Portfolio Drawdown FIRE",
+                    href: "/app/fire-path/withdrawal-rate",
+                    body:
+                      "Build savings, then spend them down gradually. The 4%-rule path — simplest, most common, and usually the earliest finish line."
+                  },
+                  {
+                    name: "Principal-Preserving FIRE",
+                    href: "/app/fire-path/principal-preserving",
+                    body:
+                      "Live on the income your investments produce and leave the savings themselves untouched, so they can last indefinitely."
+                  },
+                  {
+                    name: "Income Stream FIRE",
+                    href: "/app/fire-path/income-stream",
+                    body:
+                      "Cover your costs with reliable income — a pension, rental, or Social Security — so there is no portfolio to draw down."
+                  },
                   {
                     name: "Lean FIRE",
                     body:
@@ -269,12 +288,31 @@ export default function WhatIsFirePage() {
                     body:
                       "You quit your main career but keep a part-time or lower-stress job — often for health insurance and a little income. Savings cover most costs; the part-time work covers the rest."
                   }
-                ].map((flavor) => (
-                  <div key={flavor.name} className={cardClass}>
-                    <h3 className="text-lg font-semibold text-gray-900">{flavor.name}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-gray-600">{flavor.body}</p>
-                  </div>
-                ))}
+                ].map((flavor) =>
+                  flavor.href ? (
+                    <Link
+                      key={flavor.name}
+                      href={flavor.href}
+                      className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md"
+                    >
+                      <h3 className="text-lg font-semibold text-gray-900">{flavor.name}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-600">{flavor.body}</p>
+                      <span className="mt-3 inline-block text-sm font-semibold text-[var(--primary)]">
+                        Explore this model →
+                      </span>
+                    </Link>
+                  ) : (
+                    <div key={flavor.name} className={cardClass}>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-gray-900">{flavor.name}</h3>
+                        <span className="rounded-full bg-[var(--soft)] px-2 py-0.5 text-xs font-medium text-gray-500">
+                          Under development
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-600">{flavor.body}</p>
+                    </div>
+                  )
+                )}
               </div>
               <p className="max-w-3xl text-sm leading-relaxed text-gray-500">
                 Want the precise definitions side by side? See the{" "}
@@ -299,18 +337,49 @@ export default function WhatIsFirePage() {
                   </li>
                   <li>
                     <strong className="text-gray-900">Estimate your FIRE number.</strong> Multiply
-                    that yearly spending by about 25 for a first target.
+                    that yearly spending by about 25 for a first target. Any term that trips you up
+                    is defined in the{" "}
+                    <Link href="/fire-glossary" className="font-medium text-[var(--primary)] hover:underline">
+                      glossary
+                    </Link>
+                    .
                   </li>
                   <li>
                     <strong className="text-gray-900">Raise your savings rate.</strong> Look for the
                     gap between income and spending, and direct more of it into low-cost
-                    investments. Even small, steady increases compound over time.
+                    investments. The{" "}
+                    <Link
+                      href="/app/fire-path/tools/investment"
+                      className="font-medium text-[var(--primary)] hover:underline"
+                    >
+                      Investment calculator
+                    </Link>{" "}
+                    shows how even small, steady increases compound over time.
                   </li>
                   <li>
                     <strong className="text-gray-900">Pick a strategy and test it.</strong> Decide
-                    how you will fund the years after work — by spending savings down, living on the
-                    income they produce, or leaning on steady income — and check the earliest age it
-                    allows using real numbers.
+                    how you will fund the years after work, then run the matching model:{" "}
+                    <Link
+                      href="/app/fire-path/withdrawal-rate"
+                      className="font-medium text-[var(--primary)] hover:underline"
+                    >
+                      Portfolio Drawdown
+                    </Link>{" "}
+                    to spend savings down,{" "}
+                    <Link
+                      href="/app/fire-path/principal-preserving"
+                      className="font-medium text-[var(--primary)] hover:underline"
+                    >
+                      Principal-Preserving
+                    </Link>{" "}
+                    to live on what they earn, or{" "}
+                    <Link
+                      href="/app/fire-path/income-stream"
+                      className="font-medium text-[var(--primary)] hover:underline"
+                    >
+                      Income Stream
+                    </Link>{" "}
+                    to lean on steady income. Each checks the earliest age your real numbers allow.
                   </li>
                 </ol>
               </div>
@@ -324,6 +393,49 @@ export default function WhatIsFirePage() {
                 The best way to understand FIRE is to run your own numbers. Every tool below is
                 free, private, and works without a login — your data stays on your device unless you
                 choose to create an account.
+              </p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[
+                  {
+                    href: "/app/fire-path/tools/social-security",
+                    title: "Social Security benefit calculator",
+                    body: "Estimate your worker benefit at 62, full retirement age, and 70."
+                  },
+                  {
+                    href: "/app/fire-path/tools/healthcare",
+                    title: "Retirement healthcare cost calculator",
+                    body: "Project medical costs across the pre-Medicare ACA gap years and Medicare."
+                  },
+                  {
+                    href: "/app/fire-path/tools/mortgage",
+                    title: "Mortgage calculator",
+                    body: "See monthly principal and interest, total interest, and payoff cost."
+                  },
+                  {
+                    href: "/app/fire-path/tools/investment",
+                    title: "Investment calculator",
+                    body: "Project a balance from starting assets, contributions, return, and time."
+                  }
+                ].map((tool) => (
+                  <Link
+                    key={tool.href}
+                    href={tool.href}
+                    className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md"
+                  >
+                    <h3 className="text-base font-semibold text-gray-900">{tool.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-600">{tool.body}</p>
+                    <span className="mt-3 inline-block text-sm font-semibold text-[var(--primary)]">
+                      Open calculator →
+                    </span>
+                  </Link>
+                ))}
+              </div>
+
+              <h2 className={sectionHeadingClass}>Try it free with our 3 FIRE models</h2>
+              <p className={proseClass + " max-w-3xl"}>
+                Once your numbers are in, each model answers the same question a different way:
+                what is the earliest age this approach lets you stop working?
               </p>
 
               <div className="grid gap-4 sm:grid-cols-3">
@@ -352,7 +464,7 @@ export default function WhatIsFirePage() {
                     <h3 className="text-base font-semibold text-gray-900">{strategy.title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-gray-600">{strategy.body}</p>
                     <span className="mt-3 inline-block text-sm font-semibold text-[var(--primary)]">
-                      Open calculator →
+                      Open model →
                     </span>
                   </Link>
                 ))}
