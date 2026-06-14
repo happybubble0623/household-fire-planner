@@ -27,5 +27,8 @@ yarn-debug.log*
 .vercel/
 .turbo/
 
+# Local harness/settings
+.claude/settings.local.json
+
 # OS cruft
 .DS_Store
