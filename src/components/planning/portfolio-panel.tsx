@@ -18,6 +18,7 @@ import {
   X
 } from "lucide-react";
 import { PortfolioCollectionsPanel } from "@/components/planning/portfolio-collections-panel";
+import { PortfolioBacktestPanel } from "@/components/planning/portfolio-backtest-panel";
 import { InfoPopover } from "@/components/ui/info-popover";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
 import { getCollectionLabelsForItem } from "@/lib/phase1/collections";
@@ -1440,6 +1441,8 @@ export function PortfolioPanel({
           </table>
         </div>
       </section>
+
+      <PortfolioBacktestPanel workbook={workbook} />
 
       <section
         ref={formRef}
