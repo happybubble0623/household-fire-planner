@@ -5,6 +5,9 @@
 ## TL;DR
 Build the iOS app by **reusing the existing web codebase + the portable TypeScript calculation engine**, wrapped with **Capacitor**, plus a few genuinely native features so it clears App Store Guideline 4.2 ("minimum functionality" — bare website wrappers get rejected). Position iOS differently from web: **web acquires and plans; iOS retains and tracks.**
 
+## Recommended v1 scope (decided)
+**v1 = Capacitor-wrapped app, dashboard-first, + Face ID lock.** Add push notifications if it's not painful. **No home-screen widget in v1** — it's the most expensive, least AI-assistable native piece (separate Swift/WidgetKit extension + cross-process data sharing) and only a retention nice-to-have; defer to a v1.x update. The ONLY real App Store rejection risk is a bare wrapper with zero native features; Face ID (and/or push) comfortably clears Guideline 4.2. A portfolio tracker that stores data, works well on mobile, and has login/sync already feels app-like.
+
 ## 1. Positioning: web vs iOS (different jobs, different mindsets)
 - **Web = discovery + deep planning.** Found via Google/SEO, often desktop, "figure it out" mode. Hero stays the calculators, FIRE models, and the guide. The acquisition front door.
 - **iOS = retention + ongoing tracking.** Already-committed users, on the go, want quick check-ins — not to re-learn FIRE. The app's job: "keep your plan on track, in your pocket."
@@ -18,28 +21,27 @@ Build the iOS app by **reusing the existing web codebase + the portable TypeScri
 - Later option: migrate to **React Native/Expo** (reusing the same TS core) for a fully native UI if the wrapper becomes limiting. The TS core carries over either way.
 
 ## 3. Native features (define the iOS value AND clear Guideline 4.2)
-Priority order:
-1. **Home-screen widget** — portfolio value + FIRE age at a glance (most "app-like"; needs Swift/WidgetKit).
-2. **Push notifications** — price/refresh reminders, milestone and off-track alerts (core to retention).
-3. **Face ID / Touch ID lock** — expected for financial data.
-4. **Offline snapshot** of the latest plan.
+These are **options to add native value, not a required checklist.** **v1 minimum = Face ID** (push optional). Pick enough to move the app from "repackaged website" to legitimate app — one or two is plenty.
+1. **Face ID / Touch ID lock** — expected for financial data. **v1 pick.**
+2. **Push notifications** — price/refresh reminders, milestone and off-track alerts (core to retention). **v1 pick (optional — add if not painful).**
+3. **Offline snapshot** of the latest plan.
+4. **Home-screen widget** — portfolio value + FIRE age at a glance (most "app-like"; needs Swift/WidgetKit). **v1.x — optional, retention nice-to-have. DEFERRED, not in v1.**
 Later: Siri shortcut ("what's my FIRE age"), camera statement scan.
-Two or three of these move the app from "repackaged website" to legitimate app.
 
 ## 4. Build phases
 - **Phase 0 — Extract shared core.** Confirm the engine imports cleanly outside Next.js.
 - **Phase 1 — Capacitor wrap.** iOS opens to the portfolio dashboard; mobile responsive polish; app icon/splash; Xcode + code-signing setup.
-- **Phase 2 — Native features.** Add Face ID + push first; widget as v1.1.
+- **Phase 2 — Native features.** Add Face ID first; push if not painful; widget deferred to v1.x.
 - **Phase 3 — Ship.** TestFlight beta → submit. Handle compliance (below).
 
 ## 5. Effort projection (solo founder, AI-assisted, reusing web + portable TS engine)
-Split by who does what — the founder handles web/TS coding, so the real incremental lift is the native/Apple side.
-- **Web / shared (founder's wheelhouse, AI-assisted):** shared-core extraction, dashboard-first routes, mobile polish, onboarding, offline snapshot → **~25–55 hrs** (lower risk).
-- **iOS-native + tooling + store (the genuine new lift; budget learning time here):** Capacitor/Xcode/code-signing, Face ID, push/APNs, home-screen widget (Swift), TestFlight + submission + compliance → **~55–110 hrs**. Push and the widget dominate.
-- **Lean MVP (clears 4.2, no widget):** ~50–100 hrs total.
-- **Fuller v1 (with widget):** ~90–150 hrs total.
-- First-timer Xcode/signing learning curve can add 10–20 hrs on its own.
-- Non-dev overhead: Apple Developer enrollment ($99/yr), app icon + screenshots, review wait (and possible rejection round).
+Vibe-coded (AI-assisted), reusing the web app + portable TS engine. AI slashes the code-writing parts but not the Apple tooling/process.
+- Web / shared TS (founder's wheelhouse, AI-strong): extract shared core, dashboard routes, mobile polish, onboarding, offline snapshot → ~15–30 hrs.
+- Apple tooling + process floor (AI helps least): Developer setup, certificates/code-signing, Xcode build-debug loop, push/APNs config, App Store Connect listing + review → a ~30–50 hr floor you can't AI away.
+- Lean MVP (wrapped app + Face ID, push optional, NO widget): ~35–70 hrs total (low end if push is skipped).
+- Add widget later (v1.x, Swift/WidgetKit): +~30–40 hrs.
+- First-timer Xcode/code-signing curve can add 10–20 hrs; AI can even cost time generating subtly-wrong native config.
+- Non-dev overhead: Apple Developer $99/yr, app icon + screenshots, review wait (+ possible rejection round).
 
 ## 6. App Store compliance to plan for
 - **Guideline 4.2 (Minimum Functionality):** a bare website wrapper is rejected — the native features above are the mitigation.
@@ -53,5 +55,5 @@ The iOS release is the **"now on iPhone" second launch moment** — a fresh head
 
 ## 8. Open decisions
 - Capacitor first vs jump straight to React Native/Expo.
-- Which native features make v1 (recommended: push + Face ID minimum; widget in v1.1).
+- v1 = Face ID (push optional), no widget — DECIDED.
 - Whether to trim/hide marketing routes entirely in the iOS shell.
