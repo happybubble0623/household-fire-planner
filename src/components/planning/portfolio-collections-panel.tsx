@@ -185,12 +185,17 @@ export function PortfolioCollectionsPanel({
   };
 
   return (
-    <details className="group mt-5 border-t border-[var(--border)] pt-5">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 outline-none [&::-webkit-details-marker]:hidden">
-        <span className="text-lg font-semibold text-[var(--foreground)]">Collections</span>
+    <details className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 outline-none [&::-webkit-details-marker]:hidden">
+        <div>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">Collections</h2>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Group holdings into custom views
+          </p>
+        </div>
         <ChevronDown
           aria-hidden="true"
-          className="h-5 w-5 shrink-0 text-[var(--muted-foreground)] transition-transform duration-200 group-open:rotate-180"
+          className="mt-1 h-5 w-5 shrink-0 text-[var(--muted-foreground)] transition-transform duration-200 group-open:rotate-180"
         />
       </summary>
       <div className="mt-4 flex flex-col gap-4">
