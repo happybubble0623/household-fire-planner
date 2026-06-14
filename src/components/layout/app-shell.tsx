@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FIRE_STRATEGIES } from "@/lib/data/fire-strategies";
 import { PLANNING_TOOLS } from "@/lib/data/planning-tools";
@@ -310,52 +311,67 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               Portfolio Tracker
             </Link>
-            <p className="px-[11px] pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
-              Strategies
-            </p>
-            {FIRE_STRATEGIES.map((strategy) => (
+            {/* Collapsed-by-default accordion (native <details>, no `open`): the
+                group label is the summary, tapping it expands the links. Mirrors
+                the CollapsibleSection/FaqAccordion chevron-rotate pattern. */}
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-[11px] pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500 outline-none transition-colors hover:text-gray-900 [&::-webkit-details-marker]:hidden">
+                Strategies
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 group-open:rotate-180"
+                />
+              </summary>
+              {FIRE_STRATEGIES.map((strategy) => (
+                <Link
+                  key={strategy.href}
+                  href={strategy.href}
+                  className={cn(
+                    mobileLinkClass,
+                    isActive(strategy.href) && navItemActiveClass
+                  )}
+                  aria-current={isActive(strategy.href) ? "page" : undefined}
+                >
+                  {strategy.navLabel}
+                </Link>
+              ))}
+            </details>
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-[11px] pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500 outline-none transition-colors hover:text-gray-900 [&::-webkit-details-marker]:hidden">
+                Calculators
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 group-open:rotate-180"
+                />
+              </summary>
+              {PLANNING_TOOLS.map((tool) => (
+                <Link
+                  key={tool.slug}
+                  href={tool.href}
+                  className={cn(
+                    mobileLinkClass,
+                    isActive(tool.href) && navItemActiveClass
+                  )}
+                  aria-current={isActive(tool.href) ? "page" : undefined}
+                >
+                  {tool.title}
+                </Link>
+              ))}
               <Link
-                key={strategy.href}
-                href={strategy.href}
-                className={cn(
-                  mobileLinkClass,
-                  isActive(strategy.href) && navItemActiveClass
-                )}
-                aria-current={isActive(strategy.href) ? "page" : undefined}
+                href={EXPENSES_TOOL.href}
+                className={cn(mobileLinkClass, isActive(EXPENSES_TOOL.href) && navItemActiveClass)}
+                aria-current={isActive(EXPENSES_TOOL.href) ? "page" : undefined}
               >
-                {strategy.navLabel}
+                {EXPENSES_TOOL.title}
               </Link>
-            ))}
-            <p className="px-[11px] pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
-              Calculators
-            </p>
-            {PLANNING_TOOLS.map((tool) => (
               <Link
-                key={tool.slug}
-                href={tool.href}
-                className={cn(
-                  mobileLinkClass,
-                  isActive(tool.href) && navItemActiveClass
-                )}
-                aria-current={isActive(tool.href) ? "page" : undefined}
+                href={TAX_TOOL.href}
+                className={cn(mobileLinkClass, isActive(TAX_TOOL.href) && navItemActiveClass)}
+                aria-current={isActive(TAX_TOOL.href) ? "page" : undefined}
               >
-                {tool.title}
+                {TAX_TOOL.title}
               </Link>
-            ))}
-            <Link
-              href={EXPENSES_TOOL.href}
-              className={cn(mobileLinkClass, isActive(EXPENSES_TOOL.href) && navItemActiveClass)}
-              aria-current={isActive(EXPENSES_TOOL.href) ? "page" : undefined}
-            >
-              {EXPENSES_TOOL.title}
-            </Link>
-            <Link
-              href={TAX_TOOL.href}
-              className={cn(mobileLinkClass, isActive(TAX_TOOL.href) && navItemActiveClass)}
-              aria-current={isActive(TAX_TOOL.href) ? "page" : undefined}
-            >
-              {TAX_TOOL.title}
-            </Link>
+            </details>
             <div className="mt-2 border-t border-[var(--border)] pt-2">
               <Link
                 href="/about"
