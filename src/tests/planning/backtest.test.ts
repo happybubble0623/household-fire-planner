@@ -6,10 +6,12 @@ import {
   computeReturnStats,
   indexSeriesByMonth,
   isLikelyTicker,
+  isReverseSplitDistorted,
   monthsBetween,
   NO_HISTORY_REASON,
   NO_TICKER_REASON,
-  normalizeBenchmarkSeries
+  normalizeBenchmarkSeries,
+  REVERSE_SPLIT_REASON
 } from "@/lib/phase1/backtest";
 import type { BacktestHoldingInput, MonthlySeriesBySymbol } from "@/lib/phase1/backtest";
 
@@ -37,6 +39,14 @@ const SERIES: MonthlySeriesBySymbol = {
     { date: "2025-02-28", close: 420 },
     { date: "2025-03-31", close: 380 },
     { date: "2025-04-30", close: 440 }
+  ],
+  // Reverse-split decay signature (UVXY-like): the split-adjusted close balloons
+  // going back in time — earliest is ~1000× the latest — then collapses.
+  DECAY: [
+    { date: "2025-01-31", close: 50000 },
+    { date: "2025-02-28", close: 5000 },
+    { date: "2025-03-31", close: 500 },
+    { date: "2025-04-30", close: 50 }
   ]
 };
 
@@ -136,6 +146,42 @@ describe("computePortfolioSeries", () => {
     expect(insufficientHistory).toEqual([
       { id: "s", name: "Short", symbol: "SHORT", reason: expect.any(String) }
     ]);
+  });
+});
+
+describe("reverse-split distortion guard", () => {
+  it("flags a series whose earliest close towers over its latest", () => {
+    // earliest 50000 vs latest 50 → 1000×, well over the 50× threshold.
+    expect(isReverseSplitDistorted(indexSeriesByMonth(SERIES.DECAY))).toBe(true);
+  });
+
+  it("does not flag a normal appreciating or mildly declining series", () => {
+    // AAA appreciates (100 → 120); BBB ends flat (50 → 50). Neither is distorted.
+    expect(isReverseSplitDistorted(indexSeriesByMonth(SERIES.AAA))).toBe(false);
+    expect(isReverseSplitDistorted(indexSeriesByMonth(SERIES.BBB))).toBe(false);
+  });
+
+  it("needs at least two months and a positive latest close", () => {
+    expect(isReverseSplitDistorted(indexSeriesByMonth(SERIES.SHORT))).toBe(false);
+    expect(isReverseSplitDistorted(new Map([["2025-01", 9999]]))).toBe(false);
+  });
+
+  it("excludes a distorted holding from the basket without distorting the rest", () => {
+    const holdings: BacktestHoldingInput[] = [
+      { id: "a", name: "Fund A", kind: "trackable", symbol: "AAA", units: 1 },
+      { id: "u", name: "ProShares Ultra VIX", kind: "trackable", symbol: "DECAY", units: 100 }
+    ];
+
+    const { series, included, excludedDistorted } = computePortfolioSeries(holdings, SERIES);
+
+    // DECAY is excluded with the leveraged/volatility label; AAA carries on,
+    // so the basket starts at AAA's real value (100), not the inflated millions.
+    expect(excludedDistorted).toEqual([
+      { id: "u", name: "ProShares Ultra VIX", symbol: "DECAY", reason: REVERSE_SPLIT_REASON }
+    ]);
+    expect(included.map((holding) => holding.symbol)).toEqual(["AAA"]);
+    expect(series[0]).toEqual({ date: "2025-01", value: 100 });
+    expect(series.at(-1)).toEqual({ date: "2025-04", value: 120 });
   });
 });
 

@@ -39,6 +39,11 @@ export type PortfolioSeriesResult = {
   // separate so one short-history holding can't shrink the window for everyone;
   // these are reported (and can later be modeled via a proxy).
   insufficientHistory: BacktestSkippedHolding[];
+  // Leveraged/inverse/volatility products (e.g. UVXY) whose repeated REVERSE
+  // splits balloon the split-adjusted price as you go back in time. Today's
+  // share count × that huge historical price inflates the basket by orders of
+  // magnitude, so they're excluded rather than allowed to distort the curve.
+  excludedDistorted: BacktestSkippedHolding[];
 };
 
 export type BacktestReturnStats = {
@@ -53,6 +58,31 @@ export const NO_HISTORY_REASON = "No monthly price history was returned for this
 export const NO_TICKER_REASON = "No recognizable ticker symbol to look up.";
 export const INSUFFICIENT_HISTORY_REASON =
   "Too little price history to cover the backtest window.";
+export const REVERSE_SPLIT_REASON =
+  "Excluded — leveraged/volatility product (history not meaningful to backtest).";
+
+// A holding's split-adjusted price is "distorted" when its EARLIEST in-window
+// close towers over its LATEST by this factor. A genuinely appreciating stock
+// has earliest << latest; even a badly declined normal stock rarely loses 98%
+// of its value. Only repeatedly reverse-split decaying products (UVXY and
+// kin) push the adjusted price this far, so a conservative 50× threshold
+// catches them without ever flagging a real holding.
+export const REVERSE_SPLIT_RATIO_THRESHOLD = 50;
+
+// Detect the reverse-split/decay signature from an already month-indexed series:
+// earliest close > THRESHOLD × latest close. Needs at least two months and a
+// positive latest close to be meaningful.
+export function isReverseSplitDistorted(indexed: Map<string, number>): boolean {
+  if (indexed.size < 2) return false;
+
+  const months = [...indexed.keys()].sort();
+  const earliest = indexed.get(months[0]);
+  const latest = indexed.get(months[months.length - 1]);
+
+  if (!earliest || !latest || latest <= 0) return false;
+
+  return earliest > REVERSE_SPLIT_RATIO_THRESHOLD * latest;
+}
 
 // A symbol we can plausibly look up: letters/digits with an optional exchange or
 // crypto suffix, no spaces. Filters out fund descriptions stored in the symbol
@@ -107,6 +137,7 @@ export function computePortfolioSeries(
   const included: BacktestIncludedHolding[] = [];
   const skipped: BacktestSkippedHolding[] = [];
   const insufficientHistory: BacktestSkippedHolding[] = [];
+  const excludedDistorted: BacktestSkippedHolding[] = [];
   const indexedHoldings: {
     holding: BacktestHoldingInput;
     indexed: Map<string, number>;
@@ -128,12 +159,24 @@ export function computePortfolioSeries(
       continue;
     }
 
+    // Drop reverse-split decaying products BEFORE the anchor step — otherwise a
+    // long-history one like UVXY would define the window and balloon the start.
+    if (isReverseSplitDistorted(indexed)) {
+      excludedDistorted.push({
+        id: holding.id,
+        name: holding.name,
+        symbol: holding.symbol,
+        reason: REVERSE_SPLIT_REASON
+      });
+      continue;
+    }
+
     const firstMonth = [...indexed.keys()].sort()[0];
     indexedHoldings.push({ holding, indexed, firstMonth });
   }
 
   if (indexedHoldings.length === 0) {
-    return { series: [], included, skipped, insufficientHistory };
+    return { series: [], included, skipped, insufficientHistory, excludedDistorted };
   }
 
   // The anchor is the holding with the most monthly points; its months define
@@ -190,7 +233,7 @@ export function computePortfolioSeries(
     return { date: monthKey, value };
   });
 
-  return { series, included, skipped, insufficientHistory };
+  return { series, included, skipped, insufficientHistory, excludedDistorted };
 }
 
 // Normalize a benchmark to the portfolio's starting dollars so both curves show

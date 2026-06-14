@@ -34,6 +34,7 @@ type BacktestRunResult = {
   skippedHoldings: { name: string; symbol: string; reason: string }[];
   noTickerHoldings: { name: string; symbol: string }[];
   insufficientHoldings: { name: string; symbol: string }[];
+  distortedHoldings: { name: string; symbol: string }[];
   excludedNonMarket: string[];
   windowStart: string;
   windowEnd: string;
@@ -352,6 +353,12 @@ function BacktestResult({
           {result.insufficientHoldings.map((holding) => holding.name).join(", ")}.
         </p>
       ) : null}
+      {result.distortedHoldings.length > 0 ? (
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+          Excluded — leveraged/volatility product (history not meaningful to backtest):{" "}
+          {result.distortedHoldings.map((holding) => holding.name).join(", ")}.
+        </p>
+      ) : null}
       {result.noTickerHoldings.length > 0 ? (
         <p className="mt-1 text-xs text-[var(--muted-foreground)]">
           No ticker to look up: {result.noTickerHoldings.map((holding) => holding.name).join(", ")}.
@@ -655,6 +662,10 @@ function buildRunResult({
       .filter((holding) => holding.reason === NO_TICKER_REASON)
       .map((holding) => ({ name: holding.name, symbol: holding.symbol })),
     insufficientHoldings: portfolio.insufficientHistory.map((holding) => ({
+      name: holding.name,
+      symbol: holding.symbol
+    })),
+    distortedHoldings: portfolio.excludedDistorted.map((holding) => ({
       name: holding.name,
       symbol: holding.symbol
     })),
