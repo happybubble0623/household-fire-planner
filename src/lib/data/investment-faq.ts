@@ -120,7 +120,12 @@ export const investmentSourcedDefaults: {
     {
       value: "Monthly",
       label: "Compounding frequency",
-      source: "Growth is applied each month and your contribution is added monthly, matching how most people invest."
+      source: "Compounding matches your contribution frequency: choose monthly and growth is applied 12 times a year; choose annual and it's applied once. Most people contribute monthly, so that's the default."
+    },
+    {
+      value: "End of period",
+      label: "Contribution timing",
+      source: "Whether each deposit lands at the start or end of the period. End of period (ordinary annuity) is the conservative default; beginning of period (annuity-due) earns one extra period of growth and ends slightly higher."
     },
     {
       value: "Subtract fees",
@@ -203,6 +208,11 @@ export const investmentFaq: FaqItem[] = [
     question: "What is the difference between contributions and growth?",
     answer:
       "Contributions are the money you put in — your starting balance plus every monthly deposit. Growth is everything the market adds on top through returns and compounding. The calculator reports both separately and shows growth as a percentage on top of what you put in, so you can see how much of the ending balance came from saving versus from investing. In long horizons, growth usually becomes the larger share."
+  },
+  {
+    question: "Should I contribute monthly or annually, and at the start or end of the period?",
+    answer:
+      "Use whichever matches how you actually invest. Choose monthly if you add money every paycheck or month, or annual if you make one lump deposit a year — the calculator compounds at the same frequency you pick (monthly contributions compound monthly, annual contributions compound once a year), so you don't set compounding separately. Timing is a smaller lever: beginning of period (an annuity-due) invests each contribution at the start so it earns that period's growth too, while end of period (an ordinary annuity) adds it afterward. Beginning of period always ends a little higher for the same numbers; end of period is the more conservative default."
   },
   {
     question: "Are these investment projections guaranteed?",

@@ -94,6 +94,7 @@ const toolFieldHelp: Record<string, string> = {
     "The calendar year payments begin. Only shifts the year labels on the payoff chart.",
   "Starting balance": "The amount already invested before future contributions and growth.",
   "Monthly contribution": "The amount added each month before investment growth is applied.",
+  "Annual contribution": "The amount added each year before investment growth is applied.",
   "Annual return": "The annual growth assumption used for the investment projection.",
   "Time horizon": "The number of years included in the projection.",
   "Birth year": "Used to estimate Social Security eligibility year and full retirement age.",
@@ -222,15 +223,70 @@ export type InvestmentScheduleRow = {
   balance: number;
 };
 
+// How often the user contributes. Compounding is derived from this — not a
+// separate control: monthly contributions compound monthly (12 periods/yr),
+// annual contributions compound annually (1 period/yr).
+export type ContributionFrequency = "monthly" | "annual";
+
+// When each contribution lands within its period. Beginning-of-period deposits
+// (annuity-due) earn one extra period of growth versus end-of-period (ordinary
+// annuity), so for the same inputs an annuity-due always ends a little higher.
+export type ContributionTiming = "beginning" | "end";
+
+export function periodsPerYearFor(frequency: ContributionFrequency) {
+  return frequency === "monthly" ? 12 : 1;
+}
+
+// Closed-form future value of an initial principal plus a level contribution
+// series, compounding once per period. Keeping this pure (and separate from the
+// schedule loop) lets us pin the headline math directly in unit tests.
+//   FV(principal)     = P · (1 + i)^n
+//   FV(contributions) = C · [((1 + i)^n − 1) / i]            (ordinary annuity, end of period)
+//                       × (1 + i)                            (annuity-due, beginning of period)
+//   i = 0 guard: with no return the contribution series is just C · n.
+export function investmentFutureValue({
+  principal,
+  contributionPerPeriod,
+  periodicRate,
+  periods,
+  timing = "end"
+}: {
+  principal: number;
+  contributionPerPeriod: number;
+  periodicRate: number;
+  periods: number;
+  timing?: ContributionTiming;
+}) {
+  const growthFactor = Math.pow(1 + periodicRate, periods);
+  const fvPrincipal = principal * growthFactor;
+  let fvContributions: number;
+  if (periodicRate === 0) {
+    fvContributions = contributionPerPeriod * periods;
+  } else {
+    fvContributions = contributionPerPeriod * ((growthFactor - 1) / periodicRate);
+    if (timing === "beginning") {
+      fvContributions *= 1 + periodicRate;
+    }
+  }
+  return { fvPrincipal, fvContributions, total: fvPrincipal + fvContributions };
+}
+
 export function calculateInvestment({
   startingBalance,
-  monthlyContribution,
+  contribution,
+  contributionFrequency = "monthly",
+  contributionTiming = "end",
   annualReturnPercent,
   years,
   feePercent = 0
 }: {
   startingBalance: number;
-  monthlyContribution: number;
+  // Contribution per period. Its meaning follows contributionFrequency: a
+  // monthly contribution is per month (compounded monthly); an annual
+  // contribution is per year (compounded annually).
+  contribution: number;
+  contributionFrequency?: ContributionFrequency;
+  contributionTiming?: ContributionTiming;
   annualReturnPercent: number;
   years: number;
   // Annual fund fee / expense ratio (percent). The effective return is the
@@ -238,8 +294,11 @@ export function calculateInvestment({
   // that don't model fees are unchanged.
   feePercent?: number;
 }) {
-  const monthlyReturn = percentToDecimal(annualReturnPercent - feePercent) / 12;
-  const months = Math.max(0, Math.round(years * 12));
+  const periodsPerYear = periodsPerYearFor(contributionFrequency);
+  // Compounding auto-matches the contribution frequency — periodic rate is the
+  // net annual return divided by the periods per year.
+  const periodicRate = percentToDecimal(annualReturnPercent - feePercent) / periodsPerYear;
+  const totalPeriods = Math.max(0, Math.round(years * periodsPerYear));
   const startYear = new Date().getFullYear();
   let balance = startingBalance;
   let contributions = 0;
@@ -247,13 +306,18 @@ export function calculateInvestment({
     { year: startYear, contributed: startingBalance, growth: 0, balance: startingBalance }
   ];
 
-  for (let month = 1; month <= months; month += 1) {
-    balance = balance * (1 + monthlyReturn) + monthlyContribution;
-    contributions += monthlyContribution;
-    if (month % 12 === 0 || month === months) {
+  for (let period = 1; period <= totalPeriods; period += 1) {
+    // Beginning-of-period: the contribution is added before growth, so it earns
+    // this period's return too. End-of-period: growth first, then the deposit.
+    balance =
+      contributionTiming === "beginning"
+        ? (balance + contribution) * (1 + periodicRate)
+        : balance * (1 + periodicRate) + contribution;
+    contributions += contribution;
+    if (period % periodsPerYear === 0 || period === totalPeriods) {
       const contributed = startingBalance + contributions;
       schedule.push({
-        year: startYear + Math.ceil(month / 12),
+        year: startYear + Math.ceil(period / periodsPerYear),
         contributed,
         growth: balance - contributed,
         balance
@@ -261,10 +325,21 @@ export function calculateInvestment({
     }
   }
 
+  // Headline figures come from the closed form so they don't drift with the
+  // iteration; the schedule above (same recurrence) drives the chart.
+  const { total: endingBalance } = investmentFutureValue({
+    principal: startingBalance,
+    contributionPerPeriod: contribution,
+    periodicRate,
+    periods: totalPeriods,
+    timing: contributionTiming
+  });
+  const totalContributions = startingBalance + contribution * totalPeriods;
+
   return {
-    endingBalance: balance,
-    totalContributions: startingBalance + contributions,
-    investmentGrowth: balance - startingBalance - contributions,
+    endingBalance,
+    totalContributions,
+    investmentGrowth: endingBalance - totalContributions,
     schedule
   };
 }
@@ -358,6 +433,52 @@ function parseEditableNumber(value: string) {
   const trimmedValue = value.trim();
   if (!trimmedValue) return Number.NaN;
   return Number(trimmedValue);
+}
+
+// Segmented two-or-more-option toggle, styled to match the existing pill toggles
+// used elsewhere (e.g. the healthcare today's/future-dollars switch).
+function SegmentedToggle<T extends string>({
+  label,
+  help,
+  value,
+  options,
+  onChange
+}: {
+  label: string;
+  help?: string;
+  value: T;
+  options: ReadonlyArray<{ value: T; label: string }>;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+        <span>{label}</span>
+        {help ? <InfoPopover label={label} content={help} /> : null}
+      </div>
+      <div
+        className="mt-2 inline-flex w-full gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1"
+        role="group"
+        aria-label={label}
+      >
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={value === option.value}
+            className={
+              value === option.value
+                ? "flex-1 rounded-lg bg-white px-3 py-2.5 text-[13px] font-semibold text-[var(--primary-hover)] shadow-sm"
+                : "flex-1 rounded-lg px-3 py-2.5 text-[13px] font-semibold text-gray-600"
+            }
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // KPI result card (REDESIGN_SPEC §4): caption label, big tabular value,
@@ -721,20 +842,35 @@ function MortgageCalculator() {
 
 function InvestmentCalculator() {
   const [startingBalance, setStartingBalance] = useState(100_000);
-  const [monthlyContribution, setMonthlyContribution] = useState(2_000);
+  const [contribution, setContribution] = useState(2_000);
+  const [contributionFrequency, setContributionFrequency] =
+    useState<ContributionFrequency>("monthly");
+  const [contributionTiming, setContributionTiming] = useState<ContributionTiming>("end");
   const [annualReturnPercent, setAnnualReturnPercent] = useState(7);
   const [years, setYears] = useState(15);
   const [feePercent, setFeePercent] = useState(0.1);
+  const isMonthly = contributionFrequency === "monthly";
+  const contributionLabel = isMonthly ? "Monthly contribution" : "Annual contribution";
   const liveResult = useMemo(
     () =>
       calculateInvestment({
         startingBalance,
-        monthlyContribution,
+        contribution,
+        contributionFrequency,
+        contributionTiming,
         annualReturnPercent,
         years,
         feePercent
       }),
-    [annualReturnPercent, feePercent, monthlyContribution, startingBalance, years]
+    [
+      annualReturnPercent,
+      contribution,
+      contributionFrequency,
+      contributionTiming,
+      feePercent,
+      startingBalance,
+      years
+    ]
   );
   const gate = useCalculateGate(liveResult);
   const result = gate.value;
@@ -755,13 +891,37 @@ function InvestmentCalculator() {
             step={1000}
             note="Your number — what's already invested today."
           />
+          <SegmentedToggle
+            label="Contribution frequency"
+            help="How often you add money. Compounding matches it automatically: monthly contributions compound monthly (12 times a year), annual contributions compound once a year."
+            value={contributionFrequency}
+            onChange={setContributionFrequency}
+            options={[
+              { value: "monthly", label: "Monthly" },
+              { value: "annual", label: "Annual" }
+            ]}
+          />
+          <SegmentedToggle
+            label="Contribution timing"
+            help="When each contribution lands. Beginning of period means the deposit is invested at the start and earns that period's growth too (annuity-due); end of period adds it after growth (ordinary annuity). Beginning-of-period ends slightly higher for the same inputs."
+            value={contributionTiming}
+            onChange={setContributionTiming}
+            options={[
+              { value: "beginning", label: "Beginning of period" },
+              { value: "end", label: "End of period" }
+            ]}
+          />
           <NumberInput
-            id="investment-monthly-contribution"
-            label="Monthly contribution"
-            value={monthlyContribution}
-            onChange={setMonthlyContribution}
+            id="investment-contribution"
+            label={contributionLabel}
+            value={contribution}
+            onChange={setContribution}
             step={100}
-            note="Your number — what you add each month going forward."
+            note={
+              isMonthly
+                ? "Your number — what you add each month going forward."
+                : "Your number — what you add each year going forward."
+            }
           />
           <NumberInput
             id="investment-return"

@@ -282,7 +282,7 @@ describe("Mortgage — rule-pinned (standard amortization / CFPB)", () => {
 describe("Investment — rule-pinned (future value of an ordinary annuity)", () => {
   // §4.1 Monthly compounding at APR/12 with end-of-period contributions.
   it("INV-1: $100,000 + $2,000/mo, 7%, 15 yr → ≈ $918,819 nominal; contributions $460,000", () => {
-    const inv = calculateInvestment({ startingBalance: 100_000, monthlyContribution: 2_000, annualReturnPercent: 7, years: 15 });
+    const inv = calculateInvestment({ startingBalance: 100_000, contribution: 2_000, annualReturnPercent: 7, years: 15 });
     // FV = 100,000×(1+.07/12)^180 + 2,000×[((1+.07/12)^180 − 1)/(.07/12)] ≈ 918,819.
     expect(inv.endingBalance).toBeCloseTo(918_819.27, 0);
     expect(inv.totalContributions).toBe(100_000 + 2_000 * 180);
@@ -292,8 +292,8 @@ describe("Investment — rule-pinned (future value of an ordinary annuity)", () 
   // §4.3 fee sensitivity — proves a 0.5% lower net return materially cuts the
   // 15-year balance, motivating an expense-ratio input (currently absent).
   it("INV-2: a 0.5% lower net return (7%→6.5%) cuts the 15-yr balance ~5.1%", () => {
-    const gross = calculateInvestment({ startingBalance: 100_000, monthlyContribution: 2_000, annualReturnPercent: 7, years: 15 });
-    const net = calculateInvestment({ startingBalance: 100_000, monthlyContribution: 2_000, annualReturnPercent: 6.5, years: 15 });
+    const gross = calculateInvestment({ startingBalance: 100_000, contribution: 2_000, annualReturnPercent: 7, years: 15 });
+    const net = calculateInvestment({ startingBalance: 100_000, contribution: 2_000, annualReturnPercent: 6.5, years: 15 });
     const drop = (gross.endingBalance - net.endingBalance) / gross.endingBalance;
     expect(drop).toBeCloseTo(0.051, 2);
   });
@@ -304,13 +304,13 @@ describe("Investment — rule-pinned (future value of an ordinary annuity)", () 
   it("INV-fee [§4.3]: an annual fee reduces the return (net = gross − fee)", () => {
     const gross = calculateInvestment({
       startingBalance: 100_000,
-      monthlyContribution: 2_000,
+      contribution: 2_000,
       annualReturnPercent: 7,
       years: 15
     });
     const withFee = calculateInvestment({
       startingBalance: 100_000,
-      monthlyContribution: 2_000,
+      contribution: 2_000,
       annualReturnPercent: 7,
       years: 15,
       feePercent: 0.2
@@ -318,7 +318,7 @@ describe("Investment — rule-pinned (future value of an ordinary annuity)", () 
     // A 0.20% fee on a 7% gross return must equal a 6.80% net projection exactly.
     const equivalentNet = calculateInvestment({
       startingBalance: 100_000,
-      monthlyContribution: 2_000,
+      contribution: 2_000,
       annualReturnPercent: 6.8,
       years: 15
     });
