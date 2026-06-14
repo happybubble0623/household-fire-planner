@@ -211,12 +211,10 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
               Your guided path to <span className="gold">early retirement</span>
             </h1>
             <p className="hsub">
-              All-in-one and free — plan early retirement for you and your partner, healthcare
-              and all.
+              <strong>All-in-one</strong> and free — start simple with sourced defaults, for you
+              and your partner, <strong>healthcare</strong> and all.
             </p>
             <div className="hbadges">
-              <span className="hbadge">Start simple</span>
-              <span className="hbadge">Sourced defaults</span>
               <span className="hbadge">Transparent math</span>
               <span className="hbadge">No login</span>
               <span className="hbadge">Daily portfolio tracking</span>
