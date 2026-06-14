@@ -87,6 +87,7 @@ const auroraCss = `
 .aurora-home .hbadge{display:inline-flex;align-items:center;font-size:12.5px;font-weight:600;color:var(--n600);background:rgba(255,255,255,.72);border:1px solid var(--n200);backdrop-filter:blur(6px);padding:6px 13px;border-radius:999px}
 .aurora-home .cta{display:flex;gap:12px;margin-top:28px;justify-content:center;flex-wrap:wrap}
 .aurora-home .floatkpi{max-width:780px;margin:40px auto 0;padding:6px}
+.aurora-home .floatkpi .sampletag{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n500);opacity:.7;padding:8px 12px 0}
 .aurora-home .glass{background:rgba(255,255,255,.72);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.85);box-shadow:0 28px 56px rgba(16,40,24,.16);border-radius:20px}
 .aurora-home .kpis{display:grid;grid-template-columns:repeat(3,1fr)}
 .aurora-home .kpi{padding:18px 22px;border-right:1px solid var(--n200)}
@@ -238,6 +239,7 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
               </Link>
             </p>
             <div className="glass floatkpi">
+              <div className="sampletag">Sample</div>
               <div className="kpis">
                 <div className="kpi">
                   <div className="l">Projected FIRE age</div>
@@ -245,14 +247,14 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
                   <div className="d">▲ 3 yrs earlier</div>
                 </div>
                 <div className="kpi">
-                  <div className="l">Assets at FIRE</div>
-                  <div className="n tnum">$3.95M</div>
-                  <div className="d">94% survival</div>
+                  <div className="l">Lifetime healthcare</div>
+                  <div className="n tnum">$440k</div>
+                  <div className="d">pre-65 + Medicare</div>
                 </div>
                 <div className="kpi">
-                  <div className="l">Safe withdrawal</div>
-                  <div className="n tnum">6.1%</div>
-                  <div className="d">first-year draw</div>
+                  <div className="l">Accounts consolidated</div>
+                  <div className="n tnum">14</div>
+                  <div className="d">across 2 people</div>
                 </div>
               </div>
             </div>
