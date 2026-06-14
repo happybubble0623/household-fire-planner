@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Pencil, Trash2, X } from "lucide-react";
+import { ChevronDown, Pencil, Trash2, X } from "lucide-react";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
 import {
   addItemsToCollection,
@@ -185,8 +185,15 @@ export function PortfolioCollectionsPanel({
   };
 
   return (
-    <section className="mt-5 border-t border-[var(--border)] pt-5">
-      <div className="flex flex-col gap-4">
+    <details className="group mt-5 border-t border-[var(--border)] pt-5">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 outline-none [&::-webkit-details-marker]:hidden">
+        <span className="text-lg font-semibold text-[var(--foreground)]">Collections</span>
+        <ChevronDown
+          aria-hidden="true"
+          className="h-5 w-5 shrink-0 text-[var(--muted-foreground)] transition-transform duration-200 group-open:rotate-180"
+        />
+      </summary>
+      <div className="mt-4 flex flex-col gap-4">
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
           <Field label="Collection name">
             <input
@@ -347,7 +354,7 @@ export function PortfolioCollectionsPanel({
           )}
         </div>
       </div>
-    </section>
+    </details>
   );
 }
 
