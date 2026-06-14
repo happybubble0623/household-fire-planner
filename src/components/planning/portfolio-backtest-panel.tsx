@@ -8,6 +8,8 @@ import { calculatePortfolioItemBalance, isMarketPricedType } from "@/lib/phase1/
 import {
   computePortfolioSeries,
   computeReturnStats,
+  isLikelyTicker,
+  NO_TICKER_REASON,
   normalizeBenchmarkSeries
 } from "@/lib/phase1/backtest";
 import type {
@@ -29,7 +31,9 @@ type BacktestRunResult = {
   portfolioStats: BacktestReturnStats;
   benchmarkStats: { symbol: string; stats: BacktestReturnStats }[];
   skippedBenchmarks: string[];
-  skippedHoldings: { name: string; symbol: string }[];
+  skippedHoldings: { name: string; symbol: string; reason: string }[];
+  noTickerHoldings: { name: string; symbol: string }[];
+  insufficientHoldings: { name: string; symbol: string }[];
   excludedNonMarket: string[];
   windowStart: string;
   windowEnd: string;
@@ -41,6 +45,9 @@ const DEFAULT_PROXY_OPTIONS = ["VOO", "VTI", "BND"];
 const DEFAULT_BENCHMARK = "SPY";
 const MAX_BENCHMARKS = 5;
 const BACKTEST_YEARS = 10;
+// Chunk the history request so a large household portfolio never trips a URL
+// length or per-request symbol cap; the chunks are merged client-side.
+const REQUEST_CHUNK_SIZE = 25;
 // Benchmark line colors, kept distinct from the emphasized portfolio line
 // (chart-1) and from the reserved flagship gold.
 const BENCHMARK_COLORS = [
@@ -99,38 +106,28 @@ export function PortfolioBacktestPanel({ workbook }: PortfolioBacktestPanelProps
     const assetTypePairs = partitioned.trackable
       .filter((item) => item.symbol)
       .map((item) => `${(item.symbol as string).toUpperCase()}:${item.type}`);
+    // Only request symbols that look like real tickers — fund descriptions stored
+    // in the symbol field would just waste request slots and come back empty.
+    // Deduped so the same ticker held in several accounts is fetched once.
     const symbols = Array.from(
       new Set([
         ...holdings.map((holding) => holding.symbol),
         ...benchmarks.map((benchmark) => benchmark.toUpperCase())
       ])
-    );
+    ).filter(isLikelyTicker);
 
     try {
-      const params = new URLSearchParams({
-        symbols: symbols.join(","),
-        years: String(BACKTEST_YEARS)
-      });
-      if (assetTypePairs.length > 0) {
-        params.set("assetTypes", assetTypePairs.join(","));
-      }
-
-      const response = await fetch(`/api/prices/history?${params.toString()}`);
-      const payload = (await response.json()) as {
-        series: MonthlySeriesBySymbol;
-        warning: string | null;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.warning ?? "Could not fetch historical prices.");
-      }
+      const { series: seriesBySymbol, warning } = await fetchHistorySeries(
+        symbols,
+        assetTypePairs
+      );
 
       const computed = buildRunResult({
-        seriesBySymbol: payload.series ?? {},
+        seriesBySymbol,
         holdings,
         benchmarks,
         excludedNonMarket: partitioned.excluded.map((item) => item.name),
-        warning: payload.warning ?? null
+        warning
       });
 
       if (!computed) {
@@ -346,7 +343,18 @@ function BacktestResult({
 
       {result.skippedHoldings.length > 0 ? (
         <p className="mt-3 text-xs text-[var(--muted-foreground)]">
-          Skipped (no history): {result.skippedHoldings.map((holding) => holding.name).join(", ")}.
+          No price history: {result.skippedHoldings.map((holding) => holding.name).join(", ")}.
+        </p>
+      ) : null}
+      {result.insufficientHoldings.length > 0 ? (
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+          Too little history for the full window (excluded):{" "}
+          {result.insufficientHoldings.map((holding) => holding.name).join(", ")}.
+        </p>
+      ) : null}
+      {result.noTickerHoldings.length > 0 ? (
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+          No ticker to look up: {result.noTickerHoldings.map((holding) => holding.name).join(", ")}.
         </p>
       ) : null}
       {result.skippedBenchmarks.length > 0 ? (
@@ -543,6 +551,47 @@ function partitionScopeItems(items: Phase1PortfolioItem[]) {
   return { trackable, proxied, excluded };
 }
 
+// Fetch monthly history in chunks and merge the per-symbol series. Each chunk is
+// keyed by the requested symbol, so merging is a plain object spread. Throws if
+// any chunk request fails so the caller can surface a single error.
+async function fetchHistorySeries(
+  symbols: string[],
+  assetTypePairs: string[]
+): Promise<{ series: MonthlySeriesBySymbol; warning: string | null }> {
+  const merged: MonthlySeriesBySymbol = {};
+  const warnings: string[] = [];
+
+  for (let offset = 0; offset < symbols.length; offset += REQUEST_CHUNK_SIZE) {
+    const chunk = symbols.slice(offset, offset + REQUEST_CHUNK_SIZE);
+    const chunkSet = new Set(chunk);
+    const params = new URLSearchParams({
+      symbols: chunk.join(","),
+      years: String(BACKTEST_YEARS)
+    });
+    const relevantPairs = assetTypePairs.filter((pair) =>
+      chunkSet.has(pair.split(":")[0])
+    );
+    if (relevantPairs.length > 0) {
+      params.set("assetTypes", relevantPairs.join(","));
+    }
+
+    const response = await fetch(`/api/prices/history?${params.toString()}`);
+    const payload = (await response.json()) as {
+      series: MonthlySeriesBySymbol;
+      warning: string | null;
+    };
+
+    if (!response.ok) {
+      throw new Error(payload.warning ?? "Could not fetch historical prices.");
+    }
+
+    Object.assign(merged, payload.series ?? {});
+    if (payload.warning) warnings.push(payload.warning);
+  }
+
+  return { series: merged, warning: warnings[0] ?? null };
+}
+
 function buildRunResult({
   seriesBySymbol,
   holdings,
@@ -595,7 +644,17 @@ function buildRunResult({
     portfolioStats: computeReturnStats(portfolio.series),
     benchmarkStats,
     skippedBenchmarks,
-    skippedHoldings: portfolio.skipped.map((holding) => ({
+    skippedHoldings: portfolio.skipped
+      .filter((holding) => holding.reason !== NO_TICKER_REASON)
+      .map((holding) => ({
+        name: holding.name,
+        symbol: holding.symbol,
+        reason: holding.reason
+      })),
+    noTickerHoldings: portfolio.skipped
+      .filter((holding) => holding.reason === NO_TICKER_REASON)
+      .map((holding) => ({ name: holding.name, symbol: holding.symbol })),
+    insufficientHoldings: portfolio.insufficientHistory.map((holding) => ({
       name: holding.name,
       symbol: holding.symbol
     })),

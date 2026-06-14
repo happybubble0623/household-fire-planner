@@ -5,7 +5,10 @@ import {
   computePortfolioSeries,
   computeReturnStats,
   indexSeriesByMonth,
+  isLikelyTicker,
   monthsBetween,
+  NO_HISTORY_REASON,
+  NO_TICKER_REASON,
   normalizeBenchmarkSeries
 } from "@/lib/phase1/backtest";
 import type { BacktestHoldingInput, MonthlySeriesBySymbol } from "@/lib/phase1/backtest";
@@ -84,32 +87,67 @@ describe("computePortfolioSeries", () => {
     expect(series.at(-1)).toEqual({ date: "2025-04", value: 1000 }); // ends at current value
   });
 
-  it("skips holdings without history and notes them", () => {
+  it("skips a real ticker with no history and flags it as no-history", () => {
     const holdings: BacktestHoldingInput[] = [
       { id: "a", name: "Fund A", kind: "trackable", symbol: "AAA", units: 1 },
       { id: "z", name: "Mystery", kind: "trackable", symbol: "ZZZ", units: 1 }
     ];
 
-    const { series, skipped } = computePortfolioSeries(holdings, SERIES);
+    const { series, skipped, insufficientHistory } = computePortfolioSeries(holdings, SERIES);
 
     expect(skipped).toEqual([
-      { id: "z", name: "Mystery", symbol: "ZZZ", reason: expect.any(String) }
+      { id: "z", name: "Mystery", symbol: "ZZZ", reason: NO_HISTORY_REASON }
     ]);
+    expect(insufficientHistory).toHaveLength(0);
     expect(series).toHaveLength(4);
   });
 
-  it("intersects timelines so a shorter-history holding shrinks the window", () => {
+  it("distinguishes a non-ticker 'symbol' from a real ticker with no data", () => {
+    const holdings: BacktestHoldingInput[] = [
+      { id: "a", name: "Fund A", kind: "trackable", symbol: "AAA", units: 1 },
+      { id: "j", name: "Inst 500 Index", kind: "trackable", symbol: "inst 500", units: 1 }
+    ];
+
+    const { skipped } = computePortfolioSeries(holdings, SERIES);
+
+    expect(skipped).toEqual([
+      { id: "j", name: "Inst 500 Index", symbol: "inst 500", reason: NO_TICKER_REASON }
+    ]);
+  });
+
+  it("keeps the full window and excludes a shorter-history holding separately", () => {
     const holdings: BacktestHoldingInput[] = [
       { id: "a", name: "Fund A", kind: "trackable", symbol: "AAA", units: 1 },
       { id: "s", name: "Short", kind: "trackable", symbol: "SHORT", units: 1 }
     ];
 
-    const { series } = computePortfolioSeries(holdings, SERIES);
+    const { series, included, insufficientHistory } = computePortfolioSeries(holdings, SERIES);
 
-    expect(series.map((point) => point.date)).toEqual(["2025-03", "2025-04"]);
-    // Mar: 90 + 10 = 100; Apr: 120 + 20 = 140.
-    expect(series[0].value).toBe(100);
-    expect(series[1].value).toBe(140);
+    // Window stays AAA's full Jan→Apr range; SHORT does not collapse it.
+    expect(series.map((point) => point.date)).toEqual([
+      "2025-01",
+      "2025-02",
+      "2025-03",
+      "2025-04"
+    ]);
+    // Portfolio is AAA alone: 100, 110, 90, 120.
+    expect(series.map((point) => point.value)).toEqual([100, 110, 90, 120]);
+    expect(included.map((holding) => holding.symbol)).toEqual(["AAA"]);
+    expect(insufficientHistory).toEqual([
+      { id: "s", name: "Short", symbol: "SHORT", reason: expect.any(String) }
+    ]);
+  });
+});
+
+describe("isLikelyTicker", () => {
+  it("accepts ticker-shaped strings and rejects fund descriptions", () => {
+    expect(isLikelyTicker("AAPL")).toBe(true);
+    expect(isLikelyTicker("brk.b")).toBe(true);
+    expect(isLikelyTicker("BTC-USD")).toBe(true);
+    expect(isLikelyTicker("inst 500")).toBe(false);
+    expect(isLikelyTicker("large cap")).toBe(false);
+    expect(isLikelyTicker("")).toBe(false);
+    expect(isLikelyTicker(undefined)).toBe(false);
   });
 });
 

@@ -102,6 +102,34 @@ describe("prices history API route", () => {
     expect(JSON.stringify(payload)).not.toContain("secret-route-key");
   });
 
+  it("resolves a batch larger than the legacy 30-symbol cap, keyed by the requested symbol", async () => {
+    vi.stubEnv("MARKET_DATA_PROVIDER", "eodhd");
+    vi.stubEnv("EODHD_API_KEY", "secret-route-key");
+    // Echo a single point back for every symbol so each one has history. A fresh
+    // Response per call is required — a Response body stream can only be read once.
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        new Response(JSON.stringify([{ date: "2025-01-31", close: 100 }]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        })
+    );
+
+    // 35 distinct tickers — beyond the old MAX_SYMBOLS=30 truncation.
+    const symbols = Array.from({ length: 35 }, (_, index) => `SYM${index}`);
+    const response = await GET(
+      new Request(`http://localhost/api/prices/history?symbols=${symbols.join(",")}&years=10`)
+    );
+    const payload = await response.json();
+
+    // No silent truncation: every requested symbol comes back, keyed by the
+    // exact requested string (not a normalized "SYM0.US").
+    expect(Object.keys(payload.series)).toHaveLength(35);
+    for (const symbol of symbols) {
+      expect(payload.series[symbol]).toEqual([{ date: "2025-01-31", close: 100 }]);
+    }
+  });
+
   it("reports history unavailable when the key is absent", async () => {
     vi.stubEnv("MARKET_DATA_PROVIDER", "eodhd");
     vi.stubEnv("EODHD_API_KEY", "");

@@ -32,7 +32,13 @@ export type BacktestSkippedHolding = {
 export type PortfolioSeriesResult = {
   series: BacktestPoint[];
   included: BacktestIncludedHolding[];
+  // No price data at all — either a bogus/non-ticker "symbol" or a real ticker
+  // the provider returned nothing for. The reason distinguishes the two.
   skipped: BacktestSkippedHolding[];
+  // Real tickers WITH data, but not enough to span the backtest window. Kept
+  // separate so one short-history holding can't shrink the window for everyone;
+  // these are reported (and can later be modeled via a proxy).
+  insufficientHistory: BacktestSkippedHolding[];
 };
 
 export type BacktestReturnStats = {
@@ -43,7 +49,21 @@ export type BacktestReturnStats = {
   maxDrawdownPercent: number;
 };
 
-const NO_HISTORY_REASON = "No monthly price history was returned for this symbol.";
+export const NO_HISTORY_REASON = "No monthly price history was returned for this symbol.";
+export const NO_TICKER_REASON = "No recognizable ticker symbol to look up.";
+export const INSUFFICIENT_HISTORY_REASON =
+  "Too little price history to cover the backtest window.";
+
+// A symbol we can plausibly look up: letters/digits with an optional exchange or
+// crypto suffix, no spaces. Filters out fund descriptions stored in the symbol
+// field ("inst 500", "large cap") so they are reported as "no ticker" rather
+// than masquerading as real tickers with no history.
+export function isLikelyTicker(symbol: string | null | undefined): boolean {
+  if (!symbol) return false;
+  const normalized = symbol.trim().toUpperCase();
+  if (!normalized || normalized.includes(" ")) return false;
+  return /^[A-Z][A-Z0-9.-]{0,11}$/.test(normalized);
+}
 
 export function toMonthKey(date: string) {
   return date.slice(0, 7);
@@ -74,29 +94,24 @@ export function indexSeriesByMonth(series: MonthlyPricePoint[] | undefined) {
   return byMonth;
 }
 
-// The month-keys shared by every indexed series, sorted ascending. The backtest
-// can only run over the window in which all in-scope holdings have prices, so we
-// intersect — a holding with a shorter history shortens the effective window.
-function intersectMonthKeys(indexedSeriesList: Map<string, number>[]) {
-  if (indexedSeriesList.length === 0) return [];
-
-  const [first, ...rest] = indexedSeriesList;
-  const shared = [...first.keys()].filter((monthKey) =>
-    rest.every((indexed) => indexed.has(monthKey))
-  );
-
-  return shared.sort();
-}
-
 // Build the portfolio value series from in-scope holdings and fetched series.
-// Holdings whose symbol has no history are skipped (and reported, not summed).
+//
+// Window policy: anchor the timeline to the holding(s) with the LONGEST history
+// (the fetch already clips to the requested range), then sum only the holdings
+// that cover that full window. Holdings with too little history are reported
+// separately rather than shrinking the window for everyone via an intersection.
 export function computePortfolioSeries(
   holdings: BacktestHoldingInput[],
   seriesBySymbol: MonthlySeriesBySymbol
 ): PortfolioSeriesResult {
   const included: BacktestIncludedHolding[] = [];
   const skipped: BacktestSkippedHolding[] = [];
-  const indexedHoldings: { holding: BacktestHoldingInput; indexed: Map<string, number> }[] = [];
+  const insufficientHistory: BacktestSkippedHolding[] = [];
+  const indexedHoldings: {
+    holding: BacktestHoldingInput;
+    indexed: Map<string, number>;
+    firstMonth: string;
+  }[] = [];
 
   for (const holding of holdings) {
     const indexed = indexSeriesByMonth(seriesBySymbol[holding.symbol]);
@@ -106,43 +121,76 @@ export function computePortfolioSeries(
         id: holding.id,
         name: holding.name,
         symbol: holding.symbol,
-        reason: NO_HISTORY_REASON
+        // A non-ticker "symbol" (e.g. a fund description) gets a distinct reason
+        // from a real ticker the provider simply returned nothing for.
+        reason: isLikelyTicker(holding.symbol) ? NO_HISTORY_REASON : NO_TICKER_REASON
       });
       continue;
     }
 
-    indexedHoldings.push({ holding, indexed });
+    const firstMonth = [...indexed.keys()].sort()[0];
+    indexedHoldings.push({ holding, indexed, firstMonth });
+  }
+
+  if (indexedHoldings.length === 0) {
+    return { series: [], included, skipped, insufficientHistory };
+  }
+
+  // The anchor is the holding with the most monthly points; its months define
+  // the window. A single short holding can no longer collapse the timeline.
+  const anchor = indexedHoldings.reduce((longest, entry) =>
+    entry.indexed.size > longest.indexed.size ? entry : longest
+  );
+  const timeline = [...anchor.indexed.keys()].sort();
+  const windowStart = timeline[0];
+
+  const contributors: { holding: BacktestHoldingInput; closes: number[] }[] = [];
+  for (const entry of indexedHoldings) {
+    // A holding covers the window if its history reaches back to the start.
+    if (entry.firstMonth > windowStart) {
+      insufficientHistory.push({
+        id: entry.holding.id,
+        name: entry.holding.name,
+        symbol: entry.holding.symbol,
+        reason: INSUFFICIENT_HISTORY_REASON
+      });
+      continue;
+    }
+
+    // Forward-fill across any stray gaps so a single missing month doesn't drop
+    // an otherwise-full holding.
+    let lastClose = entry.indexed.get(windowStart) as number;
+    const closes = timeline.map((monthKey) => {
+      const close = entry.indexed.get(monthKey);
+      if (close !== undefined) lastClose = close;
+      return lastClose;
+    });
+
+    contributors.push({ holding: entry.holding, closes });
     included.push({
-      id: holding.id,
-      name: holding.name,
-      symbol: holding.symbol,
-      kind: holding.kind
+      id: entry.holding.id,
+      name: entry.holding.name,
+      symbol: entry.holding.symbol,
+      kind: entry.holding.kind
     });
   }
 
-  const timeline = intersectMonthKeys(indexedHoldings.map((entry) => entry.indexed));
-
-  if (timeline.length === 0) {
-    return { series: [], included, skipped };
-  }
-
-  const lastMonthKey = timeline[timeline.length - 1];
-  const series = timeline.map((monthKey) => {
-    const value = indexedHoldings.reduce((total, { holding, indexed }) => {
-      const close = indexed.get(monthKey) as number;
+  const series = timeline.map((monthKey, index) => {
+    const value = contributors.reduce((total, { holding, closes }) => {
+      const close = closes[index];
 
       if (holding.kind === "trackable") {
         return total + holding.units * close;
       }
 
-      const latestClose = indexed.get(lastMonthKey) as number;
+      const latestClose = closes[closes.length - 1];
       return total + holding.currentValue * (close / latestClose);
     }, 0);
 
     return { date: monthKey, value };
   });
 
-  return { series, included, skipped };
+  return { series, included, skipped, insufficientHistory };
 }
 
 // Normalize a benchmark to the portfolio's starting dollars so both curves show

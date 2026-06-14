@@ -9,7 +9,11 @@ const HISTORY_UNAVAILABLE =
 const HISTORY_WARNING =
   "Monthly end-of-day history. Prices are delayed, may be adjusted, and are not real-time.";
 const DEFAULT_YEARS = 10;
-const MAX_SYMBOLS = 30;
+// A generous ceiling that guards against abuse without silently dropping the
+// tail of a real household portfolio. Symbols are fetched in bounded-concurrency
+// batches, so a large request degrades gracefully instead of truncating.
+const MAX_SYMBOLS = 120;
+const FETCH_CONCURRENCY = 8;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -35,22 +39,28 @@ export async function GET(request: Request) {
     return NextResponse.json({ series: {}, warning: HISTORY_UNAVAILABLE });
   }
 
-  const fetched = await Promise.all(
-    symbols.map(async (symbol) => {
-      const points = await fetchEodhdMonthlyHistory(
-        symbol,
-        eodhdApiKey,
-        range,
-        assetTypes.get(symbol) ?? inferEodhdAssetType(symbol)
-      );
-
-      return [symbol, points] as const;
-    })
-  );
-
+  // Fetch in bounded-concurrency batches so a 30+ symbol request resolves fully
+  // without firing every upstream call at once. Each series is keyed by the
+  // ORIGINAL requested symbol so the client can look it up by the same string.
   const series: Record<string, MonthlyPricePoint[]> = {};
-  for (const [symbol, points] of fetched) {
-    series[symbol] = points;
+  for (let offset = 0; offset < symbols.length; offset += FETCH_CONCURRENCY) {
+    const batch = symbols.slice(offset, offset + FETCH_CONCURRENCY);
+    const fetched = await Promise.all(
+      batch.map(async (symbol) => {
+        const points = await fetchEodhdMonthlyHistory(
+          symbol,
+          eodhdApiKey,
+          range,
+          assetTypes.get(symbol) ?? inferEodhdAssetType(symbol)
+        );
+
+        return [symbol, points] as const;
+      })
+    );
+
+    for (const [symbol, points] of fetched) {
+      series[symbol] = points;
+    }
   }
 
   const missing = symbols.filter((symbol) => series[symbol].length === 0);
