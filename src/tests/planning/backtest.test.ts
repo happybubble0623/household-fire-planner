@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  clampMonth,
   computeCagrPercent,
   computeMaxDrawdown,
   computePortfolioSeries,
   computeReturnStats,
+  getSeriesMonthBounds,
   indexSeriesByMonth,
   isLikelyTicker,
   isReverseSplitDistorted,
@@ -11,7 +13,11 @@ import {
   NO_HISTORY_REASON,
   NO_TICKER_REASON,
   normalizeBenchmarkSeries,
-  REVERSE_SPLIT_REASON
+  normalizeMonthInput,
+  resolveBacktestWindow,
+  REVERSE_SPLIT_REASON,
+  sliceSeriesToWindow,
+  subtractYearsMonth
 } from "@/lib/phase1/backtest";
 import type { BacktestHoldingInput, MonthlySeriesBySymbol } from "@/lib/phase1/backtest";
 
@@ -65,6 +71,126 @@ describe("month helpers", () => {
 
     expect(indexed.get("2025-01")).toBe(100);
     expect(indexed.has("2025-02")).toBe(false);
+  });
+});
+
+describe("window helpers", () => {
+  it("subtracts whole years, keeping the month and zero-padding", () => {
+    expect(subtractYearsMonth("2025-04", 10)).toBe("2015-04");
+    expect(subtractYearsMonth("2025-04", 1)).toBe("2024-04");
+    expect(subtractYearsMonth("2025-09", 3)).toBe("2022-09");
+  });
+
+  it("normalizes month-picker values and rejects malformed ones", () => {
+    expect(normalizeMonthInput("2025-04")).toBe("2025-04");
+    expect(normalizeMonthInput(" 2025-04 ")).toBe("2025-04");
+    expect(normalizeMonthInput("2025-13")).toBeNull();
+    expect(normalizeMonthInput("2025-00")).toBeNull();
+    expect(normalizeMonthInput("2025-4")).toBeNull();
+    expect(normalizeMonthInput("")).toBeNull();
+    expect(normalizeMonthInput(undefined)).toBeNull();
+  });
+
+  it("clamps a month into the inclusive range", () => {
+    expect(clampMonth("2010-01", "2015-01", "2025-01")).toBe("2015-01");
+    expect(clampMonth("2030-01", "2015-01", "2025-01")).toBe("2025-01");
+    expect(clampMonth("2020-06", "2015-01", "2025-01")).toBe("2020-06");
+  });
+
+  it("finds the earliest and latest month across every symbol", () => {
+    expect(getSeriesMonthBounds(SERIES)).toEqual({
+      minMonth: "2025-01",
+      maxMonth: "2025-04"
+    });
+    expect(getSeriesMonthBounds({})).toBeNull();
+    expect(getSeriesMonthBounds({ X: [] })).toBeNull();
+  });
+});
+
+describe("sliceSeriesToWindow", () => {
+  it("keeps only points within the inclusive month window", () => {
+    const sliced = sliceSeriesToWindow(SERIES, { fromMonth: "2025-02", toMonth: "2025-03" });
+
+    expect(sliced.AAA.map((point) => point.date)).toEqual(["2025-02-28", "2025-03-31"]);
+    expect(sliced.SHORT.map((point) => point.date)).toEqual(["2025-03-31"]);
+  });
+
+  it("preserves every symbol key, even when a slice is empty", () => {
+    const sliced = sliceSeriesToWindow(SERIES, { fromMonth: "2030-01", toMonth: "2030-12" });
+
+    expect(Object.keys(sliced).sort()).toEqual(Object.keys(SERIES).sort());
+    expect(sliced.AAA).toEqual([]);
+  });
+
+  it("drives a shorter-window portfolio computation by slicing first", () => {
+    const window = { fromMonth: "2025-03", toMonth: "2025-04" };
+    const holdings: BacktestHoldingInput[] = [
+      { id: "a", name: "Fund A", kind: "trackable", symbol: "AAA", units: 1 }
+    ];
+
+    const { series } = computePortfolioSeries(
+      holdings,
+      sliceSeriesToWindow(SERIES, window)
+    );
+
+    // Only March/April survive the slice: AAA = 90, 120.
+    expect(series.map((point) => point.date)).toEqual(["2025-03", "2025-04"]);
+    expect(series.map((point) => point.value)).toEqual([90, 120]);
+  });
+});
+
+describe("resolveBacktestWindow", () => {
+  const bounds = { minMonth: "2010-04", maxMonth: "2025-04" };
+
+  it("returns null without bounds", () => {
+    expect(resolveBacktestWindow(null, { kind: "preset", years: 5 })).toBeNull();
+  });
+
+  it("counts a preset back from the latest available month", () => {
+    expect(resolveBacktestWindow(bounds, { kind: "preset", years: 5 })).toEqual({
+      fromMonth: "2020-04",
+      toMonth: "2025-04"
+    });
+  });
+
+  it("clamps a preset longer than the available history to the earliest month", () => {
+    expect(resolveBacktestWindow(bounds, { kind: "preset", years: 30 })).toEqual({
+      fromMonth: "2010-04",
+      toMonth: "2025-04"
+    });
+  });
+
+  it("spans the full range for the Max preset (years null)", () => {
+    expect(resolveBacktestWindow(bounds, { kind: "preset", years: null })).toEqual({
+      fromMonth: "2010-04",
+      toMonth: "2025-04"
+    });
+  });
+
+  it("honors a valid custom range", () => {
+    expect(
+      resolveBacktestWindow(bounds, { kind: "custom", from: "2018-01", to: "2022-12" })
+    ).toEqual({ fromMonth: "2018-01", toMonth: "2022-12" });
+  });
+
+  it("clamps custom endpoints to the available data bounds", () => {
+    expect(
+      resolveBacktestWindow(bounds, { kind: "custom", from: "2000-01", to: "2099-12" })
+    ).toEqual({ fromMonth: "2010-04", toMonth: "2025-04" });
+  });
+
+  it("falls back to the default preset when custom is incomplete or inverted", () => {
+    const defaultWindow = { fromMonth: "2015-04", toMonth: "2025-04" };
+    expect(
+      resolveBacktestWindow(bounds, { kind: "custom", from: "2018-01", to: "" })
+    ).toEqual(defaultWindow);
+    expect(
+      resolveBacktestWindow(bounds, { kind: "custom", from: "garbage", to: "2022-01" })
+    ).toEqual(defaultWindow);
+    // from >= to after clamping is invalid → default.
+    expect(
+      resolveBacktestWindow(bounds, { kind: "custom", from: "2022-01", to: "2018-01" })
+    ).toEqual(defaultWindow);
   });
 });
 

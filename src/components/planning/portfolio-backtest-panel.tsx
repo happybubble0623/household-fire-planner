@@ -8,13 +8,18 @@ import { calculatePortfolioItemBalance, isMarketPricedType } from "@/lib/phase1/
 import {
   computePortfolioSeries,
   computeReturnStats,
+  DEFAULT_WINDOW_YEARS,
+  getSeriesMonthBounds,
   isLikelyTicker,
   NO_TICKER_REASON,
-  normalizeBenchmarkSeries
+  normalizeBenchmarkSeries,
+  resolveBacktestWindow,
+  sliceSeriesToWindow
 } from "@/lib/phase1/backtest";
 import type {
   BacktestHoldingInput,
   BacktestReturnStats,
+  BacktestWindowSelection,
   MonthlySeriesBySymbol
 } from "@/lib/phase1/backtest";
 import type { MarketSymbolSearchResult } from "@/types/market-data";
@@ -25,6 +30,17 @@ type PortfolioBacktestPanelProps = {
 };
 
 type BacktestChartRow = { date: string; [key: string]: number | string };
+
+// Everything captured at "Run backtest" time: the full (max-range) fetched
+// series plus the inputs it was run against. The displayed result is derived
+// from this by slicing to the selected window — no refetch on window change.
+type BacktestRawRun = {
+  seriesBySymbol: MonthlySeriesBySymbol;
+  holdings: BacktestHoldingInput[];
+  benchmarks: string[];
+  excludedNonMarket: string[];
+  warning: string | null;
+};
 
 type BacktestRunResult = {
   chartRows: BacktestChartRow[];
@@ -45,7 +61,18 @@ const DEFAULT_PROXY = "VOO";
 const DEFAULT_PROXY_OPTIONS = ["VOO", "VTI", "BND"];
 const DEFAULT_BENCHMARK = "SPY";
 const MAX_BENCHMARKS = 5;
-const BACKTEST_YEARS = 10;
+// Always fetch the longest history the route allows (it caps at 30y) so every
+// preset and custom range can be served by slicing client-side — changing the
+// window after a run never triggers a refetch.
+const BACKTEST_MAX_YEARS = 30;
+// Quick-window presets. `years: null` is "Max" — the full available history.
+const WINDOW_PRESETS: { label: string; years: number | null }[] = [
+  { label: "1Y", years: 1 },
+  { label: "3Y", years: 3 },
+  { label: "5Y", years: 5 },
+  { label: "10Y", years: DEFAULT_WINDOW_YEARS },
+  { label: "Max", years: null }
+];
 // Chunk the history request so a large household portfolio never trips a URL
 // length or per-request symbol cap; the chunks are merged client-side.
 const REQUEST_CHUNK_SIZE = 25;
@@ -65,7 +92,10 @@ export function PortfolioBacktestPanel({ workbook }: PortfolioBacktestPanelProps
   const [benchmarks, setBenchmarks] = useState<string[]>([DEFAULT_BENCHMARK]);
   const [isRunning, setIsRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
-  const [result, setResult] = useState<BacktestRunResult | null>(null);
+  const [rawRun, setRawRun] = useState<BacktestRawRun | null>(null);
+  const [presetYears, setPresetYears] = useState<number | null>(DEFAULT_WINDOW_YEARS);
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
   const collections = workbook.portfolioCollections;
   const scopeItems = useMemo(
@@ -73,6 +103,34 @@ export function PortfolioBacktestPanel({ workbook }: PortfolioBacktestPanelProps
     [workbook, scope]
   );
   const partitioned = useMemo(() => partitionScopeItems(scopeItems), [scopeItems]);
+
+  // Both endpoints must be set for the custom range to take over from the preset.
+  const usingCustom = customFrom !== "" && customTo !== "";
+  const selection: BacktestWindowSelection = usingCustom
+    ? { kind: "custom", from: customFrom, to: customTo }
+    : { kind: "preset", years: presetYears };
+
+  // Available data bounds, used to clamp custom inputs and label the range.
+  const bounds = useMemo(
+    () => (rawRun ? getSeriesMonthBounds(rawRun.seriesBySymbol) : null),
+    [rawRun]
+  );
+
+  // The displayed result is derived: slice the once-fetched series to the
+  // selected window, then recompute. Changing the window is instant.
+  const result = useMemo<BacktestRunResult | null>(() => {
+    if (!rawRun) return null;
+    const window = resolveBacktestWindow(bounds, selection);
+    if (!window) return null;
+
+    return buildRunResult({
+      seriesBySymbol: sliceSeriesToWindow(rawRun.seriesBySymbol, window),
+      holdings: rawRun.holdings,
+      benchmarks: rawRun.benchmarks,
+      excludedNonMarket: rawRun.excludedNonMarket,
+      warning: rawRun.warning
+    });
+  }, [rawRun, bounds, selection]);
 
   const resolveProxy = (itemId: string) => proxyByItemId[itemId] ?? DEFAULT_PROXY;
 
@@ -99,7 +157,7 @@ export function PortfolioBacktestPanel({ workbook }: PortfolioBacktestPanelProps
 
     if (holdings.length === 0) {
       setIsRunning(false);
-      setResult(null);
+      setRawRun(null);
       setRunError("No market holdings in scope to backtest. Add a market holding or pick another scope.");
       return;
     }
@@ -123,25 +181,30 @@ export function PortfolioBacktestPanel({ workbook }: PortfolioBacktestPanelProps
         assetTypePairs
       );
 
-      const computed = buildRunResult({
+      const excludedNonMarket = partitioned.excluded.map((item) => item.name);
+
+      // Sanity-check that there is some usable history before storing the run, so
+      // the "no overlap" error surfaces on the click rather than silently
+      // yielding an empty result panel.
+      const probe = buildRunResult({
         seriesBySymbol,
         holdings,
         benchmarks,
-        excludedNonMarket: partitioned.excluded.map((item) => item.name),
+        excludedNonMarket,
         warning
       });
 
-      if (!computed) {
-        setResult(null);
+      if (!probe) {
+        setRawRun(null);
         setRunError(
           "No overlapping price history was found for the holdings in scope. Try different proxies or holdings."
         );
         return;
       }
 
-      setResult(computed);
+      setRawRun({ seriesBySymbol, holdings, benchmarks, excludedNonMarket, warning });
     } catch (error) {
-      setResult(null);
+      setRawRun(null);
       setRunError(error instanceof Error ? error.message : "Backtest failed. Try again later.");
     } finally {
       setIsRunning(false);
@@ -166,7 +229,7 @@ export function PortfolioBacktestPanel({ workbook }: PortfolioBacktestPanelProps
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 [&::-webkit-details-marker]:hidden">
         <div className="flex items-center gap-2">
           <FlaskConical aria-hidden="true" size={18} className="text-[var(--muted-foreground)]" />
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">10-year backtest</h2>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">Backtest</h2>
           <span className="inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--muted-foreground)]">
             ⚗️ Under testing
           </span>
@@ -177,7 +240,7 @@ export function PortfolioBacktestPanel({ workbook }: PortfolioBacktestPanelProps
 
       <div className="border-t border-[var(--border)] p-5">
         <p className="text-sm text-[var(--muted-foreground)]">
-          Models holding today&apos;s quantities for the past 10 years — a basket simulation, not
+          Models holding today&apos;s quantities over the selected window — a basket simulation, not
           your actual trade history. Prices are monthly end-of-day, not real-time.
         </p>
 
@@ -248,6 +311,27 @@ export function PortfolioBacktestPanel({ workbook }: PortfolioBacktestPanelProps
           </div>
         ) : null}
 
+        <div className="mt-4">
+          <WindowControl
+            presetYears={presetYears}
+            usingCustom={usingCustom}
+            customFrom={customFrom}
+            customTo={customTo}
+            bounds={bounds}
+            onPreset={(years) => {
+              setPresetYears(years);
+              setCustomFrom("");
+              setCustomTo("");
+            }}
+            onCustomFrom={setCustomFrom}
+            onCustomTo={setCustomTo}
+            onClearCustom={() => {
+              setCustomFrom("");
+              setCustomTo("");
+            }}
+          />
+        </div>
+
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -270,7 +354,9 @@ export function PortfolioBacktestPanel({ workbook }: PortfolioBacktestPanelProps
           </p>
         ) : null}
 
-        {result ? <BacktestResult result={result} benchmarks={benchmarks} /> : null}
+        {result && rawRun ? (
+          <BacktestResult result={result} benchmarks={rawRun.benchmarks} />
+        ) : null}
       </div>
     </details>
   );
@@ -498,6 +584,99 @@ function SymbolSearchField({
   );
 }
 
+function WindowControl({
+  presetYears,
+  usingCustom,
+  customFrom,
+  customTo,
+  bounds,
+  onPreset,
+  onCustomFrom,
+  onCustomTo,
+  onClearCustom
+}: {
+  presetYears: number | null;
+  usingCustom: boolean;
+  customFrom: string;
+  customTo: string;
+  bounds: { minMonth: string; maxMonth: string } | null;
+  onPreset: (years: number | null) => void;
+  onCustomFrom: (value: string) => void;
+  onCustomTo: (value: string) => void;
+  onClearCustom: () => void;
+}) {
+  return (
+    <Field label="Window">
+      <div className="flex flex-wrap items-center gap-3">
+        <div
+          role="group"
+          aria-label="Quick window presets"
+          className="inline-flex rounded-md border border-[var(--border)] p-0.5"
+        >
+          {WINDOW_PRESETS.map((preset) => {
+            const active = !usingCustom && presetYears === preset.years;
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onPreset(preset.years)}
+                className={`min-h-9 rounded px-3 text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-[var(--foreground)] text-[var(--surface)]"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+          <span className="font-medium">Custom</span>
+          <input
+            type="month"
+            aria-label="Custom window start"
+            value={customFrom}
+            min={bounds?.minMonth}
+            max={bounds?.maxMonth}
+            className={`min-h-9 rounded-md border px-2 text-sm ${
+              usingCustom
+                ? "border-[var(--foreground)] text-[var(--foreground)]"
+                : "border-[var(--border)]"
+            }`}
+            onChange={(event) => onCustomFrom(event.target.value)}
+          />
+          <span aria-hidden="true">→</span>
+          <input
+            type="month"
+            aria-label="Custom window end"
+            value={customTo}
+            min={bounds?.minMonth}
+            max={bounds?.maxMonth}
+            className={`min-h-9 rounded-md border px-2 text-sm ${
+              usingCustom
+                ? "border-[var(--foreground)] text-[var(--foreground)]"
+                : "border-[var(--border)]"
+            }`}
+            onChange={(event) => onCustomTo(event.target.value)}
+          />
+          {customFrom || customTo ? (
+            <button
+              type="button"
+              className="rounded px-1.5 py-0.5 text-[var(--muted-foreground)] underline-offset-2 hover:text-[var(--foreground)] hover:underline"
+              onClick={onClearCustom}
+            >
+              clear
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </Field>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
@@ -573,7 +752,7 @@ async function fetchHistorySeries(
     const chunkSet = new Set(chunk);
     const params = new URLSearchParams({
       symbols: chunk.join(","),
-      years: String(BACKTEST_YEARS)
+      years: String(BACKTEST_MAX_YEARS)
     });
     const relevantPairs = assetTypePairs.filter((pair) =>
       chunkSet.has(pair.split(":")[0])

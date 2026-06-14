@@ -106,6 +106,120 @@ export function monthsBetween(startMonthKey: string, endMonthKey: string) {
   return (endYear - startYear) * 12 + (endMonth - startMonth);
 }
 
+// The default window used when a custom range is missing or invalid, and the
+// initial preset shown in the UI.
+export const DEFAULT_WINDOW_YEARS = 10;
+
+// How a user has chosen to bound the backtest. A preset of `null` years means
+// "Max" — the full available history. A custom range overrides any preset.
+export type BacktestWindowSelection =
+  | { kind: "preset"; years: number | null }
+  | { kind: "custom"; from: string; to: string };
+
+export type BacktestWindow = { fromMonth: string; toMonth: string };
+
+// Subtract a whole number of years from a YYYY-MM key, keeping the month.
+export function subtractYearsMonth(monthKey: string, years: number): string {
+  const [year, month] = monthKey.split("-").map(Number);
+  return `${year - years}-${String(month).padStart(2, "0")}`;
+}
+
+// Accept a month picker value (YYYY-MM) and return a normalized key, or null if
+// the value is empty/malformed. Month component must be 01–12.
+export function normalizeMonthInput(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return null;
+  return `${match[1]}-${match[2]}`;
+}
+
+// Clamp a YYYY-MM key into the inclusive [min, max] range (string compare is
+// chronological for zero-padded month keys).
+export function clampMonth(month: string, min: string, max: string): string {
+  if (month < min) return min;
+  if (month > max) return max;
+  return month;
+}
+
+// The earliest and latest calendar month present across every symbol's series,
+// used to clamp custom ranges and anchor presets. Null when nothing is loaded.
+export function getSeriesMonthBounds(
+  series: MonthlySeriesBySymbol
+): { minMonth: string; maxMonth: string } | null {
+  let minMonth: string | null = null;
+  let maxMonth: string | null = null;
+
+  for (const points of Object.values(series)) {
+    if (!points) continue;
+    for (const point of points) {
+      if (!point?.date) continue;
+      const month = toMonthKey(point.date);
+      if (minMonth === null || month < minMonth) minMonth = month;
+      if (maxMonth === null || month > maxMonth) maxMonth = month;
+    }
+  }
+
+  if (minMonth === null || maxMonth === null) return null;
+  return { minMonth, maxMonth };
+}
+
+// Resolve a user's window selection against the available data bounds. Presets
+// count back from the latest available month (clamped to the earliest); "Max"
+// (years === null) spans the whole range. A custom range is validated: missing
+// or malformed endpoints, or from >= to after clamping, fall back to the default
+// preset so the backtest always has a sane window. Returns null with no bounds.
+export function resolveBacktestWindow(
+  bounds: { minMonth: string; maxMonth: string } | null,
+  selection: BacktestWindowSelection
+): BacktestWindow | null {
+  if (!bounds) return null;
+  const { minMonth, maxMonth } = bounds;
+
+  const presetWindow = (years: number | null): BacktestWindow => ({
+    fromMonth:
+      years === null
+        ? minMonth
+        : clampMonth(subtractYearsMonth(maxMonth, years), minMonth, maxMonth),
+    toMonth: maxMonth
+  });
+
+  if (selection.kind === "preset") {
+    return presetWindow(selection.years);
+  }
+
+  const from = normalizeMonthInput(selection.from);
+  const to = normalizeMonthInput(selection.to);
+  if (!from || !to) return presetWindow(DEFAULT_WINDOW_YEARS);
+
+  const clampedFrom = clampMonth(from, minMonth, maxMonth);
+  const clampedTo = clampMonth(to, minMonth, maxMonth);
+  if (clampedFrom >= clampedTo) return presetWindow(DEFAULT_WINDOW_YEARS);
+
+  return { fromMonth: clampedFrom, toMonth: clampedTo };
+}
+
+// Slice each symbol's monthly series to the inclusive [fromMonth, toMonth]
+// window. Pure and lossless of the original — the full series is fetched once
+// and re-sliced as the user changes the window, so no refetch is needed.
+export function sliceSeriesToWindow(
+  series: MonthlySeriesBySymbol,
+  window: BacktestWindow
+): MonthlySeriesBySymbol {
+  const sliced: MonthlySeriesBySymbol = {};
+
+  for (const [symbol, points] of Object.entries(series)) {
+    sliced[symbol] = (points ?? []).filter((point) => {
+      if (!point?.date) return false;
+      const month = toMonthKey(point.date);
+      return month >= window.fromMonth && month <= window.toMonth;
+    });
+  }
+
+  return sliced;
+}
+
 // Collapse a series to one close per calendar month, keyed by YYYY-MM. Positive
 // closes only; later points override earlier ones within the same month.
 export function indexSeriesByMonth(series: MonthlyPricePoint[] | undefined) {
