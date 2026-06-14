@@ -83,6 +83,8 @@ const auroraCss = `
 .aurora-home .hsub{font-size:20px;line-height:1.55;color:var(--n500);margin:22px auto 0;max-width:720px}
 .aurora-home .hgloss{font-size:20px;line-height:1.55;color:var(--n500);opacity:.78;margin:16px auto 0;max-width:680px}
 .aurora-home .hgloss strong{color:var(--n700);font-weight:600}
+.aurora-home .hbadges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.aurora-home .hbadge{display:inline-flex;align-items:center;font-size:12.5px;font-weight:600;color:var(--n600);background:rgba(255,255,255,.72);border:1px solid var(--n200);backdrop-filter:blur(6px);padding:6px 13px;border-radius:999px}
 .aurora-home .cta{display:flex;gap:12px;margin-top:28px;justify-content:center;flex-wrap:wrap}
 .aurora-home .floatkpi{max-width:780px;margin:40px auto 0;padding:6px}
 .aurora-home .glass{background:rgba(255,255,255,.72);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.85);box-shadow:0 28px 56px rgba(16,40,24,.16);border-radius:20px}
@@ -205,22 +207,20 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
         <div className="veil" aria-hidden="true" />
         <div className="wrap">
           <div className="hcenter">
-            <span className="tag">● Private, transparent planning — for households</span>
             <h1 className="htitle">
-              Plan your path to <span className="gold">early retirement</span> — together, for
-              free
+              Your guided path to <span className="gold">early retirement</span>
             </h1>
             <p className="hsub">
-              Map every account, income, and assumption to one clear path to financial
-              independence — privately, with no brokerage login required.
+              All-in-one and free — plan early retirement for you and your partner, healthcare
+              and all.
             </p>
-            <p className="hgloss">
-              New to <strong>FIRE</strong>? It just means{" "}
-              <strong>Financial Independence, Retire Early</strong>.{" "}
-              <Link href="/what-is-fire" style={{ color: "var(--g700)", fontWeight: 600 }}>
-                Read the beginner&rsquo;s guide →
-              </Link>
-            </p>
+            <div className="hbadges">
+              <span className="hbadge">Start simple</span>
+              <span className="hbadge">Sourced defaults</span>
+              <span className="hbadge">Transparent math</span>
+              <span className="hbadge">No login</span>
+              <span className="hbadge">Daily portfolio tracking</span>
+            </div>
             <div className="cta">
               <Link href="/app/portfolio-lab" className="btn gold lg">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
@@ -232,6 +232,13 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
                 Map your path →
               </a>
             </div>
+            <p className="hgloss">
+              New to <strong>FIRE</strong>? It just means{" "}
+              <strong>Financial Independence, Retire Early</strong>.{" "}
+              <Link href="/what-is-fire" style={{ color: "var(--g700)", fontWeight: 600 }}>
+                Read the beginner&rsquo;s guide →
+              </Link>
+            </p>
             <div className="glass floatkpi">
               <div className="kpis">
                 <div className="kpi">

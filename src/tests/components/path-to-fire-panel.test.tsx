@@ -92,7 +92,7 @@ describe("PathToFirePanel", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /Plan your path to early retirement — together, for free/i
+        name: /Your guided path to early retirement/i
       })
     ).toBeInTheDocument();
     expect(
