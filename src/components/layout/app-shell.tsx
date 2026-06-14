@@ -17,6 +17,14 @@ const EXPENSES_TOOL = {
   title: "Living expense calculator"
 };
 
+// Standalone "Tax calculator" — same treatment as EXPENSES_TOOL: linked only in
+// the Calculators dropdown (desktop + mobile), not in PLANNING_TOOLS, the home
+// hub, the pillar pages, or the footer.
+const TAX_TOOL = {
+  href: "/app/fire-path/tools/tax",
+  title: "Tax calculator"
+};
+
 // "Learn" dropdown items — beginner-facing content pages. Kept here as the single
 // source so the desktop dropdown and the mobile menu stay in sync.
 const LEARN_LINKS: Array<{ href: string; label: string; blurb: string }> = [
@@ -107,7 +115,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const strategiesActive = FIRE_STRATEGIES.some((strategy) => isActive(strategy.href));
   const calculatorsActive =
-    PLANNING_TOOLS.some((tool) => isActive(tool.href)) || isActive(EXPENSES_TOOL.href);
+    PLANNING_TOOLS.some((tool) => isActive(tool.href)) ||
+    isActive(EXPENSES_TOOL.href) ||
+    isActive(TAX_TOOL.href);
   const learnActive = LEARN_LINKS.some((link) => isActive(link.href));
 
   return (
@@ -203,6 +213,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   aria-current={isActive(EXPENSES_TOOL.href) ? "page" : undefined}
                 >
                   {EXPENSES_TOOL.title}
+                </Link>
+                <Link
+                  href={TAX_TOOL.href}
+                  role="menuitem"
+                  className={cn(
+                    dropdownItemClass,
+                    isActive(TAX_TOOL.href) && "bg-[var(--soft)] text-gray-900"
+                  )}
+                  aria-current={isActive(TAX_TOOL.href) ? "page" : undefined}
+                >
+                  {TAX_TOOL.title}
                 </Link>
               </div>
             </div>
@@ -327,6 +348,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               aria-current={isActive(EXPENSES_TOOL.href) ? "page" : undefined}
             >
               {EXPENSES_TOOL.title}
+            </Link>
+            <Link
+              href={TAX_TOOL.href}
+              className={cn(mobileLinkClass, isActive(TAX_TOOL.href) && navItemActiveClass)}
+              aria-current={isActive(TAX_TOOL.href) ? "page" : undefined}
+            >
+              {TAX_TOOL.title}
             </Link>
             <div className="mt-2 border-t border-[var(--border)] pt-2">
               <Link

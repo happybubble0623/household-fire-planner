@@ -23,6 +23,14 @@ import {
   investmentKeyConcepts,
   investmentSourcedDefaults
 } from "@/lib/data/investment-faq";
+import {
+  taxCrossLinks,
+  taxFaq,
+  taxHowItWorks,
+  taxIntroParagraphs,
+  taxKeyConcepts,
+  taxSourcedDefaults
+} from "@/lib/data/tax-faq";
 
 // Guards the server-rendered SEO "guide" content the calculator route pages
 // rely on: every tool must ship substantive how-it-works prose, defined key
@@ -56,6 +64,15 @@ const tools = [
     sourcedDefaults: investmentSourcedDefaults,
     crossLinks: investmentCrossLinks,
     faq: investmentFaq
+  },
+  {
+    name: "tax",
+    intro: taxIntroParagraphs,
+    howItWorks: taxHowItWorks,
+    keyConcepts: taxKeyConcepts,
+    sourcedDefaults: taxSourcedDefaults,
+    crossLinks: taxCrossLinks,
+    faq: taxFaq
   }
 ];
 
