@@ -462,44 +462,6 @@ export default function WhatIsFirePage() {
                 ))}
               </div>
 
-              <h2 className={sectionHeadingClass}>Try it free with our 3 FIRE models</h2>
-              <p className={proseClass + " max-w-3xl"}>
-                Once your numbers are in, each model answers the same question a different way:
-                what is the earliest age this approach lets you stop working?
-              </p>
-
-              <div className="grid gap-4 sm:grid-cols-3">
-                {[
-                  {
-                    href: "/app/fire-path/withdrawal-rate",
-                    title: "Portfolio Drawdown",
-                    body: "The 4%-rule path: build savings, then spend them down. The most common strategy."
-                  },
-                  {
-                    href: "/app/fire-path/principal-preserving",
-                    title: "Principal-Preserving",
-                    body: "Live off the income your investments earn, without touching your savings."
-                  },
-                  {
-                    href: "/app/fire-path/income-stream",
-                    title: "Income Stream",
-                    body: "Cover your costs with steady income like pensions, rent, or Social Security."
-                  }
-                ].map((strategy) => (
-                  <Link
-                    key={strategy.href}
-                    href={strategy.href}
-                    className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md"
-                  >
-                    <h3 className="text-base font-semibold text-gray-900">{strategy.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-gray-600">{strategy.body}</p>
-                    <span className="mt-3 inline-block text-sm font-semibold text-[var(--primary)]">
-                      Open model →
-                    </span>
-                  </Link>
-                ))}
-              </div>
-
               <div className={cardClass + " max-w-3xl"}>
                 <p className="text-base leading-relaxed text-gray-700">
                   Want to start from the big picture? The{" "}
