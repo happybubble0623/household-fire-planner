@@ -20,10 +20,10 @@ export const expensesHowItWorks: { heading: string; sections: HowItWorksSection[
   heading: "How the estimate works and what it accounts for",
   sections: [
     {
-      heading: "Adding up categories, monthly or annual",
+      heading: "Adding up line items, each on its own basis",
       paragraphs: [
-        "The calculator is a structured adder: you enter a number for each spending category — housing, utilities, groceries, transportation, healthcare, insurance, dining and entertainment, travel, subscriptions, and a catch-all for everything else. A single switch tells it whether those numbers are monthly or annual, and it converts the whole list at once: monthly figures are multiplied by twelve, annual figures divided by twelve, so you always see both a monthly and an annual total.",
-        "Breaking spending into categories is more accurate than guessing one lump sum, because it forces you to account for the costs that are easy to forget — the once-a-year insurance premium, the streaming services, the travel you do every summer. Enter what you actually spend where you can, and use the sourced defaults as a starting point for the rest."
+        "The calculator is a structured adder: you enter a number for each spending line — rent or mortgage, electricity, groceries, fuel, insurance premiums, streaming, childcare, and dozens more — organized under category headers like Housing, Utilities, Food, Transportation, and Healthcare. Every line carries its own monthly-or-annual switch, so you can put your rent in monthly and your travel or property tax in annual without converting anything by hand.",
+        "Behind the scenes each line is normalized to a yearly figure — monthly amounts multiplied by twelve, annual amounts left as they are — then rolled up into a subtotal for its category and a grand total for everything. That mix-and-match basis is the point: real bills don't all arrive on the same schedule, and forcing them into one cadence is where lump-sum estimates go wrong. Enter what you actually spend where you can, and use the sourced defaults as a starting point for the rest."
       ]
     },
     {
@@ -61,7 +61,7 @@ export const expensesKeyConcepts: { heading: string; intro?: string; items: KeyC
     {
       term: "Monthly vs. annual",
       definition:
-        "Two views of the same spending. Monthly is easier to feel; annual is what FIRE math uses. This tool keeps both in sync so you never have to multiply by twelve in your head."
+        "Two views of the same spending. Monthly is easier to feel; annual is what FIRE math uses. Here you set the basis per line — rent as monthly, a vacation as annual — and the tool reconciles them into one yearly and one monthly total."
     },
     {
       term: "The 25x rule",
@@ -90,32 +90,32 @@ export const expensesSourcedDefaults: {
 } = {
   heading: "The default amounts, and where they come from",
   intro:
-    "The prefilled figures are rounded monthly placeholders drawn from US national-average household spending (Bureau of Labor Statistics Consumer Expenditure Survey). They're a starting point, not your budget — replace each with your own number.",
+    "Many lines come prefilled with rounded placeholders drawn from US national-average household spending (Bureau of Labor Statistics Consumer Expenditure Survey); the more personal lines start empty. They're a starting point, not your budget — replace each with your own number.",
   items: [
     {
-      value: "$1,800/mo",
-      label: "Housing",
-      source: "Rent or mortgage plus upkeep — the largest category for most households (BLS CE national average, rounded). Varies enormously by region."
+      value: "$1,500/mo",
+      label: "Rent / mortgage",
+      source: "The Housing group's biggest line and the largest single cost for most households (BLS CE national average, rounded). Varies enormously by region."
     },
     {
-      value: "$600/mo",
+      value: "$500/mo",
       label: "Groceries",
       source: "Food eaten at home for a small household. Scale up for more people or higher-cost areas (BLS CE, rounded)."
     },
     {
-      value: "$700/mo",
-      label: "Transportation",
-      source: "Car payment, fuel, insurance, and maintenance, or transit costs. The second-largest category on average (BLS CE, rounded)."
-    },
-    {
       value: "$450/mo",
-      label: "Healthcare",
-      source: "Out-of-pocket medical plus premiums not paid by an employer. Rises sharply in early retirement before Medicare — see the healthcare calculator."
+      label: "Health insurance premiums",
+      source: "Your share of premiums, separate from copays and prescriptions. Rises sharply in early retirement before Medicare — see the healthcare calculator."
     },
     {
       value: "$80/mo",
-      label: "Subscriptions",
+      label: "Streaming / subscriptions",
       source: "Streaming, software, memberships, and apps. Small individually, easy to under-count in total — a placeholder to adjust."
+    },
+    {
+      value: "$2,400/yr",
+      label: "Travel / vacations",
+      source: "Flights, hotels, and trips, entered annually because that's how most people think of them. A rounded placeholder to replace with your own plan."
     }
   ]
 };
@@ -157,9 +157,9 @@ export const expensesCrossLinks: { heading: string; intro?: string; links: Cross
 // "living expense calculator", "annual expenses calculator", and "how much do
 // I spend a year" without leaning on jargon in the first sentence.
 export const expensesIntroParagraphs: string[] = [
-  "This calculator estimates your total annual and monthly living expenses by adding up what you spend across the everyday categories — housing, utilities, groceries, transportation, healthcare, insurance, dining and entertainment, travel, subscriptions, and anything else. Enter your numbers as either monthly or annual amounts with a single switch, and it shows both totals at once, so you never have to do the multiply-by-twelve math yourself.",
-  "Knowing this figure is the starting point for any financial-independence plan: the common rule of thumb multiplies annual expenses by 25 to estimate the portfolio you'd need to retire, so the spending number drives every other target. Breaking it into categories is far more accurate than guessing one lump sum, because it surfaces the costs that are easy to forget — the once-a-year premium, the subscriptions, the travel.",
-  "Each category ships with a rounded national-average placeholder drawn from the Bureau of Labor Statistics Consumer Expenditure Survey, shown right at the field so you can trust the starting point and replace it with your own number. The tool is intentionally standalone and private — it just produces a clean annual and monthly total you can take wherever you plan."
+  "This calculator estimates your total annual and monthly living expenses by adding up what you spend line by line — rent or mortgage, electricity, groceries, fuel, insurance, childcare, travel, and dozens more — grouped under category headers for housing, utilities, food, transportation, healthcare, and the rest. Each line has its own monthly-or-annual switch, so you can enter your rent monthly and your property tax or vacation annually, and the tool rolls everything into a subtotal per category and a combined annual and monthly total.",
+  "Knowing this figure is the starting point for any financial-independence plan: the common rule of thumb multiplies annual expenses by 25 to estimate the portfolio you'd need to retire, so the spending number drives every other target. Working at the line-item level is far more accurate than guessing one lump sum, because it surfaces the costs that are easy to forget — the once-a-year premium, the subscriptions, the streaming services.",
+  "Many lines ship with a rounded national-average placeholder drawn from the Bureau of Labor Statistics Consumer Expenditure Survey, shown right at the field so you can trust the starting point and replace it with your own number; the more personal lines, like childcare or charitable giving, start empty. The tool is intentionally standalone and private — it just produces a clean annual and monthly total you can take wherever you plan."
 ];
 
 // Questions phrased the way users actually search.
@@ -167,17 +167,17 @@ export const expensesFaq: FaqItem[] = [
   {
     question: "How do I calculate my annual living expenses?",
     answer:
-      "Add up what you spend across every category — housing, utilities, groceries, transportation, healthcare, insurance, dining and entertainment, travel, subscriptions, and anything else — then total it for the year. This calculator does that for you: enter each category as a monthly or annual amount and it shows both your total monthly and total annual living expenses. Working category by category is more accurate than guessing a single number because it forces you to account for irregular costs like annual insurance premiums and travel."
+      "Add up what you spend across every line — rent or mortgage, electricity, groceries, fuel, insurance premiums, streaming, childcare, and the rest — then total it for the year. This calculator does that for you: enter each line as a monthly or annual amount and it shows a subtotal per category plus your total monthly and total annual living expenses. Working line by line is more accurate than guessing a single number because it forces you to account for irregular costs like annual insurance premiums, property tax, and travel."
   },
   {
     question: "What expense categories should I include?",
     answer:
-      "Cover both the obvious recurring bills and the easy-to-forget ones. The ten categories here are designed to capture a typical household's spending, with a catch-all 'other' for anything that doesn't fit — childcare, education, gifts, pets, or debt payments beyond a mortgage. The goal is for the categories to add up to roughly everything that leaves your account in a normal year."
+      "Cover both the obvious recurring bills and the easy-to-forget ones. The lines here are grouped into ten categories — Housing, Utilities, Food, Transportation, Healthcare, other Insurance, Personal, Entertainment & leisure, Family & dependents, and a catch-all Other — that together aim to capture a typical household's spending, from rent and electricity down to pet care, gifts, and non-mortgage debt payments. The goal is for the line items to add up to roughly everything that leaves your account in a normal year."
   },
   {
     question: "Should I enter expenses as monthly or annual?",
     answer:
-      "Either — there's a single switch that flips the whole list between monthly and annual, and the calculator keeps both totals in sync. Most people find monthly easier for everyday bills like rent and groceries, while costs like travel or insurance premiums are easier to think of annually. Enter each in whichever way you know it best, and read off whichever total you need: the monthly figure for budgeting, the annual figure for FIRE planning."
+      "Whichever fits each cost — every line has its own monthly-or-annual switch, and the calculator reconciles the mix into one annual and one monthly total. Most people find monthly easier for everyday bills like rent and groceries, while costs like travel, property tax, or insurance premiums are easier to think of annually. Set each line however you know it best; there's also a 'set every line to' shortcut if you'd rather standardize the whole list at once."
   },
   {
     question: "How much does the average household spend per year?",
