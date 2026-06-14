@@ -8,6 +8,15 @@ import { FIRE_STRATEGIES } from "@/lib/data/fire-strategies";
 import { PLANNING_TOOLS } from "@/lib/data/planning-tools";
 import { AccountNav } from "@/components/layout/account-nav";
 
+// Standalone "Living expense calculator" — linked ONLY in the Calculators
+// dropdown (not in PLANNING_TOOLS, so it stays out of the hub grid and the
+// per-tool "More planning tools" footer). Defined here as a single source for
+// the desktop and mobile Calculators menus.
+const EXPENSES_TOOL = {
+  href: "/app/fire-path/tools/expenses",
+  title: "Living expense calculator"
+};
+
 // "Learn" dropdown items — beginner-facing content pages. Kept here as the single
 // source so the desktop dropdown and the mobile menu stay in sync.
 const LEARN_LINKS: Array<{ href: string; label: string; blurb: string }> = [
@@ -97,7 +106,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // top banner so navigation (and the mobile hamburger) is identical sitewide.
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const strategiesActive = FIRE_STRATEGIES.some((strategy) => isActive(strategy.href));
-  const calculatorsActive = PLANNING_TOOLS.some((tool) => isActive(tool.href));
+  const calculatorsActive =
+    PLANNING_TOOLS.some((tool) => isActive(tool.href)) || isActive(EXPENSES_TOOL.href);
   const learnActive = LEARN_LINKS.some((link) => isActive(link.href));
 
   return (
@@ -183,6 +193,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     {tool.title}
                   </Link>
                 ))}
+                <Link
+                  href={EXPENSES_TOOL.href}
+                  role="menuitem"
+                  className={cn(
+                    dropdownItemClass,
+                    isActive(EXPENSES_TOOL.href) && "bg-[var(--soft)] text-gray-900"
+                  )}
+                  aria-current={isActive(EXPENSES_TOOL.href) ? "page" : undefined}
+                >
+                  {EXPENSES_TOOL.title}
+                </Link>
               </div>
             </div>
 
@@ -300,6 +321,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {tool.title}
               </Link>
             ))}
+            <Link
+              href={EXPENSES_TOOL.href}
+              className={cn(mobileLinkClass, isActive(EXPENSES_TOOL.href) && navItemActiveClass)}
+              aria-current={isActive(EXPENSES_TOOL.href) ? "page" : undefined}
+            >
+              {EXPENSES_TOOL.title}
+            </Link>
             <div className="mt-2 border-t border-[var(--border)] pt-2">
               <Link
                 href="/about"

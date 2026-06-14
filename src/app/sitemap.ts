@@ -16,6 +16,7 @@ const routes: Array<{ path: string; priority: number }> = [
   { path: "/app/fire-path/tools/healthcare", priority: 0.8 },
   { path: "/app/fire-path/tools/investment", priority: 0.7 },
   { path: "/app/fire-path/tools/social-security", priority: 0.7 },
+  { path: "/app/fire-path/tools/expenses", priority: 0.7 },
   { path: "/app/portfolio-lab", priority: 0.9 },
   { path: "/about", priority: 0.5 }
 ];
