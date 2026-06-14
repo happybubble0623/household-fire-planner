@@ -1018,6 +1018,8 @@ export function PortfolioPanel({
         setUiStatus={setUiStatus}
       />
 
+      <PortfolioBacktestPanel workbook={workbook} />
+
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -1441,8 +1443,6 @@ export function PortfolioPanel({
           </table>
         </div>
       </section>
-
-      <PortfolioBacktestPanel workbook={workbook} />
 
       <section
         ref={formRef}
