@@ -9,7 +9,15 @@ type EodhdHistoryRow = {
 };
 
 // Parse an EODHD EOD series (period=m, ascending) into clean monthly points.
-// Prefers adjusted_close (accounts for splits/dividends) and drops bad rows.
+// Prefers adjusted_close and drops bad rows. adjusted_close is SPLIT- and
+// dividend-adjusted, which is the field the backtest needs: it values TODAY's
+// (post-split) share counts against historically consistent prices, so a stock
+// that split (AAPL, NVDA, TSLA) doesn't inflate the early portfolio value. The
+// dividend component makes it a total-return-ish series (past prices a touch
+// lower than a price-only split adjustment) — acceptable, and the chart is
+// labeled as adjusted. Falling back to raw `close` would reintroduce the
+// split-inflation bug, so the split regression in prices-history.test.ts locks
+// adjusted_close in.
 export function parseEodhdMonthlySeries(rows: EodhdHistoryRow[] | unknown): MonthlyPricePoint[] {
   if (!Array.isArray(rows)) return [];
 

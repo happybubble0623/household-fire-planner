@@ -24,6 +24,28 @@ describe("parseEodhdMonthlySeries", () => {
     expect(parseEodhdMonthlySeries(null)).toEqual([]);
     expect(parseEodhdMonthlySeries({ error: "nope" })).toEqual([]);
   });
+
+  // Regression: the backtest multiplies TODAY's (post-split) share count by these
+  // prices, so a split stock MUST use the split-adjusted price, not the raw
+  // pre-split close. Here a pre-split row has a high raw close (400) but a low
+  // adjusted_close (25); the parser must return 25. If it ever fell back to the
+  // raw 400, today's larger share count would inflate the early portfolio value
+  // far above the end value — the exact "start >> end" bug this guards against.
+  it("uses the split-adjusted price for a split stock, never the raw pre-split close", () => {
+    const parsed = parseEodhdMonthlySeries([
+      // Pre-split era: raw close is ~16x the split-adjusted close.
+      { date: "2016-06-30", close: 400, adjusted_close: 25 },
+      // Post-split era: raw and adjusted converge.
+      { date: "2025-06-30", close: 250, adjusted_close: 250 }
+    ]);
+
+    expect(parsed).toEqual([
+      { date: "2016-06-30", close: 25 },
+      { date: "2025-06-30", close: 250 }
+    ]);
+    // The early value rises into the present (no split inflation).
+    expect(parsed[0].close).toBeLessThan(parsed[1].close);
+  });
 });
 
 describe("fetchEodhdMonthlyHistory", () => {
