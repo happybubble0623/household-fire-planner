@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ExpenseCalculator } from "@/components/planning/expense-calculator";
 import { FaqAccordion } from "@/components/planning/faq-accordion";
 import { ToolGuideSections } from "@/components/planning/tool-guide-sections";
+import { CollapsibleSection } from "@/components/planning/collapsible-section";
 import {
   expensesCrossLinks,
   expensesFaq,
@@ -75,12 +76,9 @@ export default function ExpensesToolPage() {
           crossLinks={expensesCrossLinks}
         />
 
-        <div className="space-y-5">
-          <h2 id="expenses-qa-heading" className="text-2xl font-bold tracking-tight text-gray-900">
-            Questions &amp; answers
-          </h2>
+        <CollapsibleSection heading="Questions & answers" headingId="expenses-qa-heading">
           <FaqAccordion items={expensesFaq} />
-        </div>
+        </CollapsibleSection>
       </section>
     </section>
   );

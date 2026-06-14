@@ -35,7 +35,7 @@ export const mortgageHowItWorks: { heading: string; sections: HowItWorksSection[
     {
       heading: "How the loan pays down over time",
       paragraphs: [
-        "The tool walks the loan month by month and rolls the results up into a year-by-year schedule. Because interest is charged on the balance you still owe, the early years are mostly interest and barely dent the balance, while the later years are mostly principal — the front-loading that amortization produces. The payoff chart and total-interest figure make that visible, which is exactly what you need to compare a 15-year against a 30-year term, weigh extra principal payments, or decide whether to clear the mortgage before retiring.",
+        "The tool walks the loan month by month and rolls the results up into a year-by-year schedule. Because interest is charged on the balance you still owe, the early years are mostly interest and barely dent the balance, while the later years are mostly principal — the front-loading that amortization produces. The payoff chart and total-interest figure put real numbers on that shift.",
         "The same schedule is how you judge a refinance. Refinancing replaces your loan with a new one — usually for a lower rate or shorter term — but it has upfront closing costs. The break-even point is the month when your accumulated monthly savings finally exceed those costs; refinance only if you'll keep the home past it."
       ]
     }

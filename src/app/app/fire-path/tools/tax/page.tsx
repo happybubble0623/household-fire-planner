@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { TaxCalculator } from "@/components/planning/tax-calculator";
 import { FaqAccordion } from "@/components/planning/faq-accordion";
 import { ToolGuideSections } from "@/components/planning/tool-guide-sections";
+import { CollapsibleSection } from "@/components/planning/collapsible-section";
 import {
   taxCrossLinks,
   taxFaq,
@@ -72,12 +73,9 @@ export default function TaxToolPage() {
           crossLinks={taxCrossLinks}
         />
 
-        <div className="space-y-5">
-          <h2 id="tax-qa-heading" className="text-2xl font-bold tracking-tight text-gray-900">
-            Questions &amp; answers
-          </h2>
+        <CollapsibleSection heading="Questions & answers" headingId="tax-qa-heading">
           <FaqAccordion items={taxFaq} />
-        </div>
+        </CollapsibleSection>
       </section>
     </section>
   );

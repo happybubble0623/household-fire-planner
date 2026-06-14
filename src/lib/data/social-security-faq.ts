@@ -219,21 +219,6 @@ export const socialSecurityFaq: FaqItem[] = [
       "No. Social Security only uses your highest 35 years of earnings. We sort your years from highest to lowest, keep the top 35, and ignore the rest. Working more than 35 years helps only when a new year is higher than one already in your top 35 — it then replaces the lowest one. If you have fewer than 35 years, the missing years count as $0, which lowers the average."
   },
   {
-    question: "What is AIME?",
-    answer:
-      "Average Indexed Monthly Earnings. We take your top 35 years (each capped at that year's Social Security taxable maximum and adjusted upward for wage growth through the year you turn 60), add them up, and divide by 420 months (35 years times 12)."
-  },
-  {
-    question: "How does the benefit formula (PIA) work?",
-    answer:
-      "Your AIME runs through a bend-point formula: 90% of the first slice, 32% of the next slice, and 15% above that. For 2026 the bend points are $1,286 and $7,749. Lower earnings are replaced at a higher rate, so the benefit grows more slowly as earnings rise."
-  },
-  {
-    question: "How does my claiming age change the amount?",
-    answer:
-      "Your Full Retirement Age (FRA) depends on your birth year (67 for those born in 1960 or later). Claiming early — as soon as age 62 — permanently reduces the benefit (about 30% lower at 62 when FRA is 67). Waiting past FRA adds delayed-retirement credits of about 8% per year up to age 70, after which there's no further increase."
-  },
-  {
     question: "How many credits do I need to qualify?",
     answer:
       "You need 40 credits — roughly 10 years of work. You can earn up to 4 credits per year, and in 2026 each credit takes $1,890 in covered earnings (so $7,560 earns the full four for the year). Without 40 credits, no retirement benefit is payable."

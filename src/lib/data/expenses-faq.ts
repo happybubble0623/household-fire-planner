@@ -172,7 +172,7 @@ export const expensesFaq: FaqItem[] = [
   {
     question: "What expense categories should I include?",
     answer:
-      "Cover both the obvious recurring bills and the easy-to-forget ones. The categories here — housing, utilities, groceries, transportation, healthcare, insurance, dining and entertainment, travel, subscriptions, and a catch-all 'other' — are designed to capture a typical household's spending. Use 'other' for anything that doesn't fit, such as childcare, education, gifts, pets, or debt payments beyond a mortgage. The goal is for the categories to add up to roughly everything that leaves your account in a normal year."
+      "Cover both the obvious recurring bills and the easy-to-forget ones. The ten categories here are designed to capture a typical household's spending, with a catch-all 'other' for anything that doesn't fit — childcare, education, gifts, pets, or debt payments beyond a mortgage. The goal is for the categories to add up to roughly everything that leaves your account in a normal year."
   },
   {
     question: "Should I enter expenses as monthly or annual?",

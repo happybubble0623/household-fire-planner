@@ -37,8 +37,7 @@ export const taxHowItWorks: { heading: string; sections: HowItWorksSection[] } =
     {
       heading: "Credits, state tax, and the bottom line",
       paragraphs: [
-        "After federal tax on ordinary income and gains is added together, the calculator subtracts the Child Tax Credit — $2,200 per qualifying child in 2026 — which phases out by $50 for every $1,000 (or fraction) of income above $400,000 married filing jointly or $200,000 for everyone else. This estimate treats the credit as nonrefundable: it can reduce your federal tax to zero but not below, so it won't show a refund of the credit's refundable portion. It then adds a simplified state tax: the flat rate you enter, applied to your taxable income. Finally it reports your total tax, effective rate, marginal bracket, and after-tax income.",
-        "What it deliberately leaves out matters as much as what it includes. It does not model the Alternative Minimum Tax, the Net Investment Income Tax, itemized deductions, the many state-specific rules and brackets, payroll and self-employment taxes, or credits beyond the Child Tax Credit. Treat the result as a fast, transparent ballpark for planning — not a filled-in return."
+        "After federal tax on ordinary income and gains is added together, the calculator subtracts the Child Tax Credit — $2,200 per qualifying child in 2026 — which phases out by $50 for every $1,000 (or fraction) of income above $400,000 married filing jointly or $200,000 for everyone else. This estimate treats the credit as nonrefundable: it can reduce your federal tax to zero but not below, so it won't show a refund of the credit's refundable portion. It then adds a simplified state tax: the flat rate you enter, applied to your taxable income. Finally it reports your total tax, effective rate, marginal bracket, and after-tax income."
       ]
     }
   ]

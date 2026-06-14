@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PlanningToolPanel } from "@/components/planning/planning-tool-panel";
 import { FaqAccordion } from "@/components/planning/faq-accordion";
 import { ToolGuideSections } from "@/components/planning/tool-guide-sections";
+import { CollapsibleSection } from "@/components/planning/collapsible-section";
 import {
   mortgageCrossLinks,
   mortgageFaq,
@@ -75,12 +76,9 @@ export default function MortgageToolPage() {
           crossLinks={mortgageCrossLinks}
         />
 
-        <div className="space-y-5">
-          <h2 id="mortgage-qa-heading" className="text-2xl font-bold tracking-tight text-gray-900">
-            Questions &amp; answers
-          </h2>
+        <CollapsibleSection heading="Questions & answers" headingId="mortgage-qa-heading">
           <FaqAccordion items={mortgageFaq} />
-        </div>
+        </CollapsibleSection>
       </section>
     </section>
   );

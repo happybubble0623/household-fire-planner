@@ -195,19 +195,9 @@ export const investmentFaq: FaqItem[] = [
       "Compounding means your returns themselves earn returns. In year one you earn a return on your principal; in year two you earn a return on the principal plus year one's gains, and so on. This calculator compounds monthly and adds your contribution each month, so the balance grows faster the longer it runs. Over decades the compounding effect typically dwarfs the original contributions — which is why time in the market is the biggest lever in a long-term plan."
   },
   {
-    question: "Should I account for inflation?",
-    answer:
-      "Yes, if you want the result in today's purchasing power. Inflation has averaged around 3% a year over the long run (the Federal Reserve targets 2%), which erodes what a future balance can actually buy. A simple way to handle it is to use a real (after-inflation) return — around 7% instead of the ~10% before-inflation figure — so the projected balance is already expressed in today's dollars rather than inflated future dollars."
-  },
-  {
     question: "How much should I invest each month to reach my goal?",
     answer:
       "Work backwards: set the time horizon and return, then adjust the monthly contribution until the projected ending balance hits your target. Because compounding rewards time, raising your contribution early in the horizon does more than the same increase later. The calculator updates the split between contributions and growth as you change the inputs, so you can see how much of your goal the market is doing versus how much you have to fund yourself."
-  },
-  {
-    question: "What is the difference between contributions and growth?",
-    answer:
-      "Contributions are the money you put in — your starting balance plus every monthly deposit. Growth is everything the market adds on top through returns and compounding. The calculator reports both separately and shows growth as a percentage on top of what you put in, so you can see how much of the ending balance came from saving versus from investing. In long horizons, growth usually becomes the larger share."
   },
   {
     question: "Should I contribute monthly or annually, and at the start or end of the period?",

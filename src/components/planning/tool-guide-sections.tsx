@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CollapsibleSection } from "@/components/planning/collapsible-section";
 import type {
   CrossLink,
   HowItWorksSection,
@@ -11,6 +12,11 @@ import type {
 // in the initial HTML — crawlers and readers without JavaScript get the full,
 // substantive page, not just the interactive widget. Each block is optional so
 // a page can render only the sections it has content for.
+//
+// The longer explanatory blocks (how-it-works and key-concepts) render inside
+// CollapsibleSection — collapsed by default via native <details> — to keep the
+// page clean. The content still ships in the server HTML (only visually hidden),
+// so this is purely presentational and does not affect SEO or the JSON-LD.
 //
 // Layout mirrors the healthcare page's prose blocks (max-w-3xl body copy, the
 // same heading scale) and stacks cleanly on mobile.
@@ -28,13 +34,7 @@ export function ToolGuideSections({
   return (
     <>
       {howItWorks ? (
-        <section aria-labelledby="tool-how-it-works-heading" className="space-y-5">
-          <h2
-            id="tool-how-it-works-heading"
-            className="text-2xl font-bold tracking-tight text-gray-900"
-          >
-            {howItWorks.heading}
-          </h2>
+        <CollapsibleSection heading={howItWorks.heading} headingId="tool-how-it-works-heading">
           <div className="space-y-6">
             {howItWorks.sections.map((section) => (
               <div key={section.heading} className="space-y-3">
@@ -50,17 +50,11 @@ export function ToolGuideSections({
               </div>
             ))}
           </div>
-        </section>
+        </CollapsibleSection>
       ) : null}
 
       {keyConcepts ? (
-        <section aria-labelledby="tool-key-concepts-heading" className="space-y-5">
-          <h2
-            id="tool-key-concepts-heading"
-            className="text-2xl font-bold tracking-tight text-gray-900"
-          >
-            {keyConcepts.heading}
-          </h2>
+        <CollapsibleSection heading={keyConcepts.heading} headingId="tool-key-concepts-heading">
           {keyConcepts.intro ? (
             <p className="max-w-3xl text-base leading-relaxed text-gray-600">{keyConcepts.intro}</p>
           ) : null}
@@ -75,7 +69,7 @@ export function ToolGuideSections({
               </div>
             ))}
           </dl>
-        </section>
+        </CollapsibleSection>
       ) : null}
 
       {sourcedDefaults ? (

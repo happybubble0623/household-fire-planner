@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PlanningToolPanel } from "@/components/planning/planning-tool-panel";
 import { FaqAccordion } from "@/components/planning/faq-accordion";
+import { CollapsibleSection } from "@/components/planning/collapsible-section";
 import { healthcareFaq, healthcareIntroParagraphs } from "@/lib/data/healthcare-faq";
 
 export const metadata: Metadata = {
@@ -60,12 +61,9 @@ export default function HealthcareToolPage() {
           ))}
         </div>
 
-        <div className="space-y-5">
-          <h2 id="healthcare-qa-heading" className="text-2xl font-bold tracking-tight text-gray-900">
-            Questions &amp; answers
-          </h2>
+        <CollapsibleSection heading="Questions & answers" headingId="healthcare-qa-heading">
           <FaqAccordion items={healthcareFaq} />
-        </div>
+        </CollapsibleSection>
       </section>
     </section>
   );

@@ -72,7 +72,7 @@ export const healthcareFaq: FaqItem[] = [
   {
     question: "How much should I budget for healthcare in early retirement?",
     answer:
-      "It varies widely with income, location, and health, but the structure is predictable: a subsidized ACA plan in the gap years (often a few hundred dollars a month after the credit, or the full unsubsidized premium if you are over the subsidy cliff), then Part B plus a supplement or Advantage plan plus out-of-pocket once Medicare starts. Run your own numbers above with your real income and area. The headline present value (today's dollars) is the lump sum to set aside now, and the per-year figure shows the recurring bite — switch to future dollars only if you want the raw inflated total."
+      "It varies widely with income, location, and health, but the structure is predictable: a subsidized ACA plan in the gap years (often a few hundred dollars a month after the credit, or the full unsubsidized premium if you are over the subsidy cliff), then Part B plus a supplement or Advantage plan plus out-of-pocket once Medicare starts. Run your own numbers above with your real income and area to see your own total."
   },
   {
     question: "Are these healthcare cost figures official?",
