@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   clampMonth,
+  computeBacktestAnalysis,
   computeCagrPercent,
+  computeHoldingPerformances,
   computeMaxDrawdown,
   computePortfolioSeries,
   computeReturnStats,
@@ -19,7 +21,11 @@ import {
   sliceSeriesToWindow,
   subtractYearsMonth
 } from "@/lib/phase1/backtest";
-import type { BacktestHoldingInput, MonthlySeriesBySymbol } from "@/lib/phase1/backtest";
+import type {
+  BacktestHoldingInput,
+  BacktestHoldingValueSeries,
+  MonthlySeriesBySymbol
+} from "@/lib/phase1/backtest";
 
 const SERIES: MonthlySeriesBySymbol = {
   // 12 monthly points, Jan 2025 → Dec 2025.
@@ -370,5 +376,92 @@ describe("return statistics", () => {
     expect(stats.cagrPercent).toBeCloseTo(7.177, 2);
     // Trough of 800 from a peak of 1000.
     expect(stats.maxDrawdownPercent).toBeCloseTo(20, 6);
+  });
+});
+
+describe("per-holding analysis", () => {
+  // Five included holdings with distinct dollar changes and drawdowns so the
+  // three rankings have unambiguous top/bottom 3.
+  const HOLDING_SERIES: BacktestHoldingValueSeries[] = [
+    // +100 gain, monotonic up → no drawdown.
+    { id: "win", name: "Winner", symbol: "WIN", kind: "trackable", values: [100, 200] },
+    // +60 gain, dips to 80 first → 20% drawdown.
+    { id: "mild", name: "Mild", symbol: "MILD", kind: "trackable", values: [100, 80, 160] },
+    // +50 gain off a zero start → return guarded to 0.
+    { id: "zero", name: "Zero start", symbol: "ZERO", kind: "proxy", values: [0, 50] },
+    // +20 gain but halves on the way → 50% drawdown, the bumpiest ride.
+    { id: "bumpy", name: "Bumpy", symbol: "BUMPY", kind: "trackable", values: [100, 50, 120] },
+    // −200 decline, 40% drawdown.
+    { id: "lose", name: "Loser", symbol: "LOSE", kind: "trackable", values: [500, 300] }
+  ];
+
+  it("reduces each value series to start/end/change/return/drawdown", () => {
+    const perfById = Object.fromEntries(
+      computeHoldingPerformances(HOLDING_SERIES).map((perf) => [perf.id, perf])
+    );
+
+    expect(perfById.win).toMatchObject({
+      startValue: 100,
+      endValue: 200,
+      dollarChange: 100,
+      returnPct: 1,
+      maxDrawdownPercent: 0
+    });
+    expect(perfById.bumpy.maxDrawdownPercent).toBeCloseTo(50, 6);
+    expect(perfById.lose.dollarChange).toBe(-200);
+    expect(perfById.lose.returnPct).toBeCloseTo(-0.4, 6);
+  });
+
+  it("guards return against a zero start value (no divide-by-zero)", () => {
+    const [perf] = computeHoldingPerformances([
+      { id: "z", name: "Zero", symbol: "Z", kind: "proxy", values: [0, 50] }
+    ]);
+
+    expect(perf.startValue).toBe(0);
+    expect(perf.dollarChange).toBe(50);
+    expect(perf.returnPct).toBe(0);
+    expect(Number.isFinite(perf.returnPct)).toBe(true);
+  });
+
+  it("ranks top contributors and biggest drags by dollar change", () => {
+    const { topContributors, biggestDrags } = computeBacktestAnalysis(HOLDING_SERIES);
+
+    // Largest dollar gains, descending.
+    expect(topContributors.map((perf) => perf.id)).toEqual(["win", "mild", "zero"]);
+    expect(topContributors[0].dollarChange).toBe(100);
+    // Largest declines first, then smallest gains — ascending dollar change.
+    expect(biggestDrags.map((perf) => perf.id)).toEqual(["lose", "bumpy", "zero"]);
+    expect(biggestDrags[0].dollarChange).toBe(-200);
+  });
+
+  it("ranks most stressful by drawdown magnitude, not dollars", () => {
+    const { mostStressful } = computeBacktestAnalysis(HOLDING_SERIES);
+
+    // BUMPY (50%) > LOSE (40%) > MILD (20%); WIN/ZERO have none.
+    expect(mostStressful.map((perf) => perf.id)).toEqual(["bumpy", "lose", "mild"]);
+    expect(mostStressful[0].maxDrawdownPercent).toBeCloseTo(50, 6);
+  });
+
+  it("returns fewer than three when there are fewer holdings", () => {
+    const analysis = computeBacktestAnalysis(HOLDING_SERIES.slice(0, 2));
+
+    expect(analysis.topContributors).toHaveLength(2);
+    expect(analysis.biggestDrags).toHaveLength(2);
+    expect(analysis.mostStressful).toHaveLength(2);
+  });
+
+  it("exposes a value series per included holding from the basket computation", () => {
+    const holdings: BacktestHoldingInput[] = [
+      { id: "a", name: "Fund A", kind: "trackable", symbol: "AAA", units: 2 },
+      { id: "p", name: "Private REIT", kind: "proxy", symbol: "BBB", currentValue: 1000 }
+    ];
+
+    const { holdingSeries } = computePortfolioSeries(holdings, SERIES);
+
+    expect(holdingSeries.map((holding) => holding.id)).toEqual(["a", "p"]);
+    // AAA units 2 × closes 100,110,90,120.
+    expect(holdingSeries[0].values).toEqual([200, 220, 180, 240]);
+    // BBB proxy off latest close 50: 1000 × close/50.
+    expect(holdingSeries[1].values).toEqual([1000, 1100, 1200, 1000]);
   });
 });

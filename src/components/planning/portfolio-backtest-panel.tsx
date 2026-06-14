@@ -6,6 +6,7 @@ import { BacktestChart } from "@/components/charts/backtest-chart";
 import type { BacktestChartLine } from "@/components/charts/backtest-chart";
 import { calculatePortfolioItemBalance, isMarketPricedType } from "@/lib/phase1/portfolio";
 import {
+  computeBacktestAnalysis,
   computePortfolioSeries,
   computeReturnStats,
   DEFAULT_WINDOW_YEARS,
@@ -17,7 +18,9 @@ import {
   sliceSeriesToWindow
 } from "@/lib/phase1/backtest";
 import type {
+  BacktestAnalysis,
   BacktestHoldingInput,
+  BacktestHoldingPerformance,
   BacktestReturnStats,
   BacktestWindowSelection,
   MonthlySeriesBySymbol
@@ -45,6 +48,7 @@ type BacktestRawRun = {
 type BacktestRunResult = {
   chartRows: BacktestChartRow[];
   portfolioStats: BacktestReturnStats;
+  analysis: BacktestAnalysis;
   benchmarkStats: { symbol: string; stats: BacktestReturnStats }[];
   skippedBenchmarks: string[];
   skippedHoldings: { name: string; symbol: string; reason: string }[];
@@ -403,6 +407,8 @@ function BacktestResult({
         />
       </div>
 
+      <QuickAnalysis analysis={result.analysis} />
+
       {result.benchmarkStats.length > 0 ? (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -462,6 +468,84 @@ function BacktestResult({
       ) : null}
     </div>
   );
+}
+
+// A brief auto-generated read of the window: which included holdings drove the
+// basket, which held it back, and which were the bumpiest ride. Gains and drags
+// rank by DOLLAR contribution; stress ranks by drawdown depth. Hidden when there
+// are too few holdings for a ranking to say anything.
+function QuickAnalysis({ analysis }: { analysis: BacktestAnalysis }) {
+  if (analysis.topContributors.length < 2) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+        Quick analysis
+      </p>
+      <div className="mt-3 grid gap-4 sm:grid-cols-3">
+        <AnalysisGroup
+          title="Top contributors"
+          subtitle="Largest dollar gains"
+          holdings={analysis.topContributors}
+          metric={(holding) =>
+            `${formatSignedCurrency(holding.dollarChange)} · ${formatPercent(holding.returnPct * 100)}`
+          }
+        />
+        <AnalysisGroup
+          title="Biggest drags"
+          subtitle="Largest declines or smallest gains"
+          holdings={analysis.biggestDrags}
+          metric={(holding) =>
+            `${formatSignedCurrency(holding.dollarChange)} · ${formatPercent(holding.returnPct * 100)}`
+          }
+        />
+        <AnalysisGroup
+          title="Most stressful"
+          subtitle="Deepest peak-to-trough"
+          holdings={analysis.mostStressful}
+          metric={(holding) => formatPercent(-Math.abs(holding.maxDrawdownPercent))}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AnalysisGroup({
+  title,
+  subtitle,
+  holdings,
+  metric
+}: {
+  title: string;
+  subtitle: string;
+  holdings: BacktestHoldingPerformance[];
+  metric: (holding: BacktestHoldingPerformance) => string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-[var(--foreground)]">{title}</p>
+      <p className="text-[11px] text-[var(--muted-foreground)]">{subtitle}</p>
+      <ul className="mt-2 space-y-1.5">
+        {holdings.map((holding) => (
+          <li key={holding.id} className="flex items-baseline justify-between gap-2 text-sm">
+            <span className="min-w-0 truncate text-[var(--foreground)]">
+              {holdingLabel(holding)}
+            </span>
+            <span className="shrink-0 tabular-nums text-[var(--muted-foreground)]">
+              {metric(holding)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// Readable holding name; proxied holdings note the proxy ticker they rode.
+function holdingLabel(holding: BacktestHoldingPerformance) {
+  return holding.kind === "proxy" ? `${holding.name} (via ${holding.symbol})` : holding.name;
 }
 
 function ProxyRow({
@@ -828,6 +912,7 @@ function buildRunResult({
   return {
     chartRows,
     portfolioStats: computeReturnStats(portfolio.series),
+    analysis: computeBacktestAnalysis(portfolio.holdingSeries),
     benchmarkStats,
     skippedBenchmarks,
     skippedHoldings: portfolio.skipped
@@ -861,6 +946,12 @@ function round2(value: number) {
 
 function formatCurrency(value: number) {
   return `$${Math.round(value).toLocaleString()}`;
+}
+
+// Signed dollar change for the analysis lines (gains "+$…", declines "-$…").
+function formatSignedCurrency(value: number) {
+  const sign = value >= 0 ? "+" : "-";
+  return `${sign}$${Math.abs(Math.round(value)).toLocaleString()}`;
 }
 
 function formatPercent(value: number) {

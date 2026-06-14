@@ -22,6 +22,19 @@ export type BacktestIncludedHolding = {
   kind: "trackable" | "proxy";
 };
 
+// The per-holding dollar value series over the basket's timeline, for the
+// holdings that made it into the basket. `values` is aligned 1:1 with the
+// portfolio series dates, so it reuses exactly the closes the basket summed —
+// trackable: units × close; proxy: currentValue × close/latestClose. The auto
+// analysis ranks these without recomputing anything.
+export type BacktestHoldingValueSeries = {
+  id: string;
+  name: string;
+  symbol: string;
+  kind: "trackable" | "proxy";
+  values: number[];
+};
+
 export type BacktestSkippedHolding = {
   id: string;
   name: string;
@@ -32,6 +45,9 @@ export type BacktestSkippedHolding = {
 export type PortfolioSeriesResult = {
   series: BacktestPoint[];
   included: BacktestIncludedHolding[];
+  // Per-holding value series for every included holding, aligned to `series`.
+  // Reused by the auto analysis to rank contributors/drags/drawdowns.
+  holdingSeries: BacktestHoldingValueSeries[];
   // No price data at all — either a bogus/non-ticker "symbol" or a real ticker
   // the provider returned nothing for. The reason distinguishes the two.
   skipped: BacktestSkippedHolding[];
@@ -290,7 +306,14 @@ export function computePortfolioSeries(
   }
 
   if (indexedHoldings.length === 0) {
-    return { series: [], included, skipped, insufficientHistory, excludedDistorted };
+    return {
+      series: [],
+      included,
+      holdingSeries: [],
+      skipped,
+      insufficientHistory,
+      excludedDistorted
+    };
   }
 
   // The anchor is the holding with the most monthly points; its months define
@@ -332,22 +355,37 @@ export function computePortfolioSeries(
     });
   }
 
+  // One dollar-value series per included holding, computed exactly the way the
+  // basket sums them so the analysis can't drift from the chart.
+  const holdingValueOf = (holding: BacktestHoldingInput, closes: number[]) => {
+    const latestClose = closes[closes.length - 1];
+    return closes.map((close) =>
+      holding.kind === "trackable"
+        ? holding.units * close
+        : holding.currentValue * (close / latestClose)
+    );
+  };
+
+  const holdingSeries: BacktestHoldingValueSeries[] = contributors.map(
+    ({ holding, closes }) => ({
+      id: holding.id,
+      name: holding.name,
+      symbol: holding.symbol,
+      kind: holding.kind,
+      values: holdingValueOf(holding, closes)
+    })
+  );
+
   const series = timeline.map((monthKey, index) => {
-    const value = contributors.reduce((total, { holding, closes }) => {
-      const close = closes[index];
-
-      if (holding.kind === "trackable") {
-        return total + holding.units * close;
-      }
-
-      const latestClose = closes[closes.length - 1];
-      return total + holding.currentValue * (close / latestClose);
-    }, 0);
+    const value = holdingSeries.reduce(
+      (total, holding) => total + holding.values[index],
+      0
+    );
 
     return { date: monthKey, value };
   });
 
-  return { series, included, skipped, insufficientHistory, excludedDistorted };
+  return { series, included, holdingSeries, skipped, insufficientHistory, excludedDistorted };
 }
 
 // Normalize a benchmark to the portfolio's starting dollars so both curves show
@@ -422,5 +460,78 @@ export function computeReturnStats(series: BacktestPoint[]): BacktestReturnStats
     totalReturnPercent,
     cagrPercent: computeCagrPercent(startValue, endValue, years),
     maxDrawdownPercent: computeMaxDrawdown(series.map((point) => point.value)) * 100
+  };
+}
+
+// Per-holding performance over the window, derived from its value series.
+export type BacktestHoldingPerformance = {
+  id: string;
+  name: string;
+  symbol: string;
+  kind: "trackable" | "proxy";
+  startValue: number;
+  endValue: number;
+  dollarChange: number;
+  // Fraction (endValue/startValue − 1); 0 when startValue is 0 (divide-by-zero
+  // guard) so a zero-cost line never ranks on an infinite return.
+  returnPct: number;
+  // Worst peak-to-trough of THIS holding's value series, as a positive percent.
+  maxDrawdownPercent: number;
+};
+
+// The three short rankings shown under the backtest results.
+export type BacktestAnalysis = {
+  topContributors: BacktestHoldingPerformance[];
+  biggestDrags: BacktestHoldingPerformance[];
+  mostStressful: BacktestHoldingPerformance[];
+};
+
+// Reduce each included holding's value series to start/end/change/return and its
+// own max drawdown. Ranked per holding line — duplicate symbols across accounts
+// stay separate, matching how the basket sums contributors.
+export function computeHoldingPerformances(
+  holdingSeries: BacktestHoldingValueSeries[]
+): BacktestHoldingPerformance[] {
+  return holdingSeries.map((holding) => {
+    const startValue = holding.values[0] ?? 0;
+    const endValue = holding.values[holding.values.length - 1] ?? 0;
+    const dollarChange = endValue - startValue;
+
+    return {
+      id: holding.id,
+      name: holding.name,
+      symbol: holding.symbol,
+      kind: holding.kind,
+      startValue,
+      endValue,
+      dollarChange,
+      returnPct: startValue > 0 ? dollarChange / startValue : 0,
+      maxDrawdownPercent: computeMaxDrawdown(holding.values) * 100
+    };
+  });
+}
+
+// How many holdings each ranking list shows at most.
+export const ANALYSIS_TOP_N = 3;
+
+// Build the three rankings: gains/drags by DOLLAR change (contribution to the
+// basket), stress by DRAWDOWN magnitude. Top contributors are the largest
+// dollar gains; biggest drags are the largest dollar declines (or smallest
+// gains if everything rose); most stressful are the deepest peak-to-trough.
+export function computeBacktestAnalysis(
+  holdingSeries: BacktestHoldingValueSeries[]
+): BacktestAnalysis {
+  const performances = computeHoldingPerformances(holdingSeries);
+
+  const byDollarDesc = [...performances].sort((a, b) => b.dollarChange - a.dollarChange);
+  const byDollarAsc = [...performances].sort((a, b) => a.dollarChange - b.dollarChange);
+  const byDrawdownDesc = [...performances].sort(
+    (a, b) => b.maxDrawdownPercent - a.maxDrawdownPercent
+  );
+
+  return {
+    topContributors: byDollarDesc.slice(0, ANALYSIS_TOP_N),
+    biggestDrags: byDollarAsc.slice(0, ANALYSIS_TOP_N),
+    mostStressful: byDrawdownDesc.slice(0, ANALYSIS_TOP_N)
   };
 }
