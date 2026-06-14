@@ -57,6 +57,14 @@ const dropdownItemClass =
   "block whitespace-nowrap rounded-lg px-[11px] py-[9px] text-[13.5px] font-semibold text-gray-700 transition-colors duration-150 hover:bg-[var(--soft)] hover:text-gray-900";
 const mobileLinkClass =
   "block rounded-lg px-[11px] py-2.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-[var(--soft)] hover:text-gray-900";
+// Shared typography for the TOP-LEVEL mobile items (Portfolio, the group-header
+// summaries Strategies/Calculators/Learn, and the standalone About link) so they
+// all read as one tier — 14px / 600 / gray-700 — instead of the group headers
+// rendering as smaller, muted (11px uppercase gray-500) sub-labels. Portfolio
+// keeps its gold accent by overriding only the color.
+const mobileTopLevelText = "text-sm font-semibold text-gray-700";
+const mobileSummaryClass =
+  "flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-[11px] py-2.5 text-sm font-semibold text-gray-700 outline-none transition-colors duration-150 hover:bg-[var(--soft)] hover:text-gray-900 [&::-webkit-details-marker]:hidden";
 
 function Chevron() {
   return (
@@ -315,7 +323,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 group label is the summary, tapping it expands the links. Mirrors
                 the CollapsibleSection/FaqAccordion chevron-rotate pattern. */}
             <details className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-[11px] pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500 outline-none transition-colors hover:text-gray-900 [&::-webkit-details-marker]:hidden">
+              <summary className={mobileSummaryClass}>
                 Strategies
                 <ChevronDown
                   aria-hidden="true"
@@ -337,7 +345,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ))}
             </details>
             <details className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-[11px] pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500 outline-none transition-colors hover:text-gray-900 [&::-webkit-details-marker]:hidden">
+              <summary className={mobileSummaryClass}>
                 Calculators
                 <ChevronDown
                   aria-hidden="true"
@@ -372,31 +380,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {TAX_TOOL.title}
               </Link>
             </details>
-            <div className="mt-2 border-t border-[var(--border)] pt-2">
-              <Link
-                href="/about"
-                className={cn(
-                  mobileLinkClass,
-                  isActive("/about") && navItemActiveClass
-                )}
-                aria-current={isActive("/about") ? "page" : undefined}
-              >
-                About
-              </Link>
-            </div>
-            <p className="px-[11px] pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
-              Learn
-            </p>
-            {LEARN_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(mobileLinkClass, isActive(link.href) && navItemActiveClass)}
-                aria-current={isActive(link.href) ? "page" : undefined}
-              >
-                {link.label}
-              </Link>
-            ))}
+            <details className="group">
+              <summary className={mobileSummaryClass}>
+                Learn
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 group-open:rotate-180"
+                />
+              </summary>
+              {LEARN_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(mobileLinkClass, isActive(link.href) && navItemActiveClass)}
+                  aria-current={isActive(link.href) ? "page" : undefined}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </details>
+            <Link
+              href="/about"
+              className={cn(
+                "block rounded-lg px-[11px] py-2.5 transition-colors duration-150 hover:bg-[var(--soft)] hover:text-gray-900",
+                mobileTopLevelText,
+                isActive("/about") && navItemActiveClass
+              )}
+              aria-current={isActive("/about") ? "page" : undefined}
+            >
+              About
+            </Link>
             <div className="mt-2 border-t border-[var(--border)] pt-2">
               <AccountNav variant="mobile" />
             </div>
