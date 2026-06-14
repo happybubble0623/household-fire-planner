@@ -281,6 +281,16 @@ export default function EarlyRetirementGuidePage() {
                     href: "/app/fire-path/tools/mortgage",
                     title: "Mortgage calculator",
                     body: "See your true monthly housing cost and payoff timeline."
+                  },
+                  {
+                    href: "/app/fire-path/tools/expenses",
+                    title: "Expense calculator",
+                    body: "Add up your real annual spending to size your FIRE number."
+                  },
+                  {
+                    href: "/app/fire-path/tools/tax",
+                    title: "Tax calculator",
+                    body: "Estimate your 2026 federal income tax in retirement."
                   }
                 ].map((tool) => (
                   <Link

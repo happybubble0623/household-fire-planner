@@ -335,8 +335,8 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
         <section className="sec softsec" id="calculators">
           <h2>Free calculators that sharpen every assumption</h2>
           <p className="sub">
-            Estimate Social Security, health insurance through Medicare, mortgage, and investment
-            growth — then feed each result straight back into your numbers.
+            Estimate Social Security, health insurance through Medicare, mortgage, and more — then
+            feed each result straight back into your numbers.
           </p>
           <div className="grid4">
             {PLANNING_TOOLS.map((tool) => (

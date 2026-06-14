@@ -446,6 +446,16 @@ export default function WhatIsFirePage() {
                     href: "/app/fire-path/tools/investment",
                     title: "Investment calculator",
                     body: "Project a balance from starting assets, contributions, return, and time."
+                  },
+                  {
+                    href: "/app/fire-path/tools/expenses",
+                    title: "Living expense calculator",
+                    body: "Add up your real annual spending — the number that drives your FIRE target."
+                  },
+                  {
+                    href: "/app/fire-path/tools/tax",
+                    title: "2026 tax calculator",
+                    body: "Estimate your federal income tax on retirement withdrawals and income."
                   }
                 ].map((tool) => (
                   <Link

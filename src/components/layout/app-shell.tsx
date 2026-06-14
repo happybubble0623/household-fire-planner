@@ -18,9 +18,9 @@ const EXPENSES_TOOL = {
   title: "Living expense calculator"
 };
 
-// Standalone "Tax calculator" — same treatment as EXPENSES_TOOL: linked only in
-// the Calculators dropdown (desktop + mobile), not in PLANNING_TOOLS, the home
-// hub, the pillar pages, or the footer.
+// Standalone "Tax calculator" — same treatment as EXPENSES_TOOL: linked in the
+// Calculators dropdown (desktop + mobile) and the pillar-page calculator lists,
+// but not in PLANNING_TOOLS, the home hub, or the per-tool footer.
 const TAX_TOOL = {
   href: "/app/fire-path/tools/tax",
   title: "Tax calculator"
