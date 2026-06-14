@@ -79,3 +79,41 @@ export const CHILD_TAX_CREDIT_2026 = {
   // Reduction per $1,000 (or fraction) of MAGI over the threshold.
   phaseoutPerThousand: 50
 };
+
+// FICA payroll tax (EMPLOYEE side), 2026. Applies ONLY to earned W-2 wages —
+// not to retirement withdrawals, capital gains, or other unearned income. Pre-tax
+// 401(k)/HSA contributions do NOT reduce the FICA wage base. Self-employed (SECA)
+// pays both the employee and employer halves; that is not modeled here.
+//
+// SOURCE: SSA 2026 Cost-of-Living Adjustment (Social Security wage base) and the
+// fixed statutory FICA/Additional-Medicare rates (IRC §§ 3101, 3121, 1401).
+export const FICA_2026 = {
+  // Social Security: 6.2% on wages up to the annual wage base ($184,500 for 2026).
+  // Max employee SS tax = 0.062 × 184,500 = $11,439.
+  socialSecurity: {
+    rate: 0.062,
+    wageBase: 184_500,
+    maxTax: 11_439
+  },
+  // Medicare: 1.45% on ALL wages (no cap).
+  medicare: {
+    rate: 0.0145
+  },
+  // Additional Medicare: 0.9% on wages above a filing-status threshold. These
+  // thresholds are fixed by law (NOT inflation-adjusted).
+  additionalMedicare: {
+    rate: 0.009,
+    threshold: { single: 200_000, mfj: 250_000 } as Record<FilingStatus, number>
+  }
+};
+
+// Net Investment Income Tax (NIIT), 2026 — 3.8% on the LESSER of net investment
+// income or the amount by which MAGI exceeds a filing-status threshold. The
+// thresholds are fixed by law (NOT inflation-adjusted). For this calculator, net
+// investment income = the long-term capital gains / qualified dividends input.
+//
+// SOURCE: IRC § 1411.
+export const NIIT_2026 = {
+  rate: 0.038,
+  threshold: { single: 200_000, mfj: 250_000 } as Record<FilingStatus, number>
+};

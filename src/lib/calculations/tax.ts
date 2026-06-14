@@ -1,18 +1,22 @@
-// 2026 federal income-tax estimate (current-year), with retirement-account
-// handling, long-term capital gains stacked via the standard Qualified
-// Dividends & Capital Gain worksheet method, the Child Tax Credit (applied as a
-// nonrefundable credit), and a user-entered flat state rate.
+// 2026 federal-tax estimate (current-year), with retirement-account handling,
+// long-term capital gains stacked via the standard Qualified Dividends & Capital
+// Gain worksheet method, the Child Tax Credit (applied as a nonrefundable
+// credit), employee-side FICA payroll tax, the Net Investment Income Tax (NIIT),
+// and a user-entered flat state rate.
 //
 // Pure, framework-free functions so both the client calculator and the test
 // suite can import them. All constants come from tax-2026.ts (IRS Rev. Proc.
-// 2025-32). This estimate deliberately omits AMT, NIIT, itemized deductions,
-// state-specific rules, payroll/FICA, and most other credits — see the
-// disclaimer in the UI.
+// 2025-32 for income-tax figures; SSA/IRC statutory rates for FICA and NIIT).
+// This estimate deliberately omits AMT, itemized deductions, state-specific
+// rules, self-employment/SECA tax, and most other credits — see the disclaimer
+// in the UI.
 
 import {
   ADDITIONAL_STD_DEDUCTION_65_2026,
   CAPITAL_GAINS_THRESHOLDS_2026,
   CHILD_TAX_CREDIT_2026,
+  FICA_2026,
+  NIIT_2026,
   ORDINARY_BRACKETS_2026,
   STANDARD_DEDUCTION_2026,
   type FilingStatus
@@ -20,13 +24,19 @@ import {
 
 export type TaxInput = {
   filingStatus: FilingStatus;
-  // Wages and other ordinary income (interest, non-qualified dividends, etc.).
-  ordinaryIncome: number;
-  // Traditional (pre-tax) retirement withdrawals — taxed as ordinary income.
+  // W-2 wages (salary). Counts as ordinary income AND is the base for FICA.
+  w2Wages: number;
+  // Other ordinary income (pensions, interest, non-qualified dividends, etc.) —
+  // ordinary income, but NOT subject to FICA.
+  otherOrdinaryIncome: number;
+  // Traditional (pre-tax) retirement withdrawals — taxed as ordinary income,
+  // NOT subject to FICA.
   traditionalWithdrawals: number;
-  // Pre-tax retirement/HSA contributions — deducted from ordinary income.
+  // Pre-tax retirement/HSA contributions — deducted from ordinary income. These
+  // lower income tax but do NOT reduce the FICA wage base.
   pretaxContributions: number;
-  // Long-term capital gains plus qualified dividends.
+  // Long-term capital gains plus qualified dividends — capital-gains rates plus
+  // NIIT, NOT subject to FICA.
   longTermGains: number;
   // Number of qualifying children for the Child Tax Credit.
   children: number;
@@ -52,6 +62,21 @@ export type TaxResult = {
   federalTaxBeforeCredits: number;
   childTaxCredit: number;
   federalTaxAfterCredits: number;
+  // Employee-side FICA payroll tax on W-2 wages only.
+  fica: {
+    socialSecurity: number;
+    medicare: number;
+    additionalMedicare: number;
+    total: number;
+  };
+  // Net Investment Income Tax (3.8%) on long-term gains above the MAGI threshold.
+  niit: number;
+  // MAGI (≈ AGI) used for the CTC phaseout and the NIIT threshold.
+  magi: number;
+  // How much of the CTC phaseout reduction is attributable to capital gains +
+  // traditional withdrawals raising MAGI (0 when the phaseout doesn't bite or
+  // there are no gains/withdrawals to blame).
+  childTaxCreditReductionFromInvestment: number;
   stateTax: number;
   totalTax: number;
   grossIncome: number;
@@ -146,14 +171,50 @@ export function childTaxCreditFor(
   return Math.max(0, base - reduction);
 }
 
+// Employee-side FICA payroll tax on W-2 wages. Social Security is 6.2% up to the
+// annual wage base; Medicare is 1.45% on all wages; Additional Medicare is 0.9%
+// on wages above the filing-status threshold. Applies to GROSS wages — pre-tax
+// 401(k)/HSA contributions do NOT reduce the FICA base.
+export function ficaFor(
+  w2Wages: number,
+  filingStatus: FilingStatus
+): { socialSecurity: number; medicare: number; additionalMedicare: number; total: number } {
+  const wages = Math.max(0, w2Wages);
+  const socialSecurity =
+    FICA_2026.socialSecurity.rate * Math.min(wages, FICA_2026.socialSecurity.wageBase);
+  const medicare = FICA_2026.medicare.rate * wages;
+  const addlThreshold = FICA_2026.additionalMedicare.threshold[filingStatus];
+  const additionalMedicare =
+    FICA_2026.additionalMedicare.rate * Math.max(0, wages - addlThreshold);
+  const total = socialSecurity + medicare + additionalMedicare;
+  return { socialSecurity, medicare, additionalMedicare, total };
+}
+
+// Net Investment Income Tax: 3.8% on the LESSER of net investment income or the
+// amount by which MAGI exceeds the filing-status threshold.
+export function niitFor(
+  netInvestmentIncome: number,
+  magi: number,
+  filingStatus: FilingStatus
+): number {
+  const nii = Math.max(0, netInvestmentIncome);
+  const excess = Math.max(0, magi - NIIT_2026.threshold[filingStatus]);
+  return NIIT_2026.rate * Math.min(nii, excess);
+}
+
 export function computeTax(input: TaxInput): TaxResult {
   const filingStatus = input.filingStatus;
-  const ordinaryIncome = Math.max(0, input.ordinaryIncome);
+  const w2Wages = Math.max(0, input.w2Wages);
+  const otherOrdinaryIncome = Math.max(0, input.otherOrdinaryIncome);
   const withdrawals = Math.max(0, input.traditionalWithdrawals);
   const contributions = Math.max(0, input.pretaxContributions);
   const longTermGains = Math.max(0, input.longTermGains);
   const children = Math.max(0, Math.floor(input.children));
   const stateRate = Math.max(0, input.stateRatePercent) / 100;
+
+  // Combined ordinary income (wages + non-wage ordinary income), before
+  // deductions. FICA is applied separately to gross wages only.
+  const ordinaryIncome = w2Wages + otherOrdinaryIncome;
 
   const standardDeduction = standardDeductionFor(filingStatus, input.seniors65);
 
@@ -169,20 +230,38 @@ export function computeTax(input: TaxInput): TaxResult {
   // 3. Long-term gains, stacked on top of ordinary taxable income.
   const capitalGains = capitalGainsTaxFor(ordinaryTaxableIncome, longTermGains, filingStatus);
 
-  // 4. Federal tax before credits.
+  // 4. Federal income tax before credits.
   const federalTaxBeforeCredits = ordinaryTax + capitalGains.tax;
 
-  // 5. Child Tax Credit (nonrefundable here). MAGI ≈ AGI.
+  // 5. Child Tax Credit (nonrefundable here). MAGI ≈ AGI. Pre-tax contributions
+  // reduce MAGI; gains + withdrawals raise it (which can trigger the phaseout).
   const magi = ordinaryIncome + withdrawals + longTermGains - contributions;
   const childTaxCredit = childTaxCreditFor(children, magi, filingStatus);
   const federalTaxAfterCredits = Math.max(0, federalTaxBeforeCredits - childTaxCredit);
 
-  // 6. State tax — simplified flat rate on taxable income (ordinary + gains).
+  // 5b. How much of the CTC phaseout is caused by gains + withdrawals raising
+  // MAGI? Compare the credit with vs. without that unearned income.
+  const magiExInvestment = ordinaryIncome - contributions;
+  const childTaxCreditExInvestment = childTaxCreditFor(children, magiExInvestment, filingStatus);
+  const childTaxCreditReductionFromInvestment = Math.max(
+    0,
+    childTaxCreditExInvestment - childTaxCredit
+  );
+
+  // 6. FICA — employee side, on GROSS W-2 wages only (not reduced by pre-tax
+  // contributions, not charged on withdrawals or gains).
+  const fica = ficaFor(w2Wages, filingStatus);
+
+  // 7. NIIT — 3.8% on the lesser of net investment income (the LTCG input) or
+  // MAGI over the threshold.
+  const niit = niitFor(longTermGains, magi, filingStatus);
+
+  // 8. State tax — simplified flat rate on taxable income (ordinary + gains).
   const totalTaxableIncome = ordinaryTaxableIncome + longTermGains;
   const stateTax = stateRate * totalTaxableIncome;
 
-  // 7. Totals and rates.
-  const totalTax = federalTaxAfterCredits + stateTax;
+  // 9. Totals and rates. Total tax now includes FICA + NIIT.
+  const totalTax = federalTaxAfterCredits + fica.total + niit + stateTax;
   const grossIncome = ordinaryIncome + withdrawals + longTermGains;
   const afterTaxIncome = grossIncome - totalTax;
   const effectiveTaxRate = grossIncome > 0 ? totalTax / grossIncome : 0;
@@ -197,6 +276,10 @@ export function computeTax(input: TaxInput): TaxResult {
     federalTaxBeforeCredits,
     childTaxCredit,
     federalTaxAfterCredits,
+    fica,
+    niit,
+    magi,
+    childTaxCreditReductionFromInvestment,
     stateTax,
     totalTax,
     grossIncome,

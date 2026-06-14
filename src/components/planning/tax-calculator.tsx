@@ -62,6 +62,43 @@ function SelectField({
   );
 }
 
+// One line in the tax breakdown: a label on the left, a currency amount on the
+// right. `emphasis` styles the total row; `muted` styles credits/subtractions.
+function BreakdownRow({
+  label,
+  value,
+  emphasis = false,
+  muted = false
+}: {
+  label: ReactNode;
+  value: string;
+  emphasis?: boolean;
+  muted?: boolean;
+}) {
+  return (
+    <div
+      className={
+        emphasis
+          ? "flex items-baseline justify-between gap-4 border-t border-gray-200 pt-3 text-sm font-semibold text-gray-900"
+          : "flex items-baseline justify-between gap-4 text-sm text-gray-700"
+      }
+    >
+      <span className={muted ? "text-gray-500" : undefined}>{label}</span>
+      <span
+        className={
+          emphasis
+            ? "shrink-0 font-bold tabular-nums"
+            : muted
+              ? "shrink-0 tabular-nums text-gray-500"
+              : "shrink-0 tabular-nums"
+        }
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
 const PERCENT_FORMATTER = new Intl.NumberFormat(undefined, {
   style: "percent",
   minimumFractionDigits: 1,
@@ -75,7 +112,8 @@ const FILING_OPTIONS: ReadonlyArray<{ value: FilingStatus; label: string }> = [
 
 export function TaxCalculator() {
   const [filingStatus, setFilingStatus] = useState<FilingStatus>("single");
-  const [ordinaryIncome, setOrdinaryIncome] = useState(100_000);
+  const [w2Wages, setW2Wages] = useState(100_000);
+  const [otherOrdinaryIncome, setOtherOrdinaryIncome] = useState(0);
   const [traditionalWithdrawals, setTraditionalWithdrawals] = useState(0);
   const [pretaxContributions, setPretaxContributions] = useState(0);
   const [longTermGains, setLongTermGains] = useState(0);
@@ -105,7 +143,8 @@ export function TaxCalculator() {
   const input: TaxInput = useMemo(
     () => ({
       filingStatus,
-      ordinaryIncome,
+      w2Wages,
+      otherOrdinaryIncome,
       traditionalWithdrawals,
       pretaxContributions,
       longTermGains,
@@ -115,7 +154,8 @@ export function TaxCalculator() {
     }),
     [
       filingStatus,
-      ordinaryIncome,
+      w2Wages,
+      otherOrdinaryIncome,
       traditionalWithdrawals,
       pretaxContributions,
       longTermGains,
@@ -128,6 +168,10 @@ export function TaxCalculator() {
   const liveResult = useMemo(() => computeTax(input), [input]);
   const gate = useCalculateGate(liveResult);
   const result = gate.value;
+
+  // The credit actually applied against tax (nonrefundable, so it can't exceed
+  // tax before credits). Keeps the breakdown's arithmetic exact.
+  const appliedChildTaxCredit = result.federalTaxBeforeCredits - result.federalTaxAfterCredits;
 
   return (
     <div className="space-y-8">
@@ -142,9 +186,10 @@ export function TaxCalculator() {
           Tax calculator
         </h1>
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-500">
-          Estimate your 2026 federal income tax with retirement accounts, long-term capital gains,
-          dependents, and a flat state rate. Built on the official 2026 figures (IRS Rev. Proc.
-          2025-32): the brackets, standard deduction, capital-gains rates, and Child Tax Credit.
+          Estimate your 2026 federal tax with retirement accounts, long-term capital gains,
+          dependents, FICA payroll tax, the Net Investment Income Tax, and a flat state rate. Built
+          on the official 2026 figures (IRS Rev. Proc. 2025-32): the brackets, standard deduction,
+          capital-gains rates, and Child Tax Credit.
         </p>
       </div>
 
@@ -183,14 +228,25 @@ export function TaxCalculator() {
           </div>
 
           <NumberInput
-            id="tax-ordinary-income"
-            label="Wages / other ordinary income"
-            value={ordinaryIncome}
-            onChange={setOrdinaryIncome}
+            id="tax-w2-wages"
+            label="W-2 wages (salary)"
+            value={w2Wages}
+            onChange={setW2Wages}
             suffix="per year"
             step={1_000}
-            help="Gross wages plus other ordinary income — interest, non-qualified dividends, taxable pensions, and the like. Don't include long-term capital gains or Roth withdrawals here."
-            note="Taxed at the ordinary 2026 brackets after the standard deduction."
+            help="Gross salary from a W-2 job, before any deductions. This is taxed as ordinary income AND is the base for FICA payroll tax (Social Security + Medicare). Don't include capital gains, retirement withdrawals, or non-wage income here."
+            note="Ordinary income + the base for FICA payroll tax."
+          />
+
+          <NumberInput
+            id="tax-other-ordinary-income"
+            label="Other ordinary income"
+            value={otherOrdinaryIncome}
+            onChange={setOtherOrdinaryIncome}
+            suffix="per year"
+            step={1_000}
+            help="Non-wage ordinary income — taxable pensions, interest, non-qualified dividends, and the like. Taxed at the ordinary brackets but NOT subject to FICA. Don't include long-term capital gains or Roth withdrawals here."
+            note="Ordinary income, but not subject to FICA payroll tax."
           />
 
           <NumberInput
@@ -211,8 +267,8 @@ export function TaxCalculator() {
             onChange={setPretaxContributions}
             suffix="per year"
             step={1_000}
-            help="Pre-tax contributions to a traditional 401(k), traditional IRA, or HSA. These come out of income before tax is figured, so they lower your taxable income. Don't enter Roth contributions here."
-            note="Subtracted from your ordinary income before tax is calculated."
+            help="Pre-tax contributions to a traditional 401(k), traditional IRA, or HSA. These come out of income before income tax is figured, so they lower your taxable income — but they do NOT reduce the FICA wage base, so payroll tax still applies to your full gross wages. Don't enter Roth contributions here."
+            note="Lowers income tax, but not the FICA wage base."
           />
 
           <NumberInput
@@ -222,8 +278,8 @@ export function TaxCalculator() {
             onChange={setLongTermGains}
             suffix="per year"
             step={1_000}
-            help="Gains on assets held more than a year, plus qualified dividends. These get the lower 0%/15%/20% rates, stacked on top of your ordinary income based on total taxable income."
-            note="Stacked on top of ordinary income, then taxed at 0% / 15% / 20%."
+            help="Gains on assets held more than a year, plus qualified dividends. These get the lower 0%/15%/20% rates, stacked on top of your ordinary income based on total taxable income. At higher incomes they also incur the 3.8% Net Investment Income Tax (NIIT)."
+            note="Taxed at 0% / 15% / 20%, plus 3.8% NIIT above the MAGI threshold."
           />
 
           <NumberInput
@@ -264,9 +320,11 @@ export function TaxCalculator() {
             label="Estimated total tax"
             value={formatCurrency(result.totalTax)}
             hero
-            context={`federal ${formatCurrency(result.federalTaxAfterCredits)} + state ${formatCurrency(
-              result.stateTax
-            )}`}
+            context={`federal ${formatCurrency(
+              result.federalTaxAfterCredits
+            )} + FICA ${formatCurrency(result.fica.total)}${
+              result.niit > 0 ? ` + NIIT ${formatCurrency(result.niit)}` : ""
+            } + state ${formatCurrency(result.stateTax)}`}
           />
           <ResultCard
             label="After-tax income"
@@ -276,31 +334,71 @@ export function TaxCalculator() {
           <ResultCard
             label="Effective tax rate"
             value={PERCENT_FORMATTER.format(result.effectiveTaxRate)}
-            help="Total tax divided by gross income. It's lower than your top bracket because only the income inside each bracket is taxed at that bracket's rate."
+            help="Total tax (income tax + capital-gains tax + NIIT + FICA + state) divided by gross income. It's lower than your top bracket because only the income inside each bracket is taxed at that bracket's rate."
             context={`marginal bracket: ${PERCENT_FORMATTER.format(result.marginalOrdinaryRate)}`}
           />
-          <ResultCard
-            label="Total taxable income"
-            value={formatCurrency(result.totalTaxableIncome)}
-            context={`standard deduction: ${formatCurrency(result.standardDeduction)}`}
-            description={
-              <>
-                Ordinary tax {formatCurrency(result.ordinaryTax)} + capital-gains tax{" "}
-                {formatCurrency(result.capitalGains.tax)}
-                {result.childTaxCredit > 0
-                  ? ` − Child Tax Credit ${formatCurrency(result.childTaxCredit)}`
-                  : ""}
-                .
-              </>
-            }
-          />
+
+          {/* Full line-item breakdown of every component that sums to total tax. */}
+          <Card className="grid gap-3 p-6 sm:p-7">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+              <span>Tax breakdown</span>
+              <InfoPopover
+                label="Tax breakdown"
+                content="Every component that makes up your estimated total tax. Federal income tax uses the ordinary brackets; capital-gains tax uses the 0/15/20% rates; NIIT is the 3.8% Net Investment Income Tax; FICA is employee-side Social Security + Medicare payroll tax on wages; state is your flat rate."
+              />
+            </div>
+
+            <BreakdownRow
+              label="Federal income tax (ordinary)"
+              value={formatCurrency(result.ordinaryTax)}
+            />
+            <BreakdownRow
+              label="Capital-gains tax"
+              value={formatCurrency(result.capitalGains.tax)}
+            />
+            {appliedChildTaxCredit > 0 ? (
+              <BreakdownRow
+                label="Child Tax Credit"
+                value={`− ${formatCurrency(appliedChildTaxCredit)}`}
+                muted
+              />
+            ) : null}
+            <BreakdownRow label="NIIT (3.8%)" value={formatCurrency(result.niit)} />
+            <BreakdownRow
+              label="FICA (Social Security + Medicare)"
+              value={formatCurrency(result.fica.total)}
+            />
+            <BreakdownRow label="State income tax" value={formatCurrency(result.stateTax)} />
+            <BreakdownRow label="Total tax" value={formatCurrency(result.totalTax)} emphasis />
+
+            <p className="mt-1 text-xs leading-relaxed text-gray-500">
+              Total taxable income {formatCurrency(result.totalTaxableIncome)} after a{" "}
+              {formatCurrency(result.standardDeduction)} standard deduction. FICA is the employee
+              half only ({formatCurrency(result.fica.socialSecurity)} Social Security +{" "}
+              {formatCurrency(result.fica.medicare)} Medicare
+              {result.fica.additionalMedicare > 0
+                ? ` + ${formatCurrency(result.fica.additionalMedicare)} Additional Medicare`
+                : ""}
+              ).
+            </p>
+
+            {result.childTaxCreditReductionFromInvestment > 0 ? (
+              <p className="rounded-xl bg-[var(--soft)] px-3.5 py-3 text-xs leading-relaxed text-gray-600">
+                Capital gains &amp; withdrawals raised your MAGI to{" "}
+                {formatCurrency(result.magi)}, reducing your Child Tax Credit by{" "}
+                {formatCurrency(result.childTaxCreditReductionFromInvestment)}.
+              </p>
+            ) : null}
+          </Card>
         </div>
       </div>
 
       <p className="rounded-2xl border border-[var(--border)] bg-[var(--soft)] p-5 text-sm leading-relaxed text-gray-500 shadow-sm">
         Estimate only — not tax advice. 2026 federal rules (IRS Rev. Proc. 2025-32) + a flat state
-        rate you enter. Does not include AMT, NIIT, itemized deductions, state-specific rules,
-        payroll/FICA, or every credit. Consult a tax professional.
+        rate you enter. FICA is the employee-side payroll tax (Social Security + Medicare) on W-2
+        wages only; the employer half isn&apos;t shown and self-employment (SECA) tax isn&apos;t
+        modeled. NIIT (3.8%) is included. Does not include AMT, itemized deductions, state-specific
+        rules, or every credit. Consult a tax professional.
       </p>
     </div>
   );

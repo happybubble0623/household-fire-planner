@@ -3,7 +3,9 @@ import {
   capitalGainsTaxFor,
   childTaxCreditFor,
   computeTax,
+  ficaFor,
   marginalOrdinaryRateFor,
+  niitFor,
   ordinaryTaxFor,
   standardDeductionFor,
   type TaxInput
@@ -12,6 +14,8 @@ import {
   ADDITIONAL_STD_DEDUCTION_65_2026,
   CAPITAL_GAINS_THRESHOLDS_2026,
   CHILD_TAX_CREDIT_2026,
+  FICA_2026,
+  NIIT_2026,
   ORDINARY_BRACKETS_2026,
   STANDARD_DEDUCTION_2026
 } from "@/lib/data/tax-2026";
@@ -21,7 +25,8 @@ import {
 function baseInput(overrides: Partial<TaxInput> = {}): TaxInput {
   return {
     filingStatus: "single",
-    ordinaryIncome: 0,
+    w2Wages: 0,
+    otherOrdinaryIncome: 0,
     traditionalWithdrawals: 0,
     pretaxContributions: 0,
     longTermGains: 0,
@@ -89,6 +94,27 @@ describe("2026 constants (pinned to IRS Rev. Proc. 2025-32)", () => {
     expect(CHILD_TAX_CREDIT_2026.phaseoutThreshold.single).toBe(200_000);
     expect(CHILD_TAX_CREDIT_2026.phaseoutPerThousand).toBe(50);
   });
+
+  it("pins the 2026 FICA rates, wage base, and Additional Medicare thresholds", () => {
+    expect(FICA_2026.socialSecurity.rate).toBe(0.062);
+    expect(FICA_2026.socialSecurity.wageBase).toBe(184_500);
+    expect(FICA_2026.socialSecurity.maxTax).toBe(11_439);
+    // The advertised max must equal rate × wage base exactly.
+    expect(FICA_2026.socialSecurity.rate * FICA_2026.socialSecurity.wageBase).toBeCloseTo(
+      11_439,
+      6
+    );
+    expect(FICA_2026.medicare.rate).toBe(0.0145);
+    expect(FICA_2026.additionalMedicare.rate).toBe(0.009);
+    expect(FICA_2026.additionalMedicare.threshold.single).toBe(200_000);
+    expect(FICA_2026.additionalMedicare.threshold.mfj).toBe(250_000);
+  });
+
+  it("pins the NIIT rate and thresholds", () => {
+    expect(NIIT_2026.rate).toBe(0.038);
+    expect(NIIT_2026.threshold.single).toBe(200_000);
+    expect(NIIT_2026.threshold.mfj).toBe(250_000);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -123,7 +149,7 @@ describe("standardDeductionFor", () => {
 // ---------------------------------------------------------------------------
 describe("pinned: single $100k ordinary income", () => {
   it("computes OTI = 83,900 and ordinary tax = 13,170", () => {
-    const result = computeTax(baseInput({ ordinaryIncome: 100_000 }));
+    const result = computeTax(baseInput({ otherOrdinaryIncome: 100_000 }));
     expect(result.ordinaryTaxableIncome).toBe(83_900);
     expect(result.ordinaryTax).toBeCloseTo(1_240 + 4_560 + 7_370, 6);
     expect(result.ordinaryTax).toBeCloseTo(13_170, 6);
@@ -165,7 +191,7 @@ describe("pinned: MFJ LTCG stacking (OTI 80k, LTCG 40k)", () => {
     const result = computeTax(
       baseInput({
         filingStatus: "mfj",
-        ordinaryIncome: 80_000 + std,
+        otherOrdinaryIncome: 80_000 + std,
         longTermGains: 40_000
       })
     );
@@ -214,7 +240,7 @@ describe("pinned: Child Tax Credit phaseout", () => {
     const result = computeTax(
       baseInput({
         filingStatus: "mfj",
-        ordinaryIncome: 410_500,
+        otherOrdinaryIncome: 410_500,
         children: 2
       })
     );
@@ -234,7 +260,7 @@ describe("computeTax integration", () => {
   it("adds traditional withdrawals to and subtracts pre-tax contributions from OTI", () => {
     const result = computeTax(
       baseInput({
-        ordinaryIncome: 90_000,
+        otherOrdinaryIncome: 90_000,
         traditionalWithdrawals: 20_000,
         pretaxContributions: 10_000
       })
@@ -245,7 +271,7 @@ describe("computeTax integration", () => {
   });
 
   it("never lets ordinary taxable income go negative", () => {
-    const result = computeTax(baseInput({ ordinaryIncome: 5_000 }));
+    const result = computeTax(baseInput({ otherOrdinaryIncome: 5_000 }));
     expect(result.ordinaryTaxableIncome).toBe(0);
     expect(result.ordinaryTax).toBe(0);
   });
@@ -254,7 +280,7 @@ describe("computeTax integration", () => {
     const result = computeTax(
       baseInput({
         filingStatus: "mfj",
-        ordinaryIncome: 80_000 + 32_200,
+        otherOrdinaryIncome: 80_000 + 32_200,
         longTermGains: 40_000,
         stateRatePercent: 5
       })
@@ -266,7 +292,7 @@ describe("computeTax integration", () => {
   });
 
   it("reports effective rate over gross income and after-tax income", () => {
-    const result = computeTax(baseInput({ ordinaryIncome: 100_000 }));
+    const result = computeTax(baseInput({ otherOrdinaryIncome: 100_000 }));
     expect(result.grossIncome).toBe(100_000);
     expect(result.afterTaxIncome).toBeCloseTo(100_000 - 13_170, 6);
     expect(result.effectiveTaxRate).toBeCloseTo(0.1317, 6);
@@ -281,5 +307,143 @@ describe("marginalOrdinaryRateFor", () => {
   it("returns the bracket containing the income", () => {
     expect(marginalOrdinaryRateFor(83_900, "single")).toBe(0.22);
     expect(marginalOrdinaryRateFor(700_000, "single")).toBe(0.37);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PINNED SCENARIO 4: FICA (employee side). Earned W-2 wages only.
+// ---------------------------------------------------------------------------
+describe("pinned: FICA (employee-side payroll tax)", () => {
+  it("wages $100,000 → SS 6,200 + Medicare 1,450 = 7,650, no Additional Medicare", () => {
+    const fica = ficaFor(100_000, "single");
+    expect(fica.socialSecurity).toBeCloseTo(6_200, 6); // 0.062 × 100,000
+    expect(fica.medicare).toBeCloseTo(1_450, 6); // 0.0145 × 100,000
+    expect(fica.additionalMedicare).toBe(0); // below the $200k single threshold
+    expect(fica.total).toBeCloseTo(7_650, 6);
+  });
+
+  it("wages $300,000 single → SS capped 11,439 + Medicare 4,350 + addl 900 = 16,689", () => {
+    const fica = ficaFor(300_000, "single");
+    // Social Security capped at the $184,500 wage base → 0.062 × 184,500.
+    expect(fica.socialSecurity).toBeCloseTo(11_439, 6);
+    expect(fica.medicare).toBeCloseTo(4_350, 6); // 0.0145 × 300,000
+    // Additional Medicare 0.9% on wages above $200,000 → 0.009 × 100,000.
+    expect(fica.additionalMedicare).toBeCloseTo(900, 6);
+    expect(fica.total).toBeCloseTo(16_689, 6);
+  });
+
+  it("pins the $184,500 Social Security wage-base cap", () => {
+    // Any wage at/above the base yields the same capped SS tax of $11,439.
+    expect(ficaFor(184_500, "single").socialSecurity).toBeCloseTo(11_439, 6);
+    expect(ficaFor(184_500, "mfj").socialSecurity).toBeCloseTo(11_439, 6);
+    expect(ficaFor(1_000_000, "single").socialSecurity).toBeCloseTo(11_439, 6);
+  });
+
+  it("uses the $250,000 MFJ threshold for Additional Medicare", () => {
+    // MFJ: no Additional Medicare at $250,000, 0.9% above it.
+    expect(ficaFor(250_000, "mfj").additionalMedicare).toBe(0);
+    expect(ficaFor(300_000, "mfj").additionalMedicare).toBeCloseTo(0.009 * 50_000, 6); // 450
+  });
+
+  it("charges FICA on W-2 wages only — NOT on withdrawals or LTCG", () => {
+    // $200,000 of withdrawals + $200,000 of LTCG, but zero wages → zero FICA.
+    const result = computeTax(
+      baseInput({
+        filingStatus: "single",
+        w2Wages: 0,
+        traditionalWithdrawals: 200_000,
+        longTermGains: 200_000
+      })
+    );
+    expect(result.fica.total).toBe(0);
+  });
+
+  it("applies FICA to GROSS wages — pre-tax contributions do not shrink the base", () => {
+    // $100,000 wages with $23,000 pre-tax → FICA still on the full $100,000.
+    const withContrib = computeTax(
+      baseInput({ w2Wages: 100_000, pretaxContributions: 23_000 })
+    );
+    const without = computeTax(baseInput({ w2Wages: 100_000 }));
+    expect(withContrib.fica.total).toBeCloseTo(7_650, 6);
+    expect(withContrib.fica.total).toBeCloseTo(without.fica.total, 6);
+    // The contribution DID lower income tax, though.
+    expect(withContrib.ordinaryTax).toBeLessThan(without.ordinaryTax);
+  });
+
+  it("includes FICA in the total tax (wages route, not the other-income route)", () => {
+    // Same dollar amount, taxed two ways: as wages (FICA) vs. as other income.
+    const wages = computeTax(baseInput({ w2Wages: 100_000 }));
+    const other = computeTax(baseInput({ otherOrdinaryIncome: 100_000 }));
+    expect(wages.ordinaryTax).toBeCloseTo(other.ordinaryTax, 6); // same income tax
+    expect(other.fica.total).toBe(0);
+    expect(wages.totalTax).toBeCloseTo(other.totalTax + 7_650, 6); // wages add FICA
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PINNED SCENARIO 5: NIIT — 3.8% on the lesser of NII or (MAGI − threshold).
+// Single, MAGI 250,000 with 60,000 LTCG → 3.8% × min(60,000, 50,000) = 1,900.
+// ---------------------------------------------------------------------------
+describe("pinned: NIIT (Net Investment Income Tax)", () => {
+  it("single MAGI 250k with 60k LTCG → NIIT = 3.8% × 50,000 = 1,900", () => {
+    expect(niitFor(60_000, 250_000, "single")).toBeCloseTo(1_900, 6);
+  });
+
+  it("is zero when MAGI is at or below the threshold", () => {
+    expect(niitFor(60_000, 200_000, "single")).toBe(0);
+    expect(niitFor(60_000, 250_000, "mfj")).toBe(0);
+  });
+
+  it("caps at 3.8% of net investment income when MAGI excess is larger", () => {
+    // Single, MAGI 500,000 (excess 300,000) but only 60,000 of NII → tax the NII.
+    expect(niitFor(60_000, 500_000, "single")).toBeCloseTo(0.038 * 60_000, 6); // 2,280
+  });
+
+  it("flows through computeTax on the LTCG input as net investment income", () => {
+    // Single: drive MAGI to 250,000 with 190,000 other income + 60,000 LTCG.
+    const result = computeTax(
+      baseInput({ filingStatus: "single", otherOrdinaryIncome: 190_000, longTermGains: 60_000 })
+    );
+    expect(result.magi).toBe(250_000);
+    expect(result.niit).toBeCloseTo(1_900, 6);
+    // NIIT is part of total tax.
+    expect(result.totalTax).toBeCloseTo(
+      result.federalTaxAfterCredits + result.fica.total + 1_900 + result.stateTax,
+      6
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PINNED SCENARIO 6: Child Tax Credit interaction with gains + withdrawals.
+// MAGI includes gains + withdrawals, so they can shrink the credit.
+// ---------------------------------------------------------------------------
+describe("pinned: CTC interaction with gains + withdrawals", () => {
+  it("attributes the CTC reduction caused by gains + withdrawals raising MAGI", () => {
+    // Single, 2 kids. Wages 180,000 (below the 200k threshold → full credit on
+    // their own) + 60,000 LTCG pushes MAGI to 240,000 → 40,000 over → 40 steps
+    // × $50 = $2,000 off the $4,400 credit.
+    const result = computeTax(
+      baseInput({
+        filingStatus: "single",
+        w2Wages: 180_000,
+        longTermGains: 60_000,
+        children: 2
+      })
+    );
+    expect(result.magi).toBe(240_000);
+    expect(result.childTaxCredit).toBe(4_400 - 2_000); // 2,400
+    // All of the reduction is attributable to the gains (wages alone = full credit).
+    expect(result.childTaxCreditReductionFromInvestment).toBeCloseTo(2_000, 6);
+  });
+
+  it("reports no investment-driven CTC reduction when wages alone already phase it out", () => {
+    // Single, 2 kids, wages 240,000 already 40,000 over → credit reduced to 2,400
+    // by wages alone; adding no gains means nothing is attributable to investment.
+    const result = computeTax(
+      baseInput({ filingStatus: "single", w2Wages: 240_000, children: 2 })
+    );
+    expect(result.childTaxCredit).toBe(2_400);
+    expect(result.childTaxCreditReductionFromInvestment).toBe(0);
   });
 });
