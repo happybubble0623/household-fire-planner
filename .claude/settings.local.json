@@ -174,7 +174,8 @@
       "Bash(echo \"--- push exit: $? ---\")",
       "Bash(cp \"/Users/chongzha/dev/household-fire-planner/docs/product-strategy/PLAN_MY_FIRE_PRD_v2.md\" \"/Users/chongzha/Desktop/CODEX CLI/Obsidian101/Projects/Vibe Coding/Plan My FIRE Docs/PLAN_MY_FIRE_PRD_v2.md\" *)",
       "Bash(git reset *)",
-      "Bash(git -c user.name=happybubble0623 -c user.email=blueocean.wh@gmail.com commit -q '--author=happybubble0623 <blueocean.wh@gmail.com>' -m 'Update calculators blurb + surface all 6 calculators on guide pages *)"
+      "Bash(git -c user.name=happybubble0623 -c user.email=blueocean.wh@gmail.com commit -q '--author=happybubble0623 <blueocean.wh@gmail.com>' -m 'Update calculators blurb + surface all 6 calculators on guide pages *)",
+      "Bash(git -c user.name=happybubble0623 -c user.email=blueocean.wh@gmail.com commit -m 'Fix built-in calculators count: 4 → 6 *)"
     ]
   }
 }

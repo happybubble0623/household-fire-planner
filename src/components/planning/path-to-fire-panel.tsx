@@ -269,7 +269,7 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
             <div className="l">Free, no login</div>
           </div>
           <div className="stat">
-            <div className="n tnum">4</div>
+            <div className="n tnum">6</div>
             <div className="l">Built-in calculators</div>
           </div>
           <div className="stat">
