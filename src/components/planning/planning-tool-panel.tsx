@@ -16,7 +16,7 @@ import {
 import { HealthcareCostPanel } from "@/components/planning/healthcare-cost-panel";
 import { UseInPlanButton } from "@/components/planning/use-in-plan-button";
 import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
-import { addPassiveIncome } from "@/lib/phase1/plan-mappings";
+import { addHousingExpenseCategory, addPassiveIncome } from "@/lib/phase1/plan-mappings";
 import { relatedPlanningTools, type PlanningTool } from "@/lib/data/planning-tools";
 
 export type { PlanningTool };
@@ -686,6 +686,27 @@ function MortgageCalculator() {
   const gate = useCalculateGate(liveResult);
   const result = gate.value;
 
+  // App-mode "Use in my plan": add this loan's annual housing cost as a
+  // housing/mortgage expense in the Plan's optional expense-category list — the
+  // same mechanism the strategy panel's "Add Expense Category" writes to. The
+  // amount is the displayed monthly payment × 12 (no new math); the category is
+  // built here (id generated exactly like the panel's addExpenseCategory) and
+  // appended via the same workbook write the panel uses. Starts at the plan's
+  // current age and isn't inflation-adjusted (a fixed mortgage P&I is nominal).
+  const writePlanWorkbook = usePlanWorkbookWriter();
+  const annualHousingCost = result.monthlyPayment * 12;
+  const addPlanHousingExpense = () =>
+    writePlanWorkbook((workbook) =>
+      addHousingExpenseCategory(workbook, {
+        id: `expense-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: "housing",
+        label: "Mortgage / housing",
+        annualAmount: annualHousingCost,
+        startAge: workbook.fireInputs.currentAge,
+        inflationAdjusted: false
+      })
+    ).then(() => undefined);
+
   return (
     <ToolShell
       title="Mortgage calculator"
@@ -821,6 +842,11 @@ function MortgageCalculator() {
             value={formatCurrency(result.monthlyPayment, true)}
             hero
             context={includeFees ? "principal, interest, taxes & fees" : "principal & interest only"}
+          />
+          <UseInPlanButton
+            label={`Use in my plan · ${formatCurrency(annualHousingCost)}/yr`}
+            confirmation="Added as a housing expense in your plan"
+            onUse={addPlanHousingExpense}
           />
           <MortgagePaymentDonut
             principalInterest={result.monthlyPrincipalInterest}

@@ -11,6 +11,9 @@ import {
   formatCurrency,
   useCalculateGate
 } from "@/components/planning/planning-tool-panel";
+import { UseInPlanButton } from "@/components/planning/use-in-plan-button";
+import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
+import { applyEffectiveTaxRate } from "@/lib/phase1/plan-mappings";
 import { computeTax, type TaxInput } from "@/lib/calculations/tax";
 import type { FilingStatus } from "@/lib/data/tax-2026";
 
@@ -172,6 +175,16 @@ export function TaxCalculator() {
   // The credit actually applied against tax (nonrefundable, so it can't exceed
   // tax before credits). Keeps the breakdown's arithmetic exact.
   const appliedChildTaxCredit = result.federalTaxBeforeCredits - result.federalTaxAfterCredits;
+
+  // App-mode "Use in my plan": set the Plan's simple effective tax-rate
+  // assumption to this calculator's computed effective rate (total tax ÷ gross
+  // income, reused as-is from the result; the only transform is fraction→percent
+  // ×100), switching the plan to "simple" tax mode so the rate is applied.
+  const writePlanWorkbook = usePlanWorkbookWriter();
+  const setPlanTaxRate = () =>
+    writePlanWorkbook((workbook) => applyEffectiveTaxRate(workbook, result.effectiveTaxRate)).then(
+      () => undefined
+    );
 
   return (
     <div className="space-y-8">
@@ -336,6 +349,11 @@ export function TaxCalculator() {
             value={PERCENT_FORMATTER.format(result.effectiveTaxRate)}
             help="Total tax (income tax + capital-gains tax + NIIT + FICA + state) divided by gross income. It's lower than your top bracket because only the income inside each bracket is taxed at that bracket's rate."
             context={`marginal bracket: ${PERCENT_FORMATTER.format(result.marginalOrdinaryRate)}`}
+          />
+          <UseInPlanButton
+            label={`Use in my plan · ${PERCENT_FORMATTER.format(result.effectiveTaxRate)} tax rate`}
+            confirmation="Set as your plan's simple effective tax rate"
+            onUse={setPlanTaxRate}
           />
 
           {/* Full line-item breakdown of every component that sums to total tax. */}

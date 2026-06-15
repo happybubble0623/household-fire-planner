@@ -1352,6 +1352,19 @@ export function FireStrategyPanel({
                 fieldKey="simpleEffectiveTaxRatePercent"
               />
             ) : null}
+            {isAppMode ? (
+              <p className="text-xs leading-relaxed text-gray-500">
+                Keep &ldquo;No tax adjustment&rdquo; for a pre-tax view, or{" "}
+                <Link
+                  href="/app/fire-path/tools/tax"
+                  className="font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
+                >
+                  estimate an effective rate in the Tax calculator
+                </Link>{" "}
+                and send it here. That rate reflects the income scenario you entered —
+                retirement-withdrawal taxes can differ, so treat it as a planning estimate.
+              </p>
+            ) : null}
           </>
         </InputSectionCard>
 
@@ -1401,7 +1414,7 @@ export function FireStrategyPanel({
                           {inputs.expenseCategories.map((expenseCategory) => (
                             <tr key={expenseCategory.id}>
                               <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
-                                {expenseCategoryLabels[expenseCategory.type]}
+                                {expenseCategory.label ?? expenseCategoryLabels[expenseCategory.type]}
                               </td>
                               <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                                 {formatCurrency(expenseCategory.annualAmount)}
@@ -1462,6 +1475,18 @@ export function FireStrategyPanel({
                         </option>
                       ))}
                     </select>
+                    {isAppMode && expenseCategoryDraft.type === "housing" ? (
+                      <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                        Not sure of the amount?{" "}
+                        <Link
+                          href="/app/fire-path/tools/mortgage"
+                          className="font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
+                        >
+                          Compute it in the Mortgage calculator
+                        </Link>{" "}
+                        and send the payment straight here.
+                      </p>
+                    ) : null}
                   </div>
                   <div>
                     <label
