@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import { isMarketPricedType, upsertPhase1PortfolioItem } from "@/lib/phase1/portfolio";
@@ -39,37 +33,39 @@ import type { Phase1AssetType, Phase1PortfolioItem, Phase1Workbook } from "@/typ
 
 // The single, shared "Add asset or liability" form. Owns its own draft +
 // symbol-search state and the add/edit logic, so the EXACT same component (and
-// therefore the exact same field set, validation, and balance math) renders
-// both inline at the bottom of PortfolioPanel and on the dedicated
-// /app/portfolio-lab/add page. The numbers are never reimplemented — they come
-// from src/lib/phase1/portfolio-draft + src/lib/phase1/portfolio.
-
-export type AddHoldingFormHandle = {
-  // Load an existing row into the form for editing (used by the table's edit
-  // button in the inline placement). Scrolls the form into view.
-  editItem: (item: Phase1PortfolioItem) => void;
-  // Tell the form some rows were removed; if one is being edited, reset back to
-  // a clean add draft so the form doesn't keep a deleted row open.
-  notifyItemsRemoved: (itemIds: string[]) => void;
-};
+// therefore the exact same field set, validation, and balance math) renders on
+// the dedicated /app/portfolio-lab/add page for both adding and editing. The
+// numbers are never reimplemented — they come from src/lib/phase1/portfolio-draft
+// + src/lib/phase1/portfolio.
 
 type AddHoldingFormProps = {
   onChange: React.Dispatch<React.SetStateAction<Phase1Workbook>>;
-  // Optional status sink — PortfolioPanel passes its setUiStatus so add/edit
-  // confirmations surface in the overview status line exactly as before. The
-  // dedicated page omits it and shows its own confirmation instead.
+  // Optional status sink — surfaces add/edit confirmations and validation
+  // messages in the host page's status line.
   onStatusChange?: (status: string | null) => void;
   // Called after a row is successfully added (not on edit). Lets the dedicated
-  // page show a "saved" confirmation / offer navigation without changing the
-  // inline behavior.
+  // page show a "saved" confirmation / offer navigation.
   onItemAdded?: (item: Phase1PortfolioItem) => void;
+  // Called after an existing row is successfully edited (not on add). Lets the
+  // dedicated Add/Edit page return to the portfolio once the row is updated.
+  onItemSaved?: (item: Phase1PortfolioItem) => void;
+  // When provided, the form opens pre-loaded with this row for editing. The
+  // dedicated page passes the row resolved from /app/portfolio-lab/add?edit=<id>
+  // so the per-row edit action keeps working after the inline form was removed.
+  editItem?: Phase1PortfolioItem | null;
   // Hide the section chrome (border/background/heading) when the host page
-  // provides its own card — keeps the inline placement visually identical.
+  // provides its own card.
   bare?: boolean;
 };
 
-export const AddHoldingForm = forwardRef<AddHoldingFormHandle, AddHoldingFormProps>(
-  function AddHoldingForm({ onChange, onStatusChange, onItemAdded, bare = false }, ref) {
+export function AddHoldingForm({
+  onChange,
+  onStatusChange,
+  onItemAdded,
+  onItemSaved,
+  editItem,
+  bare = false
+}: AddHoldingFormProps) {
     const formRef = useRef<HTMLDivElement>(null);
     const [draft, setDraft] = useState<PortfolioDraft>(() => createDefaultDraft("stock"));
     const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -233,7 +229,9 @@ export const AddHoldingForm = forwardRef<AddHoldingFormHandle, AddHoldingFormPro
       setSymbolStatus(null);
       setIsSearchingSymbols(false);
       setStatus(message);
-      if (!wasEditing) {
+      if (wasEditing) {
+        onItemSaved?.(item);
+      } else {
         onItemAdded?.(item);
       }
     };
@@ -300,22 +298,19 @@ export const AddHoldingForm = forwardRef<AddHoldingFormHandle, AddHoldingFormPro
       }
     };
 
-    useImperativeHandle(
-      ref,
-      () => ({
-        editItem: handleEditItem,
-        notifyItemsRemoved: (itemIds: string[]) => {
-          if (editingItemId && itemIds.includes(editingItemId)) {
-            resetDraftAfterEdit();
-          }
-        }
-      }),
-      // handleEditItem / resetDraftAfterEdit are stable closures over state
-      // setters and the current draft.type; editingItemId is the only value the
-      // removal check reads.
+    // Load the row passed in for editing exactly once per id. Guarding on the id
+    // keeps later workbook re-renders (e.g. autosave bumping updatedAt) from
+    // clobbering an in-progress edit by reloading the same row.
+    const loadedEditIdRef = useRef<string | null>(null);
+    useEffect(() => {
+      if (editItem && loadedEditIdRef.current !== editItem.id) {
+        loadedEditIdRef.current = editItem.id;
+        handleEditItem(editItem);
+      }
+      // handleEditItem is a stable closure over state setters; editItem is the
+      // only value this effect reacts to.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      [editingItemId, draft.type]
-    );
+    }, [editItem]);
 
     const heading = editingItemId ? "Edit portfolio row" : "Add asset or liability";
 
@@ -598,8 +593,7 @@ export const AddHoldingForm = forwardRef<AddHoldingFormHandle, AddHoldingFormPro
         {body}
       </section>
     );
-  }
-);
+}
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (

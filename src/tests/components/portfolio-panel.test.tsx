@@ -1,34 +1,54 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useMemo, useState } from "react";
 import { PortfolioPanel } from "@/components/planning/portfolio-panel";
+import { AddHoldingForm } from "@/components/planning/add-holding-form";
 import { defaultPhase1Workbook } from "@/lib/phase1/default-workbook";
 import { summarizePhase1Portfolio } from "@/lib/phase1/portfolio";
 import type { Phase1Workbook } from "@/types/phase1";
 
+const routerPush = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: routerPush })
+}));
+
+// The add/edit form now lives on the dedicated /app/portfolio-lab/add page, not
+// inline in PortfolioPanel. To keep exercising the real "add a holding → it
+// appears in the table" flow, the harness renders the SAME shared AddHoldingForm
+// alongside PortfolioPanel, wired to the same workbook state — exactly how the
+// add page and the table share workbook state in the app. The form's status
+// (validation messages, add confirmations) surfaces in a status region, mirroring
+// the dedicated page's own status line.
 function PortfolioPanelHarness() {
   const [workbook, setWorkbook] = useState<Phase1Workbook>({
     ...defaultPhase1Workbook,
     portfolioItems: []
   });
+  const [formStatus, setFormStatus] = useState<string | null>(null);
   const portfolioSummary = useMemo(
     () => summarizePhase1Portfolio(workbook.portfolioItems),
     [workbook.portfolioItems]
   );
 
   return (
-    <PortfolioPanel
-      workbook={workbook}
-      fireResult={null}
-      fireError={null}
-      portfolioSummary={portfolioSummary}
-      status="Local mode. Test ready."
-      onChange={setWorkbook}
-    />
+    <>
+      <PortfolioPanel
+        workbook={workbook}
+        fireResult={null}
+        fireError={null}
+        portfolioSummary={portfolioSummary}
+        status="Local mode. Test ready."
+        onChange={setWorkbook}
+      />
+      <AddHoldingForm onChange={setWorkbook} onStatusChange={setFormStatus} />
+      {formStatus ? <p>{formStatus}</p> : null}
+    </>
   );
 }
 
 describe("PortfolioPanel", () => {
   beforeEach(() => {
+    routerPush.mockClear();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -160,9 +180,11 @@ describe("PortfolioPanel", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Add Portfolio Row" }));
 
+    // The confirmation surfaces both in the form status region and in the
+    // panel's persisted workbook status line, so assert on presence (>= 1).
     expect(
-      screen.getByText("Added plan-only holding. EOD refresh will skip this row.")
-    ).toBeInTheDocument();
+      screen.getAllByText("Added plan-only holding. EOD refresh will skip this row.").length
+    ).toBeGreaterThan(0);
 
     const holdingRow = screen
       .getByLabelText("Select Vanguard Institutional 500 Index Trust Unit A")
@@ -774,6 +796,23 @@ describe("PortfolioPanel", () => {
     expect(screen.queryByLabelText("Select Emergency Fund")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Select Private Investment")).not.toBeInTheDocument();
     expect(screen.getByText("Deleted 2 selected row(s).")).toBeInTheDocument();
+  });
+
+  it("routes the per-row edit action to the dedicated add/edit page", () => {
+    render(<PortfolioPanelHarness />);
+
+    addDirectBalanceHolding({
+      type: "cash",
+      name: "Emergency Fund",
+      balance: "10000"
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Emergency Fund" }));
+
+    expect(routerPush).toHaveBeenCalledTimes(1);
+    expect(String(routerPush.mock.calls[0][0])).toMatch(
+      /^\/app\/portfolio-lab\/add\?edit=.+/
+    );
   });
 
   it("selects and clears all visible detailed holdings from the header checkbox", () => {

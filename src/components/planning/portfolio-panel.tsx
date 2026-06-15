@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CalendarClock,
@@ -21,7 +22,6 @@ import {
 } from "lucide-react";
 import { PortfolioCollectionsPanel } from "@/components/planning/portfolio-collections-panel";
 import { PortfolioBacktestPanel } from "@/components/planning/portfolio-backtest-panel";
-import { AddHoldingForm, type AddHoldingFormHandle } from "@/components/planning/add-holding-form";
 import { InfoPopover } from "@/components/ui/info-popover";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
 import { useSession } from "@/lib/auth/use-session";
@@ -141,10 +141,8 @@ export function PortfolioPanel({
 }: Phase1PanelProps) {
   const csvInputRef = useRef<HTMLInputElement>(null);
   const xlsxInputRef = useRef<HTMLInputElement>(null);
-  // The add/edit form is the shared AddHoldingForm component. We hold a ref so
-  // the table's edit button can load a row into it and so deletes can reset it.
-  const addFormRef = useRef<AddHoldingFormHandle>(null);
   const selectAllRowsRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   const { user } = useSession();
   // Below the 880px desktop breakpoint we swap the wide holdings TABLE for a
   // stacked CARD list (REDESIGN §4: cards, not tables). Defaults to desktop on
@@ -360,9 +358,12 @@ export function PortfolioPanel({
     });
   };
 
-  // The table's edit button loads the row into the shared AddHoldingForm.
+  // The table's (and mobile cards') edit button opens the dedicated Add/Edit
+  // page with this row loaded for editing. The page renders the SAME shared
+  // AddHoldingForm and loads the row via its editItem capability, then returns
+  // here on save — no inline form needed.
   const handleEditItem = (item: Phase1PortfolioItem) => {
-    addFormRef.current?.editItem(item);
+    router.push(`/app/portfolio-lab/add?edit=${encodeURIComponent(item.id)}`);
   };
 
   const handleDeleteItem = (item: Phase1PortfolioItem) => {
@@ -376,10 +377,6 @@ export function PortfolioPanel({
       lastImportExportStatus: undefined
     }));
     setSelectedItemIds((currentIds) => currentIds.filter((itemId) => itemId !== item.id));
-
-    // If the deleted row was open for editing, reset the form back to a clean
-    // add draft.
-    addFormRef.current?.notifyItemsRemoved([item.id]);
 
     setUiStatus(`Deleted ${item.name}.`);
   };
@@ -405,9 +402,6 @@ export function PortfolioPanel({
       lastImportExportStatus: `Deleted ${selectedExistingItems.length} selected row(s).`
     }));
     setSelectedItemIds([]);
-
-    // If one of the deleted rows was open for editing, reset the form.
-    addFormRef.current?.notifyItemsRemoved([...selectedIds]);
 
     setUiStatus(`Deleted ${selectedExistingItems.length} selected row(s).`);
   };
@@ -563,10 +557,6 @@ export function PortfolioPanel({
             <h1 className="mt-1 text-3xl font-bold tracking-[-0.02em] text-gray-900">
               Your whole household portfolio, in one private view
             </h1>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">
-              Bring every account and holding together, slice it by owner, tax bucket, or
-              goal, and keep values current with one-click end-of-day prices.
-            </p>
             <ul className="mt-4 flex flex-wrap gap-2" aria-label="Portfolio features">
               {portfolioValueProps.map((prop) => (
                 <li
@@ -1241,11 +1231,6 @@ export function PortfolioPanel({
         </div>
         )}
       </section>
-
-      {/* The "Add asset or liability" form is the SAME shared component that
-          powers the dedicated /app/portfolio-lab/add page. Kept inline here
-          (non-destructive) — it can be removed later with the founder's OK. */}
-      <AddHoldingForm ref={addFormRef} onChange={onChange} onStatusChange={setUiStatus} />
 
       {/* Mobile-only floating "+" — opens the dedicated Add Holdings page.
           Hidden at/above the 880px desktop breakpoint (matching the bottom tab
