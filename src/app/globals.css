@@ -105,3 +105,31 @@ select,
 textarea {
   font: inherit;
 }
+
+/* iOS safe-area support (paired with viewport-fit=cover in the root viewport).
+   With cover, the webview paints under the status bar and home indicator. These
+   insets are 0 in normal browsers, so desktop and mobile web are visually
+   unchanged; only the Capacitor app / notched Safari see non-zero values. */
+
+/* The in-app sticky header pads its top by the status-bar inset so the brand
+   row clears the iOS status bar. 0 on desktop → no change there. */
+.app-header-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* The fixed bottom tab bar pads its bottom by the home-indicator inset so the
+   tappable row sits above the indicator. */
+.mobile-tab-bar-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Bottom clearance so the fixed tab bar never overlaps page content. Scoped to
+   mobile widths (below the 880px desktop breakpoint) only — at desktop widths
+   the tab bar is hidden, so no padding is added and desktop layout is
+   unchanged. 4rem is the tab-bar row height; the inset clears the home
+   indicator on top of that. */
+@media (max-width: 879.98px) {
+  .app-main-safe-bottom {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+}

@@ -80,7 +80,12 @@ const webSiteJsonLd = {
 
 export const viewport: Viewport = {
   width: "device-width",
-  initialScale: 1
+  initialScale: 1,
+  // Extend the webview under the iOS status bar / home indicator so the native
+  // shell can paint edge-to-edge. The safe-area insets this exposes are 0 in
+  // normal browsers, so desktop/mobile web are unchanged; only the iOS app and
+  // notched Safari see non-zero values (consumed via env(safe-area-inset-*)).
+  viewportFit: "cover"
 };
 
 export default function RootLayout({

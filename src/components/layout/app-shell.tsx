@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { FIRE_STRATEGIES } from "@/lib/data/fire-strategies";
 import { PLANNING_TOOLS } from "@/lib/data/planning-tools";
 import { AccountNav } from "@/components/layout/account-nav";
+import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 
 // Standalone "Living expense calculator" — linked ONLY in the Calculators
 // dropdown (not in PLANNING_TOOLS, so it stays out of the hub grid and the
@@ -136,11 +137,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     isActive(TAX_TOOL.href);
   const learnActive = LEARN_LINKS.some((link) => isActive(link.href));
 
+  // Mobile bottom tab bar + its content clearance are in-app surfaces only. The
+  // AppShell also wraps marketing pages (/about, /what-is-fire, …); the bar must
+  // not appear there, and only /app pages need bottom padding for it.
+  const isAppRoute = pathname?.startsWith("/app") ?? false;
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <header
         className={cn(
-          "sticky top-0 z-20 border-b border-[var(--border)] bg-white/85 px-4 shadow-sm backdrop-blur sm:px-6 lg:px-8",
+          // `app-header-safe` pads the top by the iOS status-bar inset (0 on
+          // desktop/web, so unchanged there).
+          "app-header-safe sticky top-0 z-20 border-b border-[var(--border)] bg-white/85 px-4 shadow-sm backdrop-blur sm:px-6 lg:px-8",
           menuOpen && "bg-white"
         )}
       >
@@ -423,7 +431,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         ) : null}
       </header>
-      <main>{children}</main>
+      <main className={cn(isAppRoute && "app-main-safe-bottom")}>{children}</main>
+      {/* Renders only on /app/* routes and only below the 880px desktop
+          breakpoint (self-gated). Desktop web is untouched. */}
+      <MobileTabBar />
     </div>
   );
 }

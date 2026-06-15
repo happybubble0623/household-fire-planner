@@ -13,7 +13,10 @@ const config: CapacitorConfig = {
   appName: 'Plan My FIRE',
   webDir: 'public',
   server: {
-    url: 'https://www.planmyfi.com',
+    // Open the app straight into the plan (Portfolio Drawdown strategy) — app
+    // users have already converted, so skip the marketing hub. The website's
+    // own `/` redirect is unchanged; this only affects the native shell.
+    url: 'https://www.planmyfi.com/app/fire-path/withdrawal-rate',
     cleartext: false,
   },
 };
