@@ -6,6 +6,7 @@ import { PathPicker } from "@/components/planning/path-picker";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
 import { FIRE_STRATEGY_CARDS } from "@/lib/data/fire-strategies";
 import { PLANNING_TOOLS, type PlanningTool } from "@/lib/data/planning-tools";
+import { useIsAppMode } from "@/components/app-mode-provider";
 
 const toolIcons: Record<PlanningTool, ReactNode> = {
   "social-security": (
@@ -95,6 +96,10 @@ const auroraCss = `
 .aurora-home .kpi .l{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--n500)}
 .aurora-home .kpi .n{font-size:28px;font-weight:800;color:var(--n900);letter-spacing:-.02em;margin-top:5px}
 .aurora-home .kpi .d{font-size:11.5px;color:var(--g600);font-weight:600;margin-top:3px}
+.aurora-home .stripe{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--n200);border:1px solid var(--n200);border-radius:14px;overflow:hidden;margin-top:56px}
+.aurora-home .stat{background:#fff;padding:20px 24px}
+.aurora-home .stat .n{font-size:26px;font-weight:800;color:var(--n900)}
+.aurora-home .stat .l{font-size:13px;color:var(--n500);margin-top:2px}
 .aurora-home .sec{padding:60px 0;scroll-margin-top:24px}
 .aurora-home .sec h2{font-size:34px;text-align:center}
 .aurora-home .sec .sub{text-align:center;color:var(--n500);margin:12px auto 0;max-width:620px;font-size:16px}
@@ -172,7 +177,7 @@ const auroraCss = `
 .aurora-home .paths-card.featured .paths-btn:hover{background:var(--g700)}
 @media(max-width:880px){
 .aurora-home .htitle{font-size:40px}
-.aurora-home .grid3,.aurora-home .grid4,.aurora-home .kpis{grid-template-columns:1fr}
+.aurora-home .grid3,.aurora-home .grid4,.aurora-home .stripe,.aurora-home .kpis{grid-template-columns:1fr}
 .aurora-home .paths-grid{grid-template-columns:1fr;gap:16px}
 .aurora-home .paths h2{font-size:27px}
 .aurora-home .paths-helpbtn{width:100%;justify-content:center}
@@ -185,6 +190,7 @@ const auroraCss = `
 `;
 
 export function PathToFirePanel({ status }: Phase1PanelProps) {
+  const isAppMode = useIsAppMode();
   const toolHref = (slug: PlanningTool) =>
     PLANNING_TOOLS.find((tool) => tool.slug === slug)?.href ?? "/app/fire-path";
 
@@ -259,6 +265,29 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
       </section>
 
       <div className="wrap">
+        {/* Trust stat stripe — website only. In app mode the marketing hub is
+            dropped (the app opens straight into the plan), so this is hidden. */}
+        {!isAppMode ? (
+          <div className="stripe">
+            <div className="stat">
+              <div className="n tnum">$0</div>
+              <div className="l">Free, no login</div>
+            </div>
+            <div className="stat">
+              <div className="n tnum">6</div>
+              <div className="l">Built-in calculators</div>
+            </div>
+            <div className="stat">
+              <div className="n tnum">3</div>
+              <div className="l">FIRE strategies</div>
+            </div>
+            <div className="stat">
+              <div className="n tnum">100%</div>
+              <div className="l">Local &amp; private</div>
+            </div>
+          </div>
+        ) : null}
+
         <section className="sec paths" id="strategies">
           <h2>Three paths to reach early retirement</h2>
           <p className="sub">

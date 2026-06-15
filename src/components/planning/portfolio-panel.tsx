@@ -22,8 +22,10 @@ import {
 } from "lucide-react";
 import { PortfolioCollectionsPanel } from "@/components/planning/portfolio-collections-panel";
 import { PortfolioBacktestPanel } from "@/components/planning/portfolio-backtest-panel";
+import { AddHoldingForm } from "@/components/planning/add-holding-form";
 import { InfoPopover } from "@/components/ui/info-popover";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
+import { useIsAppMode } from "@/components/app-mode-provider";
 import { useSession } from "@/lib/auth/use-session";
 import { getCollectionLabelsForItem } from "@/lib/phase1/collections";
 import {
@@ -144,12 +146,16 @@ export function PortfolioPanel({
   const selectAllRowsRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { user } = useSession();
-  // Below the 880px desktop breakpoint we swap the wide holdings TABLE for a
-  // stacked CARD list (REDESIGN §4: cards, not tables). Defaults to desktop on
-  // SSR and where matchMedia is unavailable (e.g. the test environment), so the
-  // existing table — and its tests — are unchanged.
-  const isMobile = useIsMobilePortfolio();
+  // App mode (Capacitor iOS app) gets the mobile redesign — holdings as cards,
+  // a dedicated Add Holdings page, top action bar + FAB. The website (desktop
+  // AND mobile web) keeps the original wide table + inline add/edit form.
+  const isAppMode = useIsAppMode();
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  // Website inline-form edit target. Clicking a row's Edit on the website loads
+  // it into the inline AddHoldingForm (app mode routes to the Add page instead).
+  // editNonce forces the form to remount so re-editing the SAME row reloads it.
+  const [editItem, setEditItem] = useState<Phase1PortfolioItem | null>(null);
+  const [editNonce, setEditNonce] = useState(0);
   const [uiStatus, setUiStatus] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [portfolioScope, setPortfolioScope] = useState<PortfolioScope>("all");
@@ -358,12 +364,18 @@ export function PortfolioPanel({
     });
   };
 
-  // The table's (and mobile cards') edit button opens the dedicated Add/Edit
-  // page with this row loaded for editing. The page renders the SAME shared
-  // AddHoldingForm and loads the row via its editItem capability, then returns
-  // here on save — no inline form needed.
+  // App mode: the table/card edit button opens the dedicated Add/Edit page with
+  // the row loaded (the inline form is gone there). Website: it loads the row
+  // into the inline AddHoldingForm below (the original behavior), bumping the
+  // remount nonce so re-editing the same row reloads it.
   const handleEditItem = (item: Phase1PortfolioItem) => {
-    router.push(`/app/portfolio-lab/add?edit=${encodeURIComponent(item.id)}`);
+    if (isAppMode) {
+      router.push(`/app/portfolio-lab/add?edit=${encodeURIComponent(item.id)}`);
+      return;
+    }
+
+    setEditItem(item);
+    setEditNonce((nonce) => nonce + 1);
   };
 
   const handleDeleteItem = (item: Phase1PortfolioItem) => {
@@ -557,6 +569,14 @@ export function PortfolioPanel({
             <h1 className="mt-1 text-3xl font-bold tracking-[-0.02em] text-gray-900">
               Your whole household portfolio, in one private view
             </h1>
+            {/* Hero blurb — website only. App mode drops it to open straight
+                into the tracker. */}
+            {!isAppMode ? (
+              <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">
+                Bring every account and holding together, slice it by owner, tax bucket, or
+                goal, and keep values current with one-click end-of-day prices.
+              </p>
+            ) : null}
             <ul className="mt-4 flex flex-wrap gap-2" aria-label="Portfolio features">
               {portfolioValueProps.map((prop) => (
                 <li
@@ -603,42 +623,45 @@ export function PortfolioPanel({
           </div>
         </div>
 
-        {/* Primary actions, promoted to the TOP of the page. Adding a holding
-            is the most common action, so it leads with a prominent button
-            (links to the dedicated Add Holdings page). "Use in my plan" reuses
-            the existing portfolio→FIRE-assets value (portfolioSummary.includedInFire,
-            the same number the Plan's "Use my portfolio total" applies). */}
-        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href="/app/portfolio-lab/add"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
-            >
-              <Plus aria-hidden="true" size={18} />
-              Add holdings
-            </Link>
-            <Link
-              href="/app/fire-path/withdrawal-rate"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted)]"
-              onClick={handleUseInPlan}
-              title="Sets your plan's current FIRE assets to the total of holdings marked Include in FIRE."
-            >
-              Use in my plan
-              <ArrowRight aria-hidden="true" size={16} />
-            </Link>
-            <span className="text-xs text-[var(--muted-foreground)]">
-              {formatCurrency(portfolioSummary.includedInFire)} marked for FIRE
-            </span>
+        {/* Primary actions, promoted to the TOP of the page — APP MODE ONLY.
+            Adding a holding leads with a prominent button (links to the
+            dedicated Add Holdings page). "Use in my plan" reuses the existing
+            portfolio→FIRE-assets value (portfolioSummary.includedInFire, the
+            same number the Plan's "Use my portfolio total" applies). On the
+            website these live in the original inline form / per-tab buttons. */}
+        {isAppMode ? (
+          <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/app/portfolio-lab/add"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
+              >
+                <Plus aria-hidden="true" size={18} />
+                Add holdings
+              </Link>
+              <Link
+                href="/app/fire-path/withdrawal-rate"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted)]"
+                onClick={handleUseInPlan}
+                title="Sets your plan's current FIRE assets to the total of holdings marked Include in FIRE."
+              >
+                Use in my plan
+                <ArrowRight aria-hidden="true" size={16} />
+              </Link>
+              <span className="text-xs text-[var(--muted-foreground)]">
+                {formatCurrency(portfolioSummary.includedInFire)} marked for FIRE
+              </span>
+            </div>
+            {!user ? (
+              <Link
+                href="/login"
+                className="text-sm font-medium text-[var(--primary)] underline-offset-4 hover:underline"
+              >
+                Sign in to save &amp; sync across devices
+              </Link>
+            ) : null}
           </div>
-          {!user ? (
-            <Link
-              href="/login"
-              className="text-sm font-medium text-[var(--primary)] underline-offset-4 hover:underline"
-            >
-              Sign in to save &amp; sync across devices
-            </Link>
-          ) : null}
-        </div>
+        ) : null}
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--soft)] p-4 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -962,17 +985,22 @@ export function PortfolioPanel({
           </label>
         </div>
 
-        {isMobile ? (
-          <PortfolioHoldingCards
-            items={filteredPortfolioItems}
-            collections={workbook.portfolioCollections}
-            memberships={workbook.portfolioCollectionMemberships}
-            selectedItemIds={selectedItemIds}
-            onSelectChange={handleSelectedItemChange}
-            onIncludeInFireChange={handleIncludeInFireChange}
-            onEdit={handleEditItem}
-            onDelete={handleDeleteItem}
-          />
+        {isAppMode ? (
+          // App mode: holdings as a stacked card list inside a FIXED-HEIGHT
+          // scroll container, so a long list scrolls internally instead of
+          // making the page endless. (Website keeps the table below as-is.)
+          <div className="max-h-[60vh] overflow-y-auto">
+            <PortfolioHoldingCards
+              items={filteredPortfolioItems}
+              collections={workbook.portfolioCollections}
+              memberships={workbook.portfolioCollectionMemberships}
+              selectedItemIds={selectedItemIds}
+              onSelectChange={handleSelectedItemChange}
+              onIncludeInFireChange={handleIncludeInFireChange}
+              onEdit={handleEditItem}
+              onDelete={handleDeleteItem}
+            />
+          </div>
         ) : (
         <div className="mt-4 max-h-[560px] overflow-auto rounded-md border border-[var(--border)]">
           <table className="w-full min-w-[1320px] border-collapse text-left text-sm">
@@ -1232,21 +1260,37 @@ export function PortfolioPanel({
         )}
       </section>
 
-      {/* Mobile-only floating "+" — opens the dedicated Add Holdings page.
-          Hidden at/above the 880px desktop breakpoint (matching the bottom tab
-          bar) so desktop web is unchanged. Sits above the tab bar + home
-          indicator (safe-area aware). */}
-      <Link
-        href="/app/portfolio-lab/add"
-        aria-label="Add holdings"
-        className="fixed right-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition hover:brightness-110 min-[880px]:hidden"
-        style={{
-          backgroundColor: "#15803d",
-          bottom: "calc(4rem + env(safe-area-inset-bottom, 0px) + 1rem)"
-        }}
-      >
-        <Plus aria-hidden="true" size={26} />
-      </Link>
+      {/* Website inline "Add asset or liability" form — the original behavior.
+          Renders the shared AddHoldingForm wired to the workbook + the panel's
+          status line, and loads a row for editing when a table Edit is clicked
+          (editNonce remounts it so re-editing the same row reloads it). In app
+          mode this is removed; the Add Holdings page owns add/edit instead. */}
+      {!isAppMode ? (
+        <AddHoldingForm
+          key={editNonce}
+          onChange={onChange}
+          onStatusChange={setUiStatus}
+          editItem={editItem}
+          onItemSaved={() => setEditItem(null)}
+        />
+      ) : null}
+
+      {/* App-mode floating "+" — opens the dedicated Add Holdings page. Sits
+          above the tab bar + home indicator (safe-area aware). Never shown on
+          the website. */}
+      {isAppMode ? (
+        <Link
+          href="/app/portfolio-lab/add"
+          aria-label="Add holdings"
+          className="fixed right-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition hover:brightness-110"
+          style={{
+            backgroundColor: "#15803d",
+            bottom: "calc(4rem + env(safe-area-inset-bottom, 0px) + 1rem)"
+          }}
+        >
+          <Plus aria-hidden="true" size={26} />
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -1283,26 +1327,6 @@ function Metric({
       <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">{note}</p>
     </div>
   );
-}
-
-// Tracks whether we're below the desktop breakpoint. SSR / no-matchMedia
-// environments default to false (desktop → table), so the existing wide table
-// and its tests are unaffected; real mobile browsers flip to the card list.
-function useIsMobilePortfolio() {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-
-    const mediaQuery = window.matchMedia("(max-width: 879.98px)");
-    const update = () => setIsMobile(mediaQuery.matches);
-    update();
-    mediaQuery.addEventListener("change", update);
-
-    return () => mediaQuery.removeEventListener("change", update);
-  }, []);
-
-  return isMobile;
 }
 
 // Mobile holdings view: a stacked, tappable card per row. Mirrors the table's

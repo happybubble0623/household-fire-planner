@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useIsAppMode } from "@/components/app-mode-provider";
 
-// Mobile-first bottom tab bar for the in-app experience (Capacitor app + mobile
-// web). Gated two ways so the DESKTOP WEB is unchanged:
-//   1. Route — only renders on `/app/*` routes (the AppShell is also used by
-//      marketing pages like /about, so we can't rely on the shell alone).
-//   2. Width — `min-[880px]:hidden` hides it at and above the existing desktop
-//      breakpoint, where the top header nav remains the only navigation.
-// Active state is by route, with the brand green for the active tab.
+// Mobile-first bottom tab bar for the in-app experience. Gated on APP MODE
+// only, so it renders ONLY inside the Capacitor iOS app — never on the website
+// (desktop OR mobile web), where the top header nav remains the only
+// navigation. Active state is by route, with the brand green for the active tab.
 
 const ACTIVE_COLOR = "#15803d"; // brand green (--primary)
 
@@ -100,15 +98,15 @@ const TABS: Tab[] = [
 
 export function MobileTabBar() {
   const pathname = usePathname();
+  const isAppMode = useIsAppMode();
 
-  // Route gate: in-app surfaces only. The AppShell wraps marketing pages too,
-  // so without this the bar would leak onto /about etc.
-  if (!pathname || !pathname.startsWith("/app")) return null;
+  // App mode only — never render on the website (desktop or mobile web).
+  if (!isAppMode || !pathname) return null;
 
   return (
     <nav
       aria-label="App sections"
-      className="mobile-tab-bar-safe fixed inset-x-0 bottom-0 z-30 flex border-t border-[var(--border)] bg-white/95 backdrop-blur min-[880px]:hidden"
+      className="mobile-tab-bar-safe fixed inset-x-0 bottom-0 z-30 flex border-t border-[var(--border)] bg-white/95 backdrop-blur"
     >
       {TABS.map((tab) => {
         const active = tab.isActive(pathname);

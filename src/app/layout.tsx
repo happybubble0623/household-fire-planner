@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { cookies } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { AppModeProvider } from "@/components/app-mode-provider";
+import { APP_MODE_COOKIE } from "@/lib/app-mode";
 import "./globals.css";
 
 const inter = Inter({
@@ -88,13 +91,20 @@ export const viewport: Viewport = {
   viewportFit: "cover"
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read the persisted app-mode cookie server-side so SSR can gate the mobile
+  // redesign from the first paint (no flash of website chrome inside the app,
+  // and no flash of app chrome on the website). `data-app-mode="1"` on <html>
+  // lets CSS and the AppModeProvider branch consistently. Default (no cookie) =
+  // website mode.
+  const isAppMode = (await cookies()).get(APP_MODE_COOKIE)?.value === "1";
+
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} data-app-mode={isAppMode ? "1" : undefined}>
       <head>
         <script
           type="application/ld+json"
@@ -106,7 +116,7 @@ export default function RootLayout({
         />
       </head>
       <body>
-        {children}
+        <AppModeProvider initialIsAppMode={isAppMode}>{children}</AppModeProvider>
         <Analytics />
         {/* GA4 loads only when NEXT_PUBLIC_GA_ID is set in the environment
             (e.g. Vercel). Stays dormant otherwise so builds/deploys are safe

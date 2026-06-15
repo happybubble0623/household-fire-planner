@@ -1,54 +1,41 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useMemo, useState } from "react";
 import { PortfolioPanel } from "@/components/planning/portfolio-panel";
-import { AddHoldingForm } from "@/components/planning/add-holding-form";
+import { AppModeProvider } from "@/components/app-mode-provider";
 import { defaultPhase1Workbook } from "@/lib/phase1/default-workbook";
 import { summarizePhase1Portfolio } from "@/lib/phase1/portfolio";
-import type { Phase1Workbook } from "@/types/phase1";
+import type { Phase1PortfolioItem, Phase1Workbook } from "@/types/phase1";
 
+// PortfolioPanel routes the app-mode per-row edit through the Next router.
 const routerPush = vi.fn();
-
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPush })
 }));
 
-// The add/edit form now lives on the dedicated /app/portfolio-lab/add page, not
-// inline in PortfolioPanel. To keep exercising the real "add a holding → it
-// appears in the table" flow, the harness renders the SAME shared AddHoldingForm
-// alongside PortfolioPanel, wired to the same workbook state — exactly how the
-// add page and the table share workbook state in the app. The form's status
-// (validation messages, add confirmations) surfaces in a status region, mirroring
-// the dedicated page's own status line.
 function PortfolioPanelHarness() {
   const [workbook, setWorkbook] = useState<Phase1Workbook>({
     ...defaultPhase1Workbook,
     portfolioItems: []
   });
-  const [formStatus, setFormStatus] = useState<string | null>(null);
   const portfolioSummary = useMemo(
     () => summarizePhase1Portfolio(workbook.portfolioItems),
     [workbook.portfolioItems]
   );
 
   return (
-    <>
-      <PortfolioPanel
-        workbook={workbook}
-        fireResult={null}
-        fireError={null}
-        portfolioSummary={portfolioSummary}
-        status="Local mode. Test ready."
-        onChange={setWorkbook}
-      />
-      <AddHoldingForm onChange={setWorkbook} onStatusChange={setFormStatus} />
-      {formStatus ? <p>{formStatus}</p> : null}
-    </>
+    <PortfolioPanel
+      workbook={workbook}
+      fireResult={null}
+      fireError={null}
+      portfolioSummary={portfolioSummary}
+      status="Local mode. Test ready."
+      onChange={setWorkbook}
+    />
   );
 }
 
 describe("PortfolioPanel", () => {
   beforeEach(() => {
-    routerPush.mockClear();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -180,11 +167,9 @@ describe("PortfolioPanel", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Add Portfolio Row" }));
 
-    // The confirmation surfaces both in the form status region and in the
-    // panel's persisted workbook status line, so assert on presence (>= 1).
     expect(
-      screen.getAllByText("Added plan-only holding. EOD refresh will skip this row.").length
-    ).toBeGreaterThan(0);
+      screen.getByText("Added plan-only holding. EOD refresh will skip this row.")
+    ).toBeInTheDocument();
 
     const holdingRow = screen
       .getByLabelText("Select Vanguard Institutional 500 Index Trust Unit A")
@@ -798,23 +783,6 @@ describe("PortfolioPanel", () => {
     expect(screen.getByText("Deleted 2 selected row(s).")).toBeInTheDocument();
   });
 
-  it("routes the per-row edit action to the dedicated add/edit page", () => {
-    render(<PortfolioPanelHarness />);
-
-    addDirectBalanceHolding({
-      type: "cash",
-      name: "Emergency Fund",
-      balance: "10000"
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit Emergency Fund" }));
-
-    expect(routerPush).toHaveBeenCalledTimes(1);
-    expect(String(routerPush.mock.calls[0][0])).toMatch(
-      /^\/app\/portfolio-lab\/add\?edit=.+/
-    );
-  });
-
   it("selects and clears all visible detailed holdings from the header checkbox", () => {
     render(<PortfolioPanelHarness />);
 
@@ -1234,6 +1202,70 @@ describe("PortfolioPanel", () => {
       await screen.findByText("No market-priced rows with symbols and units to refresh.")
     ).toBeInTheDocument();
     expect(screen.getAllByText("$10,000").length).toBeGreaterThan(0);
+  });
+});
+
+// In APP MODE the inline form is gone; the per-row edit routes to the dedicated
+// Add/Edit page instead. (On the website it loads the inline form — covered by
+// the suite above, which renders without the provider, i.e. in website mode.)
+describe("PortfolioPanel (app mode)", () => {
+  const seededItem: Phase1PortfolioItem = {
+    id: "cash-1",
+    type: "cash",
+    name: "Emergency Fund",
+    accountOwner: "User 1",
+    accountType: "Cash Account",
+    taxBucket: "Not Applicable",
+    includedInFire: true,
+    balance: 10000
+  };
+
+  function AppModePortfolioHarness() {
+    const [workbook, setWorkbook] = useState<Phase1Workbook>({
+      ...defaultPhase1Workbook,
+      portfolioItems: [seededItem]
+    });
+    const portfolioSummary = useMemo(
+      () => summarizePhase1Portfolio(workbook.portfolioItems),
+      [workbook.portfolioItems]
+    );
+
+    return (
+      <AppModeProvider initialIsAppMode>
+        <PortfolioPanel
+          workbook={workbook}
+          fireResult={null}
+          fireError={null}
+          portfolioSummary={portfolioSummary}
+          status="Local mode. Test ready."
+          onChange={setWorkbook}
+        />
+      </AppModeProvider>
+    );
+  }
+
+  beforeEach(() => {
+    routerPush.mockClear();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ symbols: [], warning: null }))
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("routes the per-row edit action to the dedicated add/edit page", () => {
+    render(<AppModePortfolioHarness />);
+
+    // No inline form in app mode — holdings render as cards.
+    expect(screen.queryByRole("button", { name: "Add Portfolio Row" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Emergency Fund" }));
+
+    expect(routerPush).toHaveBeenCalledTimes(1);
+    expect(String(routerPush.mock.calls[0][0])).toMatch(/^\/app\/portfolio-lab\/add\?edit=/);
   });
 });
 

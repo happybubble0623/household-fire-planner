@@ -9,6 +9,7 @@ import { FIRE_STRATEGIES } from "@/lib/data/fire-strategies";
 import { PLANNING_TOOLS } from "@/lib/data/planning-tools";
 import { AccountNav } from "@/components/layout/account-nav";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
+import { useIsAppMode } from "@/components/app-mode-provider";
 
 // Standalone "Living expense calculator" — linked ONLY in the Calculators
 // dropdown (not in PLANNING_TOOLS, so it stays out of the hub grid and the
@@ -137,10 +138,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     isActive(TAX_TOOL.href);
   const learnActive = LEARN_LINKS.some((link) => isActive(link.href));
 
-  // Mobile bottom tab bar + its content clearance are in-app surfaces only. The
-  // AppShell also wraps marketing pages (/about, /what-is-fire, …); the bar must
-  // not appear there, and only /app pages need bottom padding for it.
-  const isAppRoute = pathname?.startsWith("/app") ?? false;
+  // The mobile redesign chrome (hidden website header, bottom tab bar + its
+  // content clearance) applies ONLY inside the Capacitor iOS app. On the
+  // website — desktop AND mobile web — the header stays and there is no tab bar.
+  const isAppMode = useIsAppMode();
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -150,13 +151,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           // desktop/web, so unchanged there).
           "app-header-safe sticky top-0 z-20 border-b border-[var(--border)] bg-white/85 px-4 shadow-sm backdrop-blur sm:px-6 lg:px-8",
           menuOpen && "bg-white",
-          // In-app at mobile widths the bottom tab bar owns navigation and each
-          // /app screen carries its own title, so this website header (logo +
-          // tagline + hamburger, which just duplicates the tabs + More) is
-          // redundant chrome — hide it. Same gate as the bottom tab bar:
-          // `/app/*` AND below the 880px desktop breakpoint. Desktop (>=880px)
-          // and every marketing page (/about, /what-is-fire, …) are untouched.
-          isAppRoute && "max-[879.98px]:hidden"
+          // In-app the bottom tab bar owns navigation and each screen carries
+          // its own title, so this website header (logo + tagline + hamburger,
+          // which just duplicates the tabs + More) is redundant chrome — hide
+          // it. Gated on APP MODE only: every website visitor (desktop AND
+          // mobile web) keeps the header exactly as before.
+          isAppMode && "hidden"
         )}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 py-3.5">
@@ -438,12 +438,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         ) : null}
       </header>
-      {/* `app-main-safe-top` carries the iOS status-bar inset onto the content
-          only where the header is hidden (mobile `/app/*`); `app-main-safe-bottom`
-          clears the fixed tab bar. Both are 0 / unscoped on desktop. */}
-      <main className={cn(isAppRoute && "app-main-safe-top app-main-safe-bottom")}>{children}</main>
-      {/* Renders only on /app/* routes and only below the 880px desktop
-          breakpoint (self-gated). Desktop web is untouched. */}
+      {/* App-mode only: `app-main-safe-top` carries the iOS status-bar inset
+          onto the content (the website header that used to carry it is hidden);
+          `app-main-safe-bottom` clears the fixed tab bar. Neither is applied on
+          the website, so its layout is unchanged. */}
+      <main className={cn(isAppMode && "app-main-safe-top app-main-safe-bottom")}>{children}</main>
+      {/* Renders only in app mode (self-gated on useIsAppMode). The website —
+          desktop AND mobile web — never shows the bottom tab bar. */}
       <MobileTabBar />
     </div>
   );

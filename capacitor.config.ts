@@ -16,7 +16,12 @@ const config: CapacitorConfig = {
     // Open the app straight into the plan (Portfolio Drawdown strategy) — app
     // users have already converted, so skip the marketing hub. The website's
     // own `/` redirect is unchanged; this only affects the native shell.
-    url: 'https://www.planmyfi.com/app/fire-path/withdrawal-rate',
+    //
+    // `?pmfApp=1` flags the very first in-app load as APP MODE: the site reads
+    // it, persists a `pmf_app=1` cookie + localStorage, and from then on serves
+    // the mobile-app redesign (bottom tab bar, hidden header, etc.). Normal
+    // browsers never carry this flag, so the website stays in website mode.
+    url: 'https://www.planmyfi.com/app/fire-path/withdrawal-rate?pmfApp=1',
     cleartext: false,
   },
 };

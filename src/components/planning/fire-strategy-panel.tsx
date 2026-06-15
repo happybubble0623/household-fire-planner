@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
+import { useIsAppMode } from "@/components/app-mode-provider";
 import { StrategyCashFlowChart } from "@/components/charts/calculator-charts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -91,27 +92,6 @@ function formatNumber(value: number) {
 
 function formatPercent(value: number) {
   return percentFormatter.format(value);
-}
-
-// Tracks whether we're below the desktop breakpoint. Mirrors the portfolio
-// panel's hook so the two mobile experiences flip at the same width. SSR /
-// no-matchMedia environments default to false (desktop layout), so the existing
-// desktop markup and its tests are unaffected.
-function useIsMobileStrategy() {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-
-    const mediaQuery = window.matchMedia("(max-width: 879.98px)");
-    const update = () => setIsMobile(mediaQuery.matches);
-    update();
-    mediaQuery.addEventListener("change", update);
-
-    return () => mediaQuery.removeEventListener("change", update);
-  }, []);
-
-  return isMobile;
 }
 
 // The three FIRE strategy models, in featured order (Portfolio Drawdown first).
@@ -566,6 +546,7 @@ function ProgressBar({
 // Income Stream FIRE ignores portfolio growth, so the Investment calculator is
 // omitted in that mode.
 function StrategyCalculatorLinks({ excludeInvestment }: { excludeInvestment: boolean }) {
+  const isAppMode = useIsAppMode();
   const tools = PLANNING_TOOLS.filter(
     (tool) => !(excludeInvestment && tool.slug === "investment")
   );
@@ -577,7 +558,9 @@ function StrategyCalculatorLinks({ excludeInvestment }: { excludeInvestment: boo
           Refine your estimate with these calculators
         </h2>
         <p className="text-sm leading-relaxed text-gray-500">
-          Open a calculator to fine-tune an assumption, then bring the number back into your plan.
+          {isAppMode
+            ? "Open a calculator to fine-tune an assumption, then bring the number back into your plan."
+            : "Open a calculator in a new tab to fine-tune an assumption, then bring the number back into your plan."}
         </p>
       </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -585,6 +568,9 @@ function StrategyCalculatorLinks({ excludeInvestment }: { excludeInvestment: boo
           <Link
             key={tool.slug}
             href={tool.href}
+            // Website: open calculators in a new tab (the original behavior).
+            // App mode: stay in the tab stack — no new WebView window.
+            {...(isAppMode ? {} : { target: "_blank", rel: "noreferrer" })}
             className="group block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
             <span className="block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
@@ -763,14 +749,14 @@ function SnapshotStrip({
   );
 }
 
-// On mobile, an input section becomes a tap-to-edit collapsible card; on desktop
-// it renders the original always-open Card so the three-column layout and its
-// tests are unchanged. The inner fields (children) are byte-for-byte identical
-// across both — only the surrounding chrome differs.
+// In app mode, an input section becomes a tap-to-edit collapsible card; on the
+// website it renders the original always-open Card so the three-column layout
+// and its tests are unchanged. The inner fields (children) are byte-for-byte
+// identical across both — only the surrounding chrome differs.
 function InputSectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  const isMobile = useIsMobileStrategy();
+  const isAppMode = useIsAppMode();
 
-  if (!isMobile) {
+  if (!isAppMode) {
     return (
       <Card className="p-6 sm:p-7">
         <h2 className="text-lg font-semibold tracking-tight text-gray-900">{title}</h2>
@@ -805,13 +791,13 @@ function InputSectionCard({ title, children }: { title: string; children: React.
   );
 }
 
-// On mobile, the wide year-by-year table is tucked behind a "See full
-// projection" disclosure (the chart above stays visible). On desktop it renders
-// inline exactly as before.
+// In app mode, the wide year-by-year table is tucked behind a "See full
+// projection" disclosure (the chart above stays visible). On the website it
+// renders inline exactly as before.
 function MobileProjectionDisclosure({ children }: { children: React.ReactNode }) {
-  const isMobile = useIsMobileStrategy();
+  const isAppMode = useIsAppMode();
 
-  if (!isMobile) return <>{children}</>;
+  if (!isAppMode) return <>{children}</>;
 
   return (
     <details className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -849,6 +835,7 @@ export function FireStrategyPanel({
   const isPrincipalPreservingMode = mode === "principal_preserving";
   // Results only update when the user clicks Calculate. Until then, editing
   // inputs marks the shown results as stale (edit mode).
+  const isAppMode = useIsAppMode();
   const [committedResult, setCommittedResult] = useState(fireResult);
   const [committedError, setCommittedError] = useState(fireError);
   const [resultsStale, setResultsStale] = useState(false);
@@ -1066,16 +1053,23 @@ export function FireStrategyPanel({
         ) : null}
       </div>
 
-      <StrategySwitcher mode={mode} />
+      {/* Strategy switcher + personal snapshot strip are app-mode additions.
+          The website keeps the original three separate strategy pages with no
+          switcher/snapshot. */}
+      {isAppMode ? (
+        <>
+          <StrategySwitcher mode={mode} />
 
-      <SnapshotStrip
-        mode={mode}
-        result={committedResult}
-        stale={resultsStale}
-        currentAge={inputs.currentAge}
-        currentFireAssets={inputs.currentFireAssets}
-        onCalculate={recalculateResults}
-      />
+          <SnapshotStrip
+            mode={mode}
+            result={committedResult}
+            stale={resultsStale}
+            currentAge={inputs.currentAge}
+            currentFireAssets={inputs.currentFireAssets}
+            onCalculate={recalculateResults}
+          />
+        </>
+      ) : null}
 
       <div className="grid scroll-mt-28 gap-5 lg:grid-cols-3 xl:grid-cols-[repeat(3,minmax(0,1fr))_minmax(320px,0.95fr)]">
         <InputSectionCard title="Timeline">
