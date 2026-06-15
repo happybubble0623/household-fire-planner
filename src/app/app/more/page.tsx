@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AccountNav } from "@/components/layout/account-nav";
+import { AccountSection } from "@/components/more/account-section";
 
 export const metadata: Metadata = {
   title: "More",
@@ -41,12 +41,13 @@ export default function MorePage() {
     <section className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold tracking-tight text-gray-900">More</h1>
 
-      {/* Account — sign in / account chip. Reuses AccountNav so the signed-in /
-          signed-out states match the rest of the app. */}
+      {/* Account hub — sign-in / sync / save status. AccountSection reuses
+          useSession() (Supabase auth state + signOut) and the /login route, so
+          the signed-in / signed-out states match the rest of the app. */}
       <div className="mt-6">
         <p className={sectionLabelClass}>Account</p>
-        <div className="mt-2 rounded-xl border border-[var(--border)] bg-white">
-          <AccountNav variant="mobile" />
+        <div className="mt-2">
+          <AccountSection />
         </div>
       </div>
 
