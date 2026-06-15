@@ -132,4 +132,13 @@ textarea {
   .app-main-safe-bottom {
     padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
   }
+
+  /* In-app at mobile widths the website header is hidden (the bottom tab bar
+     owns navigation), so the status-bar / Dynamic Island inset that the header
+     used to carry (app-header-safe) moves onto the app content instead. Scoped
+     to mobile widths only — at desktop the header still shows and carries the
+     inset, so desktop layout is unchanged. */
+  .app-main-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
 }

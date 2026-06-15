@@ -149,7 +149,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           // `app-header-safe` pads the top by the iOS status-bar inset (0 on
           // desktop/web, so unchanged there).
           "app-header-safe sticky top-0 z-20 border-b border-[var(--border)] bg-white/85 px-4 shadow-sm backdrop-blur sm:px-6 lg:px-8",
-          menuOpen && "bg-white"
+          menuOpen && "bg-white",
+          // In-app at mobile widths the bottom tab bar owns navigation and each
+          // /app screen carries its own title, so this website header (logo +
+          // tagline + hamburger, which just duplicates the tabs + More) is
+          // redundant chrome — hide it. Same gate as the bottom tab bar:
+          // `/app/*` AND below the 880px desktop breakpoint. Desktop (>=880px)
+          // and every marketing page (/about, /what-is-fire, …) are untouched.
+          isAppRoute && "max-[879.98px]:hidden"
         )}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 py-3.5">
@@ -431,7 +438,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         ) : null}
       </header>
-      <main className={cn(isAppRoute && "app-main-safe-bottom")}>{children}</main>
+      {/* `app-main-safe-top` carries the iOS status-bar inset onto the content
+          only where the header is hidden (mobile `/app/*`); `app-main-safe-bottom`
+          clears the fixed tab bar. Both are 0 / unscoped on desktop. */}
+      <main className={cn(isAppRoute && "app-main-safe-top app-main-safe-bottom")}>{children}</main>
       {/* Renders only on /app/* routes and only below the 880px desktop
           breakpoint (self-gated). Desktop web is untouched. */}
       <MobileTabBar />
