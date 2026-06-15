@@ -23,6 +23,11 @@ yarn-error.log
 pnpm-debug.log*
 yarn-debug.log*
 
+# Native mobile projects (generated locally via Capacitor; not committed yet)
+/ios/
+/android/
+.capacitor/
+
 # Deploy / tooling caches
 .vercel/
 .turbo/
