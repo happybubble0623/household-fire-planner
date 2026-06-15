@@ -24,11 +24,15 @@ import type { Phase1Workbook } from "@/types/phase1";
 import { PathToFirePanel } from "@/components/planning/path-to-fire-panel";
 import { FireStrategyPanel } from "@/components/planning/fire-strategy-panel";
 import { PortfolioPanel } from "@/components/planning/portfolio-panel";
+import { AddHoldingPanel } from "@/components/planning/add-holding-panel";
 import { WorkbookConflictDialog } from "@/components/planning/workbook-conflict-dialog";
 
 type Phase1WorkspaceProps = {
   activeTab: "fire" | "portfolio";
   fireView?: "home" | "withdrawal" | "income" | "principal";
+  // Sub-screen within the portfolio tab. "overview" is the full tracker;
+  // "add" is the dedicated Add Holdings page.
+  portfolioView?: "overview" | "add";
 };
 
 export type Phase1PanelProps = {
@@ -40,7 +44,11 @@ export type Phase1PanelProps = {
   onChange: React.Dispatch<React.SetStateAction<Phase1Workbook>>;
 };
 
-export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1WorkspaceProps) {
+export function Phase1Workspace({
+  activeTab,
+  fireView = "home",
+  portfolioView = "overview"
+}: Phase1WorkspaceProps) {
   const { user } = useSession();
   const [workbook, setWorkbook] = useState<Phase1Workbook>(defaultPhase1Workbook);
   const [ready, setReady] = useState(false);
@@ -375,7 +383,12 @@ export function Phase1Workspace({ activeTab, fireView = "home" }: Phase1Workspac
         {activeTab === "fire" && fireView === "principal" ? (
           <FireStrategyPanel {...panelProps} mode="principal_preserving" />
         ) : null}
-        {activeTab === "portfolio" ? <PortfolioPanel {...panelProps} /> : null}
+        {activeTab === "portfolio" && portfolioView === "add" ? (
+          <AddHoldingPanel {...panelProps} />
+        ) : null}
+        {activeTab === "portfolio" && portfolioView === "overview" ? (
+          <PortfolioPanel {...panelProps} />
+        ) : null}
       </section>
       {conflictDialog}
     </>

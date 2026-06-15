@@ -2,51 +2,56 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
+import Link from "next/link";
 import {
+  ArrowRight,
   CalendarClock,
   Cloud,
   Download,
   Info,
   Layers,
   Pencil,
+  Plus,
   RefreshCw,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
   Trash2,
-  Upload,
-  X
+  Upload
 } from "lucide-react";
 import { PortfolioCollectionsPanel } from "@/components/planning/portfolio-collections-panel";
 import { PortfolioBacktestPanel } from "@/components/planning/portfolio-backtest-panel";
+import { AddHoldingForm, type AddHoldingFormHandle } from "@/components/planning/add-holding-form";
 import { InfoPopover } from "@/components/ui/info-popover";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
+import { useSession } from "@/lib/auth/use-session";
 import { getCollectionLabelsForItem } from "@/lib/phase1/collections";
 import {
   applyFetchedPricesToPhase1Portfolio,
   calculatePortfolioItemBalance,
   deletePhase1PortfolioItem,
   countsTowardFireAssets,
-  getDefaultIncludedInFire,
   isSuccessfulFetchedMarketPrice,
   isMarketPricedType,
-  normalizePortfolioItemBalance,
-  upsertPhase1PortfolioItem
+  normalizePortfolioItemBalance
 } from "@/lib/phase1/portfolio";
+import {
+  createItemId,
+  formatAssetType,
+  getPortfolioEntryType,
+  householdSharedOwner,
+  isHouseholdSharedAssetType,
+  portfolioEntryTypes
+} from "@/lib/phase1/portfolio-draft";
 import {
   exportPortfolioCsv,
   exportPortfolioXlsx,
   parsePortfolioCsv,
   parsePortfolioXlsx
 } from "@/lib/phase1/portfolio-file";
-import type {
-  FetchedMarketPrice,
-  MarketSymbolSearchResult,
-  MarketSymbolSearchType
-} from "@/types/market-data";
+import type { FetchedMarketPrice } from "@/types/market-data";
 import type { Phase1AssetType, Phase1PortfolioItem, PortfolioImportResult } from "@/types/phase1";
 
-type PortfolioEntryType = "market" | "cash" | "home" | "liability" | "other_asset";
 type PortfolioScope = "all" | "fire";
 type PortfolioLens = "accountOwner" | "accountType" | "taxTreatment" | "collection";
 type PortfolioAllocationView = "riskExposure" | "holdings";
@@ -67,61 +72,6 @@ type PortfolioTableSort = {
   direction: "asc" | "desc";
 };
 
-const portfolioEntryTypes: { value: PortfolioEntryType; label: string }[] = [
-  { value: "market", label: "Market Holding" },
-  { value: "cash", label: "Cash" },
-  { value: "home", label: "Home" },
-  { value: "liability", label: "Liability" },
-  { value: "other_asset", label: "Other Asset" }
-];
-const planOnlyHoldingTypes: {
-  value: Extract<Phase1AssetType, "stock" | "etf" | "mutual_fund" | "crypto" | "bond">;
-  label: string;
-}[] = [
-  { value: "stock", label: "Stock" },
-  { value: "etf", label: "ETF" },
-  { value: "mutual_fund", label: "Mutual Fund / Trust" },
-  { value: "crypto", label: "Crypto" },
-  { value: "bond", label: "Bond / Fixed Income" }
-];
-
-const directNameOptions: Partial<Record<Phase1AssetType, string[]>> = {
-  home: ["Primary Residence", "Second Home", "Rental Property", "Land"],
-  liability: [
-    "Mortgage",
-    "Credit Card",
-    "Student Loan",
-    "Auto Loan",
-    "Personal Loan",
-    "Other Debt"
-  ],
-  other_asset: ["Vehicle", "Private Equity", "Business Equity", "Collectible", "Other Asset"]
-};
-
-const accountOwnerOptions = ["User 1", "User 2", "Joint", "Child"] as const;
-const householdSharedOwner = "Household shared";
-const accountTypeOptions = [
-  "Taxable Investment Account",
-  "Traditional 401(k)",
-  "Traditional IRA",
-  "Roth 401(k)",
-  "Roth IRA",
-  "HSA",
-  "Cash Account",
-  "Crypto Account / Wallet",
-  "Real Estate / Home",
-  "Liability / Loan",
-  "Other Asset"
-] as const;
-const taxTreatments = [
-  "Taxable",
-  "Tax-Deferred / Pre-tax",
-  "Roth / After-tax",
-  "HSA",
-  "Not Applicable",
-  "Property / Other",
-  "Other"
-] as const;
 const portfolioScopeOptions: { value: PortfolioScope; label: string }[] = [
   { value: "all", label: "All portfolio" },
   { value: "fire", label: "FIRE included" }
@@ -156,21 +106,6 @@ const allocationColors = ["#15803d", "#f5b301", "#0d9488", "#9333ea", "#34c77e",
 const genericMarketDataWarning =
   "Market data may be delayed, stale, estimated, or manually entered. Check source and price date before relying on values.";
 
-type PortfolioDraft = {
-  type: Phase1AssetType;
-  symbol: string;
-  name: string;
-  noPublicTicker: boolean;
-  accountOwner: string;
-  accountType: string;
-  taxBucket: string;
-  includedInFire: boolean;
-  unitPrice: string;
-  units: string;
-  balance: string;
-  customGroup: string;
-};
-
 type AllocationSegment = {
   label: string;
   balance: number;
@@ -189,8 +124,6 @@ type PortfolioLensGroup = {
   label: string;
 };
 
-const defaultDraft = createDefaultDraft("stock");
-
 // Benefit chips for the value-prop header. Kept short so the header stays clean.
 const portfolioValueProps = [
   { icon: Layers, label: "Consolidated household view" },
@@ -203,21 +136,24 @@ const portfolioValueProps = [
 export function PortfolioPanel({
   workbook,
   status,
+  portfolioSummary,
   onChange
 }: Phase1PanelProps) {
   const csvInputRef = useRef<HTMLInputElement>(null);
   const xlsxInputRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLDivElement>(null);
+  // The add/edit form is the shared AddHoldingForm component. We hold a ref so
+  // the table's edit button can load a row into it and so deletes can reset it.
+  const addFormRef = useRef<AddHoldingFormHandle>(null);
   const selectAllRowsRef = useRef<HTMLInputElement>(null);
-  const [draft, setDraft] = useState<PortfolioDraft>(defaultDraft);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const { user } = useSession();
+  // Below the 880px desktop breakpoint we swap the wide holdings TABLE for a
+  // stacked CARD list (REDESIGN §4: cards, not tables). Defaults to desktop on
+  // SSR and where matchMedia is unavailable (e.g. the test environment), so the
+  // existing table — and its tests — are unchanged.
+  const isMobile = useIsMobilePortfolio();
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   const [uiStatus, setUiStatus] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [symbolQuery, setSymbolQuery] = useState("");
-  const [symbolOptions, setSymbolOptions] = useState<MarketSymbolSearchResult[]>([]);
-  const [symbolStatus, setSymbolStatus] = useState<string | null>(null);
-  const [isSearchingSymbols, setIsSearchingSymbols] = useState(false);
   const [portfolioScope, setPortfolioScope] = useState<PortfolioScope>("all");
   const [portfolioLens, setPortfolioLens] = useState<PortfolioLens>("accountOwner");
   const [portfolioFocus, setPortfolioFocus] = useState("all");
@@ -232,20 +168,6 @@ export function PortfolioPanel({
   );
   const [portfolioTableSearch, setPortfolioTableSearch] = useState("");
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
-  const draftEntryType = getPortfolioEntryType(draft.type);
-  const marketEntrySelected = isMarketPricedType(draft.type);
-  const planOnlyMarketEntrySelected = marketEntrySelected && draft.noPublicTicker;
-  const householdSharedEntry = isHouseholdSharedAssetType(draft.type);
-  const selectedHoldingLabel = buildSymbolInputLabel(draft.symbol, draft.name);
-  const nameOptions = directNameOptions[draft.type] ?? [];
-  const nameOptionsListId =
-    nameOptions.length > 0 ? `portfolio-name-options-${draft.type}` : undefined;
-  const shouldShowSymbolOptions =
-    marketEntrySelected &&
-    !planOnlyMarketEntrySelected &&
-    symbolOptions.length > 0 &&
-    symbolQuery.trim().length >= 2 &&
-    symbolQuery !== selectedHoldingLabel;
 
   const scopedPortfolioItems = useMemo(
     () => getAnalyzedPortfolioItems(workbook.portfolioItems, portfolioScope),
@@ -371,61 +293,6 @@ export function PortfolioPanel({
     }
   }, [someVisibleItemsSelected]);
 
-  useEffect(() => {
-    const query = symbolQuery.trim();
-    if (
-      !marketEntrySelected ||
-      planOnlyMarketEntrySelected ||
-      query.length < 2 ||
-      query === selectedHoldingLabel
-    ) {
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => {
-      const currentSymbolOption = draftToSymbolOption(draft);
-      setIsSearchingSymbols(true);
-      setSymbolStatus(null);
-
-      void fetch(`/api/symbols?query=${encodeURIComponent(query)}`, {
-        signal: controller.signal
-      })
-        .then(async (response) => {
-          const payload = (await response.json()) as {
-            symbols: MarketSymbolSearchResult[];
-            warning: string | null;
-          };
-
-          if (!response.ok) {
-            throw new Error(payload.warning ?? "Symbol search failed.");
-          }
-
-          const options = includeCurrentSymbolOption(payload.symbols, currentSymbolOption);
-          setSymbolOptions(options);
-          setSymbolStatus(
-            payload.warning ?? (options.length === 0 ? "No matching symbols found." : null)
-          );
-        })
-        .catch((error) => {
-          if (controller.signal.aborted) return;
-
-          setSymbolOptions(currentSymbolOption ? [currentSymbolOption] : []);
-          setSymbolStatus(error instanceof Error ? error.message : "Symbol search failed.");
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) {
-            setIsSearchingSymbols(false);
-          }
-        });
-    }, 350);
-
-    return () => {
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [draft, marketEntrySelected, planOnlyMarketEntrySelected, selectedHoldingLabel, symbolQuery]);
-
   const updatePortfolioItem = (
     itemId: string,
     updater: (item: Phase1PortfolioItem) => Phase1PortfolioItem
@@ -443,29 +310,19 @@ export function PortfolioPanel({
     updatePortfolioItem(itemId, (item) => ({ ...item, includedInFire }));
   };
 
-  const handleDraftEntryTypeChange = (entryType: PortfolioEntryType) => {
-    const type = entryType === "market" ? "stock" : entryType;
-
-    setDraft((currentDraft) => {
-      const nextDefaultDraft = createDefaultDraft(type);
-      const shouldUseTypeDefaults = isHouseholdSharedAssetType(type);
-
-      return {
-        ...nextDefaultDraft,
-        accountOwner: shouldUseTypeDefaults
-          ? householdSharedOwner
-          : normalizeAccountOwner(currentDraft.accountOwner),
-        accountType: shouldUseTypeDefaults ? nextDefaultDraft.accountType : currentDraft.accountType,
-        taxBucket: shouldUseTypeDefaults ? nextDefaultDraft.taxBucket : currentDraft.taxBucket,
-        includedInFire: currentDraft.includedInFire,
-        customGroup: currentDraft.customGroup,
-        noPublicTicker: entryType === "market" ? currentDraft.noPublicTicker : false
-      };
-    });
-    setSymbolQuery("");
-    setSymbolOptions([]);
-    setSymbolStatus(null);
-    setIsSearchingSymbols(false);
+  // Surfaces the existing portfolio→FIRE-assets handoff as a one-tap action.
+  // Uses the SAME value the Plan's "Use my portfolio total" applies
+  // (portfolioSummary.includedInFire) — no new math. Navigation to the Plan is
+  // handled by the surrounding <Link>; this just applies the value first.
+  const handleUseInPlan = () => {
+    onChange((currentWorkbook) => ({
+      ...currentWorkbook,
+      updatedAt: new Date().toISOString(),
+      fireInputs: {
+        ...currentWorkbook.fireInputs,
+        currentFireAssets: portfolioSummary.includedInFire
+      }
+    }));
   };
 
   const handleSelectedItemChange = (itemId: string, selected: boolean) => {
@@ -503,66 +360,9 @@ export function PortfolioPanel({
     });
   };
 
-  const handleAddOrSaveItem = () => {
-    if (marketEntrySelected && !draft.noPublicTicker && !draft.symbol) {
-      setUiStatus("Choose a holding from the search results before saving this row.");
-      return;
-    }
-
-    if (marketEntrySelected && !draft.noPublicTicker && parseDraftNumber(draft.units) === null) {
-      setUiStatus("Enter units for this market holding before saving.");
-      return;
-    }
-
-    if (planOnlyMarketEntrySelected && parseDraftNumber(draft.balance) === null) {
-      setUiStatus("Enter a current balance for this plan-only holding before saving.");
-      return;
-    }
-
-    const item = draftToPortfolioItem(draft, editingItemId ?? undefined);
-    if (!item) {
-      setUiStatus("Add an item with a name and valid numeric values.");
-      return;
-    }
-
-    // Editing a row updates it visibly in the table, so the old "Updated
-    // portfolio row." confirmation was redundant noise — adds still report a
-    // status, but edits surface none (message stays null).
-    const message: string | null = editingItemId
-      ? null
-      : planOnlyMarketEntrySelected
-        ? "Added plan-only holding. EOD refresh will skip this row."
-        : isMarketPricedType(item.type) && item.unitPrice === undefined
-        ? "Added market holding. Use Update today's prices to fill unit price."
-        : "Added portfolio item.";
-
-    onChange((currentWorkbook) => ({
-      ...currentWorkbook,
-      updatedAt: new Date().toISOString(),
-      portfolioItems: upsertPhase1PortfolioItem(currentWorkbook.portfolioItems, item),
-      ...(message ? { lastImportExportStatus: message } : {})
-    }));
-    setDraft(createStickyDefaultDraft(draft));
-    setEditingItemId(null);
-    setSymbolQuery("");
-    setSymbolOptions([]);
-    setSymbolStatus(null);
-    setIsSearchingSymbols(false);
-    setUiStatus(message);
-  };
-
+  // The table's edit button loads the row into the shared AddHoldingForm.
   const handleEditItem = (item: Phase1PortfolioItem) => {
-    const nextDraft = portfolioItemToDraft(item);
-
-    setDraft(nextDraft);
-    setEditingItemId(item.id);
-    setSymbolQuery(isMarketPricedType(item.type) ? buildSymbolInputLabel(item.symbol, item.name) : "");
-    setSymbolOptions(
-      isMarketPricedType(item.type) ? includeCurrentSymbolOption([], draftToSymbolOption(nextDraft)) : []
-    );
-    setSymbolStatus(null);
-    setUiStatus(`Editing ${item.name}.`);
-    window.setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    addFormRef.current?.editItem(item);
   };
 
   const handleDeleteItem = (item: Phase1PortfolioItem) => {
@@ -577,9 +377,9 @@ export function PortfolioPanel({
     }));
     setSelectedItemIds((currentIds) => currentIds.filter((itemId) => itemId !== item.id));
 
-    if (editingItemId === item.id) {
-      resetDraftAfterEdit();
-    }
+    // If the deleted row was open for editing, reset the form back to a clean
+    // add draft.
+    addFormRef.current?.notifyItemsRemoved([item.id]);
 
     setUiStatus(`Deleted ${item.name}.`);
   };
@@ -606,9 +406,8 @@ export function PortfolioPanel({
     }));
     setSelectedItemIds([]);
 
-    if (editingItemId && selectedIds.has(editingItemId)) {
-      resetDraftAfterEdit();
-    }
+    // If one of the deleted rows was open for editing, reset the form.
+    addFormRef.current?.notifyItemsRemoved([...selectedIds]);
 
     setUiStatus(`Deleted ${selectedExistingItems.length} selected row(s).`);
   };
@@ -621,57 +420,6 @@ export function PortfolioPanel({
 
       return currentIds.filter((currentId) => currentId !== columnId);
     });
-  };
-
-  const handleCancelEdit = () => {
-    resetDraftAfterEdit();
-    setUiStatus("Edit cancelled.");
-  };
-
-  const handleSymbolSelect = (selectedOption: MarketSymbolSearchResult) => {
-    setDraft((currentDraft) => ({
-      ...currentDraft,
-      type: selectedOption.type,
-      symbol: selectedOption.symbol,
-      name: selectedOption.name,
-      noPublicTicker: false
-    }));
-    setSymbolQuery(buildSymbolInputLabel(selectedOption.symbol, selectedOption.name));
-    setSymbolOptions([selectedOption]);
-    setSymbolStatus(null);
-  };
-
-  const handleSymbolQueryChange = (query: string) => {
-    setSymbolQuery(query);
-
-    if (query.trim().length < 2) {
-      const currentSymbolOption = draftToSymbolOption(draft);
-
-      setSymbolOptions(currentSymbolOption ? [currentSymbolOption] : []);
-      setSymbolStatus(null);
-      setIsSearchingSymbols(false);
-    }
-
-    if (query !== selectedHoldingLabel) {
-      setDraft((currentDraft) =>
-        isMarketPricedType(currentDraft.type)
-          ? {
-              ...currentDraft,
-              symbol: "",
-              name: ""
-            }
-          : currentDraft
-      );
-    }
-  };
-
-  const resetDraftAfterEdit = () => {
-    setDraft(createDefaultDraft(draft.type));
-    setEditingItemId(null);
-    setSymbolQuery("");
-    setSymbolOptions([]);
-    setSymbolStatus(null);
-    setIsSearchingSymbols(false);
   };
 
   const handleCsvImport = async (file: File | undefined) => {
@@ -863,6 +611,43 @@ export function PortfolioPanel({
               </p>
             ) : null}
           </div>
+        </div>
+
+        {/* Primary actions, promoted to the TOP of the page. Adding a holding
+            is the most common action, so it leads with a prominent button
+            (links to the dedicated Add Holdings page). "Use in my plan" reuses
+            the existing portfolio→FIRE-assets value (portfolioSummary.includedInFire,
+            the same number the Plan's "Use my portfolio total" applies). */}
+        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/app/portfolio-lab/add"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
+            >
+              <Plus aria-hidden="true" size={18} />
+              Add holdings
+            </Link>
+            <Link
+              href="/app/fire-path/withdrawal-rate"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted)]"
+              onClick={handleUseInPlan}
+              title="Sets your plan's current FIRE assets to the total of holdings marked Include in FIRE."
+            >
+              Use in my plan
+              <ArrowRight aria-hidden="true" size={16} />
+            </Link>
+            <span className="text-xs text-[var(--muted-foreground)]">
+              {formatCurrency(portfolioSummary.includedInFire)} marked for FIRE
+            </span>
+          </div>
+          {!user ? (
+            <Link
+              href="/login"
+              className="text-sm font-medium text-[var(--primary)] underline-offset-4 hover:underline"
+            >
+              Sign in to save &amp; sync across devices
+            </Link>
+          ) : null}
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--soft)] p-4 shadow-sm">
@@ -1187,6 +972,18 @@ export function PortfolioPanel({
           </label>
         </div>
 
+        {isMobile ? (
+          <PortfolioHoldingCards
+            items={filteredPortfolioItems}
+            collections={workbook.portfolioCollections}
+            memberships={workbook.portfolioCollectionMemberships}
+            selectedItemIds={selectedItemIds}
+            onSelectChange={handleSelectedItemChange}
+            onIncludeInFireChange={handleIncludeInFireChange}
+            onEdit={handleEditItem}
+            onDelete={handleDeleteItem}
+          />
+        ) : (
         <div className="mt-4 max-h-[560px] overflow-auto rounded-md border border-[var(--border)]">
           <table className="w-full min-w-[1320px] border-collapse text-left text-sm">
             <thead>
@@ -1442,277 +1239,29 @@ export function PortfolioPanel({
             </tbody>
           </table>
         </div>
+        )}
       </section>
 
-      <section
-        ref={formRef}
-        className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm"
+      {/* The "Add asset or liability" form is the SAME shared component that
+          powers the dedicated /app/portfolio-lab/add page. Kept inline here
+          (non-destructive) — it can be removed later with the founder's OK. */}
+      <AddHoldingForm ref={addFormRef} onChange={onChange} onStatusChange={setUiStatus} />
+
+      {/* Mobile-only floating "+" — opens the dedicated Add Holdings page.
+          Hidden at/above the 880px desktop breakpoint (matching the bottom tab
+          bar) so desktop web is unchanged. Sits above the tab bar + home
+          indicator (safe-area aware). */}
+      <Link
+        href="/app/portfolio-lab/add"
+        aria-label="Add holdings"
+        className="fixed right-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition hover:brightness-110 min-[880px]:hidden"
+        style={{
+          backgroundColor: "#15803d",
+          bottom: "calc(4rem + env(safe-area-inset-bottom, 0px) + 1rem)"
+        }}
       >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">
-            {editingItemId ? "Edit portfolio row" : "Add asset or liability"}
-          </h2>
-          {editingItemId ? (
-            <button
-              type="button"
-              className="inline-flex min-h-11 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
-              onClick={handleCancelEdit}
-            >
-              <X aria-hidden="true" size={16} />
-              Cancel
-            </button>
-          ) : null}
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <Field label="Type">
-            <select
-              value={draftEntryType}
-              className="min-h-11 w-full rounded-md border border-[var(--border)] px-3"
-              onChange={(event) =>
-                handleDraftEntryTypeChange(event.target.value as PortfolioEntryType)
-              }
-            >
-              {portfolioEntryTypes.map((entryType) => (
-                <option key={entryType.value} value={entryType.value}>
-                  {entryType.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          {marketEntrySelected ? (
-            <label className="inline-flex min-h-11 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-medium text-[var(--foreground)]">
-              <input
-                type="checkbox"
-                aria-label="No public ticker / plan-only holding"
-                checked={draft.noPublicTicker}
-                onChange={(event) =>
-                  setDraft((currentDraft) => ({
-                    ...currentDraft,
-                    noPublicTicker: event.target.checked,
-                    symbol: event.target.checked ? "" : currentDraft.symbol,
-                    unitPrice: event.target.checked ? "" : currentDraft.unitPrice,
-                    units: event.target.checked ? "" : currentDraft.units
-                  }))
-                }
-              />
-              <span>No public ticker</span>
-            </label>
-          ) : null}
-          {marketEntrySelected && !planOnlyMarketEntrySelected ? (
-            <div className="relative block text-sm font-medium text-[var(--foreground)] md:col-span-2">
-              <label htmlFor="portfolio-symbol-search">Holding</label>
-              <div className="mt-1">
-                <input
-                  id="portfolio-symbol-search"
-                  type="text"
-                  value={symbolQuery}
-                  placeholder="Search by symbol or name"
-                  className="min-h-11 w-full rounded-md border border-[var(--border)] px-3"
-                  onChange={(event) => handleSymbolQueryChange(event.target.value)}
-                />
-                {shouldShowSymbolOptions ? (
-                  <div className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-[var(--border)] bg-white p-1 shadow-lg">
-                    {symbolOptions.map((option) => (
-                      <button
-                        key={`${option.symbol}-${option.type}`}
-                        type="button"
-                        className="grid min-h-11 w-full gap-0.5 rounded px-3 py-2 text-left hover:bg-[var(--muted)]"
-                        onClick={() => handleSymbolSelect(option)}
-                      >
-                        <span className="font-semibold text-[var(--foreground)]">
-                          {option.symbol} {option.name} {formatAssetType(option.type)}
-                        </span>
-                        <span className="text-xs font-normal text-[var(--muted-foreground)]">
-                          {[option.exchange, option.currency].filter(Boolean).join(" | ")}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-              {symbolStatus ? (
-                <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
-                  {symbolStatus}
-                </p>
-              ) : isSearchingSymbols ? (
-                <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
-                  Searching...
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-          {planOnlyMarketEntrySelected ? (
-            <Field label="Holding Type">
-              <select
-                value={draft.type}
-                className="min-h-11 w-full rounded-md border border-[var(--border)] px-3"
-                onChange={(event) =>
-                  setDraft((currentDraft) => ({
-                    ...currentDraft,
-                    type: event.target.value as Phase1AssetType
-                  }))
-                }
-              >
-                {planOnlyHoldingTypes.map((holdingType) => (
-                  <option key={holdingType.value} value={holdingType.value}>
-                    {holdingType.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          ) : null}
-          {planOnlyMarketEntrySelected || !marketEntrySelected ? (
-            <Field label="Name">
-              <input
-                type="text"
-                value={draft.name}
-                list={planOnlyMarketEntrySelected ? undefined : nameOptionsListId}
-                className="min-h-11 w-full rounded-md border border-[var(--border)] px-3"
-                onChange={(event) =>
-                  setDraft((currentDraft) => ({ ...currentDraft, name: event.target.value }))
-                }
-              />
-              {nameOptionsListId ? (
-                <datalist id={nameOptionsListId}>
-                  {nameOptions.map((option) => (
-                    <option key={option} value={option} />
-                  ))}
-                </datalist>
-              ) : null}
-            </Field>
-          ) : null}
-          <div className="block text-sm font-medium text-[var(--foreground)]">
-            <span>Account Owner</span>
-            {householdSharedEntry ? (
-              <div className="mt-1 flex min-h-11 items-center rounded-md border border-[var(--border)] bg-[var(--muted)] px-3 text-sm text-[var(--foreground)]">
-                {householdSharedOwner}
-              </div>
-            ) : (
-              <div
-                role="group"
-                aria-label="Account Owner"
-                className="mt-1 grid grid-cols-2 gap-1 rounded-md border border-[var(--border)] p-1"
-              >
-                {accountOwnerOptions.map((owner) => {
-                  const selected = draft.accountOwner === owner;
-
-                  return (
-                    <button
-                      key={owner}
-                      type="button"
-                      aria-pressed={selected}
-                      className={`min-h-11 rounded px-3 text-sm font-medium ${
-                        selected
-                          ? "bg-[var(--foreground)] text-white"
-                          : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
-                      }`}
-                      onClick={() =>
-                        setDraft((currentDraft) => ({
-                          ...currentDraft,
-                          accountOwner: owner
-                        }))
-                      }
-                    >
-                      {owner}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          <Field label="Account Type">
-            <select
-              value={draft.accountType}
-              className="min-h-11 w-full rounded-md border border-[var(--border)] px-3"
-              onChange={(event) =>
-                setDraft((currentDraft) => ({
-                  ...currentDraft,
-                  accountType: event.target.value,
-                  taxBucket: getDefaultTaxTreatmentForAccountType(event.target.value)
-                }))
-              }
-            >
-              {accountTypeOptions.map((accountType) => (
-                <option key={accountType} value={accountType}>
-                  {accountType}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Tax Treatment">
-            <select
-              value={draft.taxBucket}
-              className="min-h-11 w-full rounded-md border border-[var(--border)] px-3"
-              onChange={(event) =>
-                setDraft((currentDraft) => ({
-                  ...currentDraft,
-                  taxBucket: event.target.value
-                }))
-              }
-            >
-              {taxTreatments.map((taxTreatment) => (
-                <option key={taxTreatment} value={taxTreatment}>
-                  {taxTreatment}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Include in FIRE">
-            <label className="inline-flex min-h-11 items-center gap-2 rounded-md border border-[var(--border)] px-3">
-              <input
-                type="checkbox"
-                aria-label="Include in FIRE"
-                checked={draft.includedInFire}
-                onChange={(event) =>
-                  setDraft((currentDraft) => ({
-                    ...currentDraft,
-                    includedInFire: event.target.checked
-                  }))
-                }
-              />
-              <span>{draft.includedInFire ? "Yes" : "No"}</span>
-            </label>
-          </Field>
-          {isMarketPricedType(draft.type) && !planOnlyMarketEntrySelected ? (
-            <Field label="Units">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={draft.units}
-                className="min-h-11 w-full rounded-md border border-[var(--border)] px-3"
-                onChange={(event) =>
-                  setDraft((currentDraft) => ({
-                    ...currentDraft,
-                    units: event.target.value
-                  }))
-                }
-              />
-            </Field>
-          ) : (
-            <Field label="Balance">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={draft.balance}
-                className="min-h-11 w-full rounded-md border border-[var(--border)] px-3"
-                onChange={(event) =>
-                  setDraft((currentDraft) => ({
-                    ...currentDraft,
-                    balance: event.target.value
-                  }))
-                }
-              />
-            </Field>
-          )}
-        </div>
-        <button
-          type="button"
-          className="mt-4 min-h-11 rounded-md bg-[var(--primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
-          onClick={handleAddOrSaveItem}
-        >
-          {editingItemId ? "Save Row" : "Add Portfolio Row"}
-        </button>
-      </section>
+        <Plus aria-hidden="true" size={26} />
+      </Link>
     </div>
   );
 }
@@ -1748,6 +1297,166 @@ function Metric({
       </p>
       <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">{note}</p>
     </div>
+  );
+}
+
+// Tracks whether we're below the desktop breakpoint. SSR / no-matchMedia
+// environments default to false (desktop → table), so the existing wide table
+// and its tests are unaffected; real mobile browsers flip to the card list.
+function useIsMobilePortfolio() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 879.98px)");
+    const update = () => setIsMobile(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
+}
+
+// Mobile holdings view: a stacked, tappable card per row. Mirrors the table's
+// data (name/symbol + value, owner/account, FIRE toggle) and reuses the SAME
+// edit/delete/select handlers, so behavior and numbers match the desktop table.
+function PortfolioHoldingCards({
+  items,
+  collections,
+  memberships,
+  selectedItemIds,
+  onSelectChange,
+  onIncludeInFireChange,
+  onEdit,
+  onDelete
+}: {
+  items: Phase1PortfolioItem[];
+  collections: Phase1PanelProps["workbook"]["portfolioCollections"];
+  memberships: Phase1PanelProps["workbook"]["portfolioCollectionMemberships"];
+  selectedItemIds: string[];
+  onSelectChange: (itemId: string, selected: boolean) => void;
+  onIncludeInFireChange: (itemId: string, includedInFire: boolean) => void;
+  onEdit: (item: Phase1PortfolioItem) => void;
+  onDelete: (item: Phase1PortfolioItem) => void;
+}) {
+  if (items.length === 0) {
+    return (
+      <div className="mt-4 rounded-md border border-[var(--border)] px-3 py-6 text-center text-sm text-[var(--muted-foreground)]">
+        No portfolio rows match the current table controls.
+      </div>
+    );
+  }
+
+  return (
+    <ul className="mt-4 space-y-3" aria-label="Holdings">
+      {items.map((item) => {
+        const balance = calculatePortfolioItemBalance(item);
+        const accountOwner = getPortfolioItemAccountOwner(item);
+        const collectionLabels = getCollectionLabelsForItem(item.id, collections, memberships);
+        const metaParts = [getHoldingTypeLabel(item), accountOwner, item.accountType].filter(
+          Boolean
+        );
+
+        return (
+          <li
+            key={item.id}
+            className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-1 min-h-5 min-w-5"
+                aria-label={`Select ${item.name}`}
+                checked={selectedItemIds.includes(item.id)}
+                onChange={(event) => onSelectChange(item.id, event.target.checked)}
+              />
+              <button
+                type="button"
+                className="min-w-0 flex-1 text-left"
+                aria-label={`Edit ${item.name}`}
+                onClick={() => onEdit(item)}
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="truncate font-semibold text-[var(--foreground)]">
+                    {item.name}
+                  </span>
+                  <span
+                    className={`shrink-0 font-semibold tabular-nums ${
+                      balance < 0 ? "text-[var(--negative)]" : "text-gray-900"
+                    }`}
+                  >
+                    {formatCurrency(balance)}
+                  </span>
+                </div>
+                {item.symbol ? (
+                  <div className="text-xs uppercase text-[var(--muted-foreground)]">
+                    {item.symbol}
+                  </div>
+                ) : null}
+                <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  {metaParts.join(" · ")}
+                </div>
+                {shouldShowRowPriceWarning(item.priceWarning) ? (
+                  <div className="mt-1 text-xs text-[var(--gold-text)]">{item.priceWarning}</div>
+                ) : null}
+                {collectionLabels.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {collectionLabels.map((label) => (
+                      <span
+                        key={label}
+                        className="rounded-md bg-[var(--muted)] px-2 py-0.5 text-xs font-medium text-[var(--foreground)]"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </button>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-3">
+              {item.type === "home" ? (
+                <span
+                  className="text-xs text-gray-500"
+                  title="Your primary home isn't a liquid FIRE asset. Model a planned sale in the FIRE inputs instead."
+                >
+                  Not in FIRE (home)
+                </span>
+              ) : (
+                <label className="inline-flex min-h-9 items-center gap-2 text-sm font-medium text-[var(--foreground)]">
+                  <input
+                    type="checkbox"
+                    checked={item.includedInFire}
+                    onChange={(event) => onIncludeInFireChange(item.id, event.target.checked)}
+                  />
+                  <span>In FIRE: {item.includedInFire ? "Yes" : "No"}</span>
+                </label>
+              )}
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
+                  aria-label={`Edit ${item.name} details`}
+                  onClick={() => onEdit(item)}
+                >
+                  <Pencil aria-hidden="true" size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-[var(--border)] text-[var(--negative)] hover:bg-[var(--negative-bg)]"
+                  aria-label={`Delete ${item.name}`}
+                  onClick={() => onDelete(item)}
+                >
+                  <Trash2 aria-hidden="true" size={16} />
+                </button>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -1990,102 +1699,6 @@ function Td({
   className?: string;
 }) {
   return <td className={`px-3 py-3 align-top tabular-nums ${className ?? ""}`}>{children}</td>;
-}
-
-function createDefaultDraft(type: Phase1AssetType): PortfolioDraft {
-  const accountType = getDefaultAccountTypeForAssetType(type);
-
-  return {
-    type,
-    symbol: "",
-    name: "",
-    noPublicTicker: false,
-    accountOwner: isHouseholdSharedAssetType(type) ? householdSharedOwner : "User 1",
-    accountType,
-    taxBucket: getDefaultTaxTreatmentForAccountType(accountType),
-    includedInFire: getDefaultIncludedInFire(type),
-    unitPrice: "",
-    units: "",
-    balance: "",
-    customGroup: ""
-  };
-}
-
-function createStickyDefaultDraft(currentDraft: PortfolioDraft): PortfolioDraft {
-  const defaultDraft = createDefaultDraft(currentDraft.type);
-
-  return {
-    ...defaultDraft,
-    accountOwner: isHouseholdSharedAssetType(currentDraft.type)
-      ? householdSharedOwner
-      : normalizeAccountOwner(currentDraft.accountOwner),
-    accountType: currentDraft.accountType,
-    taxBucket: currentDraft.taxBucket,
-    includedInFire: currentDraft.includedInFire,
-    noPublicTicker: currentDraft.noPublicTicker,
-    customGroup: currentDraft.customGroup
-  };
-}
-
-function draftToPortfolioItem(
-  draft: PortfolioDraft,
-  itemId = createItemId()
-): Phase1PortfolioItem | null {
-  const name = draft.name.trim();
-  if (!name) return null;
-
-  const marketPriced = isMarketPricedType(draft.type);
-  const planOnlyMarket = marketPriced && draft.noPublicTicker;
-  const unitPrice = marketPriced && !planOnlyMarket ? parseDraftNumber(draft.unitPrice) : undefined;
-  const units = marketPriced && !planOnlyMarket ? parseDraftNumber(draft.units) : undefined;
-  const directBalance =
-    marketPriced && !planOnlyMarket ? undefined : parseDraftNumber(draft.balance);
-
-  if (marketPriced && !planOnlyMarket && !draft.symbol.trim()) return null;
-  if (marketPriced && !planOnlyMarket && units === null) return null;
-  if ((!marketPriced || planOnlyMarket) && directBalance === null) return null;
-
-  const savedUnitPrice = marketPriced && !planOnlyMarket ? unitPrice ?? undefined : undefined;
-  const savedUnits = marketPriced && !planOnlyMarket ? units ?? 0 : undefined;
-  const balance = marketPriced && !planOnlyMarket
-    ? (savedUnitPrice ?? 0) * (savedUnits ?? 0)
-    : directBalance ?? 0;
-
-  return normalizePortfolioItemBalance({
-    id: itemId,
-    type: draft.type,
-    name,
-    symbol:
-      marketPriced && !planOnlyMarket ? optionalString(draft.symbol.toUpperCase()) : undefined,
-    accountOwner: getDraftAccountOwner(draft),
-    accountType: optionalString(draft.accountType),
-    taxBucket: draft.taxBucket,
-    includedInFire: draft.includedInFire,
-    unitPrice: savedUnitPrice,
-    units: savedUnits,
-    balance: draft.type === "liability" ? -Math.abs(balance) : balance,
-    customGroup: optionalString(draft.customGroup),
-    priceStatus: planOnlyMarket ? "manual" : undefined
-  });
-}
-
-function portfolioItemToDraft(item: Phase1PortfolioItem): PortfolioDraft {
-  const marketPriced = isMarketPricedType(item.type);
-
-  return {
-    type: item.type,
-    symbol: item.symbol ?? "",
-    name: item.name,
-    noPublicTicker: marketPriced && !item.symbol,
-    accountOwner: normalizeAccountOwner(item.accountOwner, item.type),
-    accountType: normalizeAccountType(item.accountType, item.type),
-    taxBucket: normalizeTaxTreatment(item.taxBucket, item.accountType, item.type),
-    includedInFire: item.includedInFire,
-    unitPrice: marketPriced ? String(item.unitPrice ?? "") : "",
-    units: marketPriced ? String(item.units ?? "") : "",
-    balance: marketPriced && item.symbol ? "" : String(item.balance),
-    customGroup: item.customGroup ?? ""
-  };
 }
 
 function getAnalyzedPortfolioItems(items: Phase1PortfolioItem[], scope: PortfolioScope) {
@@ -2438,14 +2051,6 @@ function closeFileMenu(event: MouseEvent<HTMLButtonElement>) {
   event.currentTarget.closest("details")?.removeAttribute("open");
 }
 
-function parseDraftNumber(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  const numberValue = Number(trimmed);
-  return Number.isFinite(numberValue) ? numberValue : null;
-}
-
 function buildImportMessage(importedCount: number, errors: string[]) {
   const base = `Imported ${importedCount} valid row(s).`;
   if (errors.length === 0) return base;
@@ -2543,14 +2148,6 @@ function downloadFile(data: string | ArrayBuffer, filename: string, type: string
   URL.revokeObjectURL(url);
 }
 
-function createItemId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `item-${Date.now()}`;
-}
-
 function createCollectionId(name: string, existingIds: Set<string>) {
   const baseId = `collection-${slugify(name) || "collection"}`;
   let id = baseId;
@@ -2568,77 +2165,8 @@ function getMembershipKey(collectionId: string, itemId: string) {
   return `${collectionId}:${itemId}`;
 }
 
-function getDefaultAccountTypeForAssetType(type: Phase1AssetType) {
-  if (type === "cash") return "Cash Account";
-  if (type === "home") return "Real Estate / Home";
-  if (type === "liability") return "Liability / Loan";
-  if (type === "other_asset") return "Other Asset";
-  return "Taxable Investment Account";
-}
-
-function getDefaultTaxTreatmentForAccountType(accountType: string) {
-  if (accountType === "Traditional 401(k)" || accountType === "Traditional IRA") {
-    return "Tax-Deferred / Pre-tax";
-  }
-
-  if (accountType === "Roth 401(k)" || accountType === "Roth IRA") {
-    return "Roth / After-tax";
-  }
-
-  if (accountType === "HSA") return "HSA";
-  if (accountType === "Cash Account" || accountType === "Liability / Loan") {
-    return "Not Applicable";
-  }
-  if (accountType === "Real Estate / Home") return "Property / Other";
-  if (accountType === "Other Asset") return "Other";
-
-  return "Taxable";
-}
-
-function normalizeAccountOwner(owner: string | undefined, assetType?: Phase1AssetType) {
-  if (assetType && isHouseholdSharedAssetType(assetType)) {
-    return householdSharedOwner;
-  }
-
-  return accountOwnerOptions.includes(owner as (typeof accountOwnerOptions)[number])
-    ? owner!
-    : "User 1";
-}
-
-function normalizeAccountType(accountType: string | undefined, assetType: Phase1AssetType) {
-  return accountTypeOptions.includes(accountType as (typeof accountTypeOptions)[number])
-    ? accountType!
-    : getDefaultAccountTypeForAssetType(assetType);
-}
-
-function normalizeTaxTreatment(
-  taxTreatment: string | undefined,
-  accountType: string | undefined,
-  assetType: Phase1AssetType
-) {
-  if (taxTreatments.includes(taxTreatment as (typeof taxTreatments)[number])) {
-    return taxTreatment!;
-  }
-
-  if (taxTreatment === "Traditional") return "Tax-Deferred / Pre-tax";
-  if (taxTreatment === "Roth") return "Roth / After-tax";
-  if (taxTreatment === "Cash") return "Not Applicable";
-
-  return getDefaultTaxTreatmentForAccountType(normalizeAccountType(accountType, assetType));
-}
-
 function normalizeCollectionName(name: string) {
   return name.trim().toLowerCase();
-}
-
-function isHouseholdSharedAssetType(type: Phase1AssetType) {
-  return type === "home" || type === "liability";
-}
-
-function getDraftAccountOwner(draft: PortfolioDraft) {
-  return isHouseholdSharedAssetType(draft.type)
-    ? householdSharedOwner
-    : optionalString(draft.accountOwner);
 }
 
 function getPortfolioItemAccountOwner(item: Phase1PortfolioItem) {
@@ -2743,15 +2271,6 @@ function slugify(value: string) {
     .replace(/^-|-$/g, "");
 }
 
-function getPortfolioEntryType(type: Phase1AssetType): PortfolioEntryType {
-  if (isMarketPricedType(type)) return "market";
-  if (type === "cash" || type === "home" || type === "liability" || type === "other_asset") {
-    return type;
-  }
-
-  return "market";
-}
-
 function formatPortfolioEntryType(type: Phase1AssetType) {
   const entryType = getPortfolioEntryType(type);
 
@@ -2761,39 +2280,6 @@ function formatPortfolioEntryType(type: Phase1AssetType) {
   );
 }
 
-function draftToSymbolOption(draft: PortfolioDraft): MarketSymbolSearchResult | null {
-  const symbol = draft.symbol.trim();
-  if (!symbol || !isMarketPricedType(draft.type)) return null;
-
-  return {
-    symbol,
-    name: draft.name.trim() || symbol,
-    type: draft.type as MarketSymbolSearchType
-  };
-}
-
-function buildSymbolInputLabel(symbol: string | undefined, name: string) {
-  const trimmedSymbol = symbol?.trim();
-  const trimmedName = name.trim();
-
-  if (trimmedSymbol && trimmedName) return `${trimmedSymbol} - ${trimmedName}`;
-  return trimmedSymbol ?? trimmedName;
-}
-
-function includeCurrentSymbolOption(
-  options: MarketSymbolSearchResult[],
-  currentOption: MarketSymbolSearchResult | null
-) {
-  if (!currentOption) return options;
-
-  const currentSymbol = currentOption.symbol.toUpperCase();
-  if (options.some((option) => option.symbol.toUpperCase() === currentSymbol)) {
-    return options;
-  }
-
-  return [currentOption, ...options];
-}
-
 function shouldShowRowPriceWarning(warning: string | undefined) {
   return Boolean(warning && warning !== genericMarketDataWarning);
 }
@@ -2801,26 +2287,6 @@ function shouldShowRowPriceWarning(warning: string | undefined) {
 function getVisibleWorkbookStatus(status: string | undefined) {
   if (status?.startsWith("Deleted ")) return null;
   return status;
-}
-
-function optionalString(value: string) {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-function formatAssetType(type: Phase1AssetType) {
-  const labels: Partial<Record<Phase1AssetType, string>> = {
-    etf: "ETF",
-    mutual_fund: "Mutual Fund",
-    other_asset: "Other Asset"
-  };
-
-  if (labels[type]) return labels[type];
-
-  return type
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 }
 
 function formatCurrency(value: number) {
