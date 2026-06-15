@@ -97,9 +97,16 @@ function Brand() {
             d="M16 40 L32 18 L48 40"
             fill="none"
             stroke="#ffffff"
-            strokeWidth="6"
+            strokeWidth="5"
             strokeLinecap="round"
             strokeLinejoin="round"
+          />
+          <path
+            d="M20 48 L44 48"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="3"
+            strokeLinecap="round"
           />
         </svg>
       </span>
