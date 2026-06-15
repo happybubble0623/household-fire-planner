@@ -23,8 +23,9 @@ yarn-error.log
 pnpm-debug.log*
 yarn-debug.log*
 
-# Native mobile projects (generated locally via Capacitor; not committed yet)
-/ios/
+# Native mobile projects (generated locally via Capacitor).
+# The iOS project IS committed (it ships its own ios/.gitignore that excludes
+# App/Pods/ and build output) so it travels between Macs. Android stays local.
 /android/
 .capacitor/
 
