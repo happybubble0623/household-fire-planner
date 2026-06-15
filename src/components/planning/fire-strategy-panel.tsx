@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
 import { StrategyCashFlowChart } from "@/components/charts/calculator-charts";
@@ -17,8 +17,11 @@ import type {
   Phase1IncomeSource,
   Phase1IncomeSourceOwner,
   Phase1IncomeSourceType,
+  Phase1IncomeStreamResult,
+  Phase1PrincipalPreservingResult,
   Phase1ProjectionRow,
-  Phase1TaxMode
+  Phase1TaxMode,
+  Phase1WithdrawalRateResult
 } from "@/types/phase1";
 
 const fireInputErrorId = "fire-input-error";
@@ -88,6 +91,63 @@ function formatNumber(value: number) {
 
 function formatPercent(value: number) {
   return percentFormatter.format(value);
+}
+
+// Tracks whether we're below the desktop breakpoint. Mirrors the portfolio
+// panel's hook so the two mobile experiences flip at the same width. SSR /
+// no-matchMedia environments default to false (desktop layout), so the existing
+// desktop markup and its tests are unaffected.
+function useIsMobileStrategy() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 879.98px)");
+    const update = () => setIsMobile(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
+}
+
+// The three FIRE strategy models, in featured order (Portfolio Drawdown first).
+// Each entry maps to its existing standalone route so the switcher is just
+// navigation between the intact, separately-indexed pages.
+const STRATEGY_TABS: { mode: Phase1FireRuleMode; label: string; href: string }[] = [
+  { mode: "withdrawal_rate", label: "Portfolio Drawdown", href: "/app/fire-path/withdrawal-rate" },
+  { mode: "income_stream", label: "Income Stream", href: "/app/fire-path/income-stream" },
+  {
+    mode: "principal_preserving",
+    label: "Principal-Preserving",
+    href: "/app/fire-path/principal-preserving"
+  }
+];
+
+// Progress-to-FIRE percentages. Extracted so the snapshot strip and the detailed
+// results section render the EXACT same engine-derived value (not a re-derivation
+// that could drift). Each takes the committed engine result.
+function getWithdrawalProgressPercent(result: Phase1WithdrawalRateResult) {
+  const targetAssets = result.targetFireNumber ?? result.assetsAtFire;
+  return targetAssets <= 0
+    ? 100
+    : (Math.max(0, targetAssets - result.fireGap) / targetAssets) * 100;
+}
+
+function getPrincipalProgressPercent(
+  result: Phase1PrincipalPreservingResult,
+  currentFireAssets: number
+) {
+  return result.principalFloor <= 0
+    ? 100
+    : Math.min(100, (currentFireAssets / result.principalFloor) * 100);
+}
+
+function getIncomeProgressPercent(result: Phase1IncomeStreamResult) {
+  return result.incomeCoverageRatio * 100;
 }
 
 type NumericFireInputKey = {
@@ -517,8 +577,7 @@ function StrategyCalculatorLinks({ excludeInvestment }: { excludeInvestment: boo
           Refine your estimate with these calculators
         </h2>
         <p className="text-sm leading-relaxed text-gray-500">
-          Open a calculator in a new tab to fine-tune an assumption, then bring the number back into
-          your plan.
+          Open a calculator to fine-tune an assumption, then bring the number back into your plan.
         </p>
       </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -526,8 +585,6 @@ function StrategyCalculatorLinks({ excludeInvestment }: { excludeInvestment: boo
           <Link
             key={tool.slug}
             href={tool.href}
-            target="_blank"
-            rel="noreferrer"
             className="group block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
             <span className="block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
@@ -543,6 +600,238 @@ function StrategyCalculatorLinks({ excludeInvestment }: { excludeInvestment: boo
         ))}
       </div>
     </Card>
+  );
+}
+
+// Segmented control / chip row folding the three FIRE models into the Plan
+// view. Implemented as links between the existing routes (each stays intact for
+// SEO); the current model is highlighted. The bottom "Plan" tab stays active
+// across all three because every target is under /app/fire-path (non-tools).
+function StrategySwitcher({ mode }: { mode: Phase1FireRuleMode }) {
+  return (
+    <div
+      role="tablist"
+      aria-label="FIRE strategy"
+      className="flex gap-2 overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {STRATEGY_TABS.map((tab) => {
+        const active = tab.mode === mode;
+        return (
+          <Link
+            key={tab.mode}
+            href={tab.href}
+            role="tab"
+            aria-selected={active}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "flex-1 whitespace-nowrap rounded-xl px-4 py-2.5 text-center text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
+              active
+                ? "bg-[var(--primary)] text-white shadow-sm"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+// One snapshot tile. Keeps a consistent caption + body shell so the strip reads
+// at a glance whether the body is a number, a CTA, or a "calculate" prompt.
+function SnapshotTile({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">{label}</p>
+      <div className="mt-2">{children}</div>
+    </div>
+  );
+}
+
+// Personal snapshot strip at the top of the Plan view. Every number is the exact
+// engine value from the committed result (the same object the detailed results
+// render). When results are stale or not yet calculated, the FIRE-age and
+// progress tiles show a "Calculate to see" affordance instead of a number. The
+// healthcare tile always links to the calculator: no healthcare estimate is
+// persisted in the workbook today, so there is no real number to surface yet.
+function SnapshotStrip({
+  mode,
+  result,
+  stale,
+  currentAge,
+  currentFireAssets,
+  onCalculate
+}: {
+  mode: Phase1FireRuleMode;
+  result: Phase1PanelProps["fireResult"];
+  stale: boolean;
+  currentAge: number;
+  currentFireAssets: number;
+  onCalculate: () => void;
+}) {
+  const ready = result !== null && !stale;
+
+  let fireAge: number | null = null;
+  let yearsToFi: number | null = null;
+  let progressPercent = 0;
+
+  if (ready && result) {
+    if (mode === "withdrawal_rate") {
+      fireAge = result.withdrawalRate.estimatedFireAge;
+      yearsToFi = fireAge === null ? null : result.withdrawalRate.estimatedYearsToFire;
+      progressPercent = getWithdrawalProgressPercent(result.withdrawalRate);
+    } else if (mode === "principal_preserving") {
+      fireAge = result.principalPreserving.estimatedFireAge;
+      yearsToFi = fireAge === null ? null : result.principalPreserving.estimatedYearsToFire;
+      progressPercent = getPrincipalProgressPercent(result.principalPreserving, currentFireAssets);
+    } else {
+      fireAge = result.incomeStream.estimatedFireAge;
+      // Income Stream has no engine "years to FI" field; derive it from the
+      // engine's FIRE age and the user's current age (arithmetic on real values).
+      yearsToFi = fireAge === null ? null : Math.max(0, fireAge - currentAge);
+      progressPercent = getIncomeProgressPercent(result.incomeStream);
+    }
+  }
+
+  const progressLabel =
+    mode === "income_stream"
+      ? "of annual expenses"
+      : mode === "principal_preserving"
+        ? "of principal floor"
+        : "of FIRE target";
+
+  return (
+    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <SnapshotTile label={mode === "income_stream" ? "FIRE age" : "FIRE age / years to FI"}>
+        {ready ? (
+          fireAge === null ? (
+            <p className="text-lg font-extrabold leading-tight tracking-tight text-[var(--negative)]">
+              Not reached
+            </p>
+          ) : (
+            <>
+              <p className="text-2xl font-extrabold leading-tight tracking-tight tabular-nums text-gray-900">
+                {formatNumber(fireAge)}
+              </p>
+              {yearsToFi !== null ? (
+                <p className="mt-0.5 text-xs font-medium text-gray-500 tabular-nums">
+                  {formatNumber(yearsToFi)} yrs to FI
+                </p>
+              ) : null}
+            </>
+          )
+        ) : (
+          <button
+            type="button"
+            onClick={onCalculate}
+            className="text-left text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
+          >
+            Calculate to see
+          </button>
+        )}
+      </SnapshotTile>
+
+      <SnapshotTile label="Progress">
+        {ready ? (
+          <>
+            <p className="text-2xl font-extrabold leading-tight tracking-tight tabular-nums text-gray-900">
+              {formatPercent(Math.max(0, progressPercent) / 100)}
+            </p>
+            <p className="mt-0.5 text-xs font-medium text-gray-500">{progressLabel}</p>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={onCalculate}
+            className="text-left text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
+          >
+            Calculate to see
+          </button>
+        )}
+      </SnapshotTile>
+
+      <SnapshotTile label="Pre-65 healthcare">
+        <Link
+          href="/app/fire-path/tools/healthcare"
+          className="text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
+        >
+          Estimate &rarr;
+        </Link>
+      </SnapshotTile>
+    </div>
+  );
+}
+
+// On mobile, an input section becomes a tap-to-edit collapsible card; on desktop
+// it renders the original always-open Card so the three-column layout and its
+// tests are unchanged. The inner fields (children) are byte-for-byte identical
+// across both — only the surrounding chrome differs.
+function InputSectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  const isMobile = useIsMobileStrategy();
+
+  if (!isMobile) {
+    return (
+      <Card className="p-6 sm:p-7">
+        <h2 className="text-lg font-semibold tracking-tight text-gray-900">{title}</h2>
+        <div className="mt-5 grid gap-4">{children}</div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-6 py-5 [&::-webkit-details-marker]:hidden">
+          <h2 className="text-lg font-semibold tracking-tight text-gray-900">{title}</h2>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+            className="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </summary>
+        <div className="border-t border-gray-200 px-6 py-5">
+          <div className="grid gap-4">{children}</div>
+        </div>
+      </details>
+    </Card>
+  );
+}
+
+// On mobile, the wide year-by-year table is tucked behind a "See full
+// projection" disclosure (the chart above stays visible). On desktop it renders
+// inline exactly as before.
+function MobileProjectionDisclosure({ children }: { children: React.ReactNode }) {
+  const isMobile = useIsMobileStrategy();
+
+  if (!isMobile) return <>{children}</>;
+
+  return (
+    <details className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 text-base font-semibold text-gray-900 [&::-webkit-details-marker]:hidden">
+        See full projection
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+          className="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </summary>
+      <div className="border-t border-gray-200 p-3">{children}</div>
+    </details>
   );
 }
 
@@ -777,10 +1066,20 @@ export function FireStrategyPanel({
         ) : null}
       </div>
 
+      <StrategySwitcher mode={mode} />
+
+      <SnapshotStrip
+        mode={mode}
+        result={committedResult}
+        stale={resultsStale}
+        currentAge={inputs.currentAge}
+        currentFireAssets={inputs.currentFireAssets}
+        onCalculate={recalculateResults}
+      />
+
       <div className="grid scroll-mt-28 gap-5 lg:grid-cols-3 xl:grid-cols-[repeat(3,minmax(0,1fr))_minmax(320px,0.95fr)]">
-        <Card className="p-6 sm:p-7">
-          <h2 className="text-lg font-semibold tracking-tight text-gray-900">Timeline</h2>
-          <div className="mt-5 grid gap-4">
+        <InputSectionCard title="Timeline">
+          <>
             <NumberField
               id="fire-current-age"
               label="Current age"
@@ -817,12 +1116,11 @@ export function FireStrategyPanel({
                 </div>
               ) : null
             )}
-          </div>
-        </Card>
+          </>
+        </InputSectionCard>
 
-        <Card className="p-6 sm:p-7">
-          <h2 className="text-lg font-semibold tracking-tight text-gray-900">Money</h2>
-          <div className="mt-5 grid gap-4">
+        <InputSectionCard title="Money">
+          <>
             {!isIncomeStreamMode ? (
               <div>
                 <NumberField
@@ -942,12 +1240,11 @@ export function FireStrategyPanel({
                 </div>
               </details>
             ) : null}
-          </div>
-        </Card>
+          </>
+        </InputSectionCard>
 
-        <Card className="p-6 sm:p-7">
-          <h2 className="text-lg font-semibold tracking-tight text-gray-900">Assumptions</h2>
-          <div className="mt-5 grid gap-4">
+        <InputSectionCard title="Assumptions">
+          <>
             {!isIncomeStreamMode ? (
               <NumberField
                 id="fire-portfolio-return"
@@ -1013,8 +1310,8 @@ export function FireStrategyPanel({
                 fieldKey="simpleEffectiveTaxRatePercent"
               />
             ) : null}
-          </div>
-        </Card>
+          </>
+        </InputSectionCard>
 
         <div className="grid gap-5 lg:col-span-3 xl:col-span-1">
           <details className="rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -1480,11 +1777,7 @@ export function FireStrategyPanel({
 }
 
 function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["fireResult"]>["withdrawalRate"] }) {
-  const targetAssets = result.targetFireNumber ?? result.assetsAtFire;
-  const progress =
-    targetAssets <= 0
-      ? 100
-      : (Math.max(0, targetAssets - result.fireGap) / targetAssets) * 100;
+  const progress = getWithdrawalProgressPercent(result);
   const fireAge = result.estimatedFireAge === null ? "Not reached" : formatNumber(result.estimatedFireAge);
   const fireYear = result.estimatedFireYear === null ? "Not reached" : String(result.estimatedFireYear);
   const impliedWithdrawalRate =
@@ -1520,6 +1813,7 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
           fireAge={result.estimatedFireAge}
         />
       </section>
+      <MobileProjectionDisclosure>
       <ProjectionTable
         label="Portfolio Drawdown FIRE projection"
         rows={result.projectionRows}
@@ -1540,12 +1834,13 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
           "Expenses shows your retirement spending (grossed up for simple tax when enabled). Ending assets = starting + investment return − assets withdrawn (+ any home-sale proceeds)."
         ]}
       />
+      </MobileProjectionDisclosure>
     </section>
   );
 }
 
 function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps["fireResult"]>["incomeStream"] }) {
-  const progress = result.incomeCoverageRatio * 100;
+  const progress = getIncomeProgressPercent(result);
 
   return (
     <section className="space-y-5">
@@ -1569,6 +1864,7 @@ function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps[
         value={progress}
         note={`${formatPercent(result.incomeCoverageRatio)} of annual expenses`}
       />
+      <MobileProjectionDisclosure>
       <IncomeStreamProjectionTable
         label="Income Stream FIRE projection"
         rows={result.projectionRows}
@@ -1579,6 +1875,7 @@ function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps[
           "Positive surplus means income streams exceed expenses. Negative shortfall means income streams do not fully cover expenses."
         ]}
       />
+      </MobileProjectionDisclosure>
     </section>
   );
 }
@@ -1590,10 +1887,7 @@ function PrincipalPreservingResults({
   result: NonNullable<Phase1PanelProps["fireResult"]>["principalPreserving"];
   currentFireAssets: number;
 }) {
-  const progress =
-    result.principalFloor <= 0
-      ? 100
-      : Math.min(100, (currentFireAssets / result.principalFloor) * 100);
+  const progress = getPrincipalProgressPercent(result, currentFireAssets);
   const fireAge =
     result.estimatedFireAge === null ? "Not reached" : formatNumber(result.estimatedFireAge);
   const fireYear =
@@ -1644,6 +1938,7 @@ function PrincipalPreservingResults({
           Try a higher savings rate, lower expenses, more income, or a higher cash-generating return.
         </div>
       )}
+      <MobileProjectionDisclosure>
       <ProjectionTable
         label="Principal-Preserving FIRE projection"
         rows={result.projectionRows}
@@ -1666,6 +1961,7 @@ function PrincipalPreservingResults({
           "If no age qualifies, the projection shows the retire-now scenario and red-tints any year that would fall below the floor."
         ]}
       />
+      </MobileProjectionDisclosure>
     </section>
   );
 }

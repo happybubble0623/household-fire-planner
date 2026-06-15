@@ -355,8 +355,9 @@ describe("PathToFirePanel", () => {
     for (const [name, href] of tools) {
       const link = screen.getByRole("link", { name });
       expect(link).toHaveAttribute("href", href);
-      expect(link).toHaveAttribute("target", "_blank");
-      expect(link).toHaveAttribute("rel", "noreferrer");
+      // In-app, calculator links stay in the tab stack — no new browser tab.
+      expect(link).not.toHaveAttribute("target");
+      expect(link).not.toHaveAttribute("rel");
     }
 
     // The old contextual links inside the accordions are gone.
