@@ -96,6 +96,19 @@ const TABS: Tab[] = [
   }
 ];
 
+// Re-tapping the tab whose route is ALREADY active scrolls the page back to the
+// top (a familiar mobile-app gesture) instead of re-navigating. The page scrolls
+// on the window in this app, but we also reset <main> in case it ever owns its
+// own scroll, so the gesture is robust to layout changes.
+function scrollActivePageToTop() {
+  if (typeof window === "undefined") return;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  const main = document.querySelector("main");
+  if (main && main.scrollTop > 0) {
+    main.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
 export function MobileTabBar() {
   const pathname = usePathname();
   const isAppMode = useIsAppMode();
@@ -115,6 +128,14 @@ export function MobileTabBar() {
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
+            onClick={(event) => {
+              // Already on this tab's route → scroll to top instead of a
+              // no-op re-navigation. Different tab → let the Link navigate.
+              if (active) {
+                event.preventDefault();
+                scrollActivePageToTop();
+              }
+            }}
             className="flex h-16 flex-1 flex-col items-center justify-center gap-1 text-gray-500 transition-colors duration-150"
             style={active ? { color: ACTIVE_COLOR } : undefined}
           >

@@ -551,40 +551,74 @@ function StrategyCalculatorLinks({ excludeInvestment }: { excludeInvestment: boo
     (tool) => !(excludeInvestment && tool.slug === "investment")
   );
 
+  const heading = "Refine your estimate with these calculators";
+  const intro = isAppMode
+    ? "Open a calculator to fine-tune an assumption, then bring the number back into your plan."
+    : "Open a calculator in a new tab to fine-tune an assumption, then bring the number back into your plan.";
+
+  const grid = (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {tools.map((tool) => (
+        <Link
+          key={tool.slug}
+          href={tool.href}
+          // Website: open calculators in a new tab (the original behavior).
+          // App mode: stay in the tab stack — no new WebView window.
+          {...(isAppMode ? {} : { target: "_blank", rel: "noreferrer" })}
+          className="group block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+        >
+          <span className="block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
+            {tool.title}
+          </span>
+          <span className="mt-2 block text-sm leading-relaxed text-gray-500">
+            {tool.description}
+          </span>
+          <span className="mt-3 inline-block text-[13px] font-semibold text-[var(--primary-hover)]">
+            Explore &rarr;
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+
+  // App mode: collapse this secondary section into a tap-to-expand disclosure
+  // that starts closed, so the dense calculator grid doesn't dominate the Plan
+  // page on a phone. The website keeps the original always-expanded card.
+  if (isAppMode) {
+    return (
+      <Card className="overflow-hidden p-0">
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-5 [&::-webkit-details-marker]:hidden">
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold tracking-tight text-gray-900">{heading}</h2>
+              <p className="text-sm leading-relaxed text-gray-500">{intro}</p>
+            </div>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 text-gray-400 transition-transform group-open:rotate-180"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </summary>
+          <div className="border-t border-gray-200 px-6 py-5">{grid}</div>
+        </details>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6 sm:p-7">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold tracking-tight text-gray-900">
-          Refine your estimate with these calculators
-        </h2>
-        <p className="text-sm leading-relaxed text-gray-500">
-          {isAppMode
-            ? "Open a calculator to fine-tune an assumption, then bring the number back into your plan."
-            : "Open a calculator in a new tab to fine-tune an assumption, then bring the number back into your plan."}
-        </p>
+        <h2 className="text-lg font-semibold tracking-tight text-gray-900">{heading}</h2>
+        <p className="text-sm leading-relaxed text-gray-500">{intro}</p>
       </div>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {tools.map((tool) => (
-          <Link
-            key={tool.slug}
-            href={tool.href}
-            // Website: open calculators in a new tab (the original behavior).
-            // App mode: stay in the tab stack — no new WebView window.
-            {...(isAppMode ? {} : { target: "_blank", rel: "noreferrer" })}
-            className="group block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-          >
-            <span className="block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
-              {tool.title}
-            </span>
-            <span className="mt-2 block text-sm leading-relaxed text-gray-500">
-              {tool.description}
-            </span>
-            <span className="mt-3 inline-block text-[13px] font-semibold text-[var(--primary-hover)]">
-              Explore &rarr;
-            </span>
-          </Link>
-        ))}
-      </div>
+      <div className="mt-5">{grid}</div>
     </Card>
   );
 }
