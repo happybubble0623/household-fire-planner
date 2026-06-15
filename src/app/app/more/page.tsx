@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AccountSection } from "@/components/more/account-section";
+import { RemindersSection } from "@/components/more/reminders-section";
 
 export const metadata: Metadata = {
   title: "More",
@@ -50,6 +51,9 @@ export default function MorePage() {
           <AccountSection />
         </div>
       </div>
+
+      {/* App-only: renders nothing on the website (useIsAppMode guard). */}
+      <RemindersSection />
 
       <div className="mt-6">
         <p className={sectionLabelClass}>Learn</p>

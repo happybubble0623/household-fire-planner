@@ -16,6 +16,7 @@
     "@aparajita/capacitor-biometric-auth": "^10.0.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/ios": "^8.4.0",
+    "@capacitor/local-notifications": "^8.2.0",
     "@next/third-parties": "^16.2.9",
     "@supabase/supabase-js": "^2.107.0",
     "@tailwindcss/postcss": "^4.3.0",
