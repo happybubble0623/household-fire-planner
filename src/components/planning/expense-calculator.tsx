@@ -4,6 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { InfoPopover } from "@/components/ui/info-popover";
+import { UseInPlanButton } from "@/components/planning/use-in-plan-button";
+import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
+import { applyAnnualExpenses } from "@/lib/phase1/plan-mappings";
 import {
   CalculateBar,
   ResultCard,
@@ -172,6 +175,15 @@ export function ExpenseCalculator() {
   const gate = useCalculateGate(liveResult);
   const result = gate.value;
 
+  // App-mode "Use in my plan": set the Plan's annual-expenses input to this
+  // calculator's computed annual total (the exact "Total annual living expenses"
+  // hero figure). Reuses the same workbook write the Plan's own input uses.
+  const writePlanWorkbook = usePlanWorkbookWriter();
+  const setPlanAnnualExpenses = () =>
+    writePlanWorkbook((workbook) => applyAnnualExpenses(workbook, result.totalAnnual)).then(
+      () => undefined
+    );
+
   return (
     <div className="space-y-8">
       <div>
@@ -249,6 +261,11 @@ export function ExpenseCalculator() {
             value={formatCurrency(result.totalAnnual)}
             hero
             context="across all categories"
+          />
+          <UseInPlanButton
+            label={`Use in my plan · ${formatCurrency(result.totalAnnual)}/yr`}
+            confirmation="Set as your plan's annual expenses"
+            onUse={setPlanAnnualExpenses}
           />
           <ResultCard
             label="Total monthly living expenses"

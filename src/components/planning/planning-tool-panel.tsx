@@ -14,6 +14,9 @@ import {
   MortgagePaymentDonut
 } from "@/components/charts/calculator-charts";
 import { HealthcareCostPanel } from "@/components/planning/healthcare-cost-panel";
+import { UseInPlanButton } from "@/components/planning/use-in-plan-button";
+import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
+import { addPassiveIncome } from "@/lib/phase1/plan-mappings";
 import { relatedPlanningTools, type PlanningTool } from "@/lib/data/planning-tools";
 
 export type { PlanningTool };
@@ -1046,6 +1049,19 @@ function SocialSecurityCalculator() {
     [committedInput]
   );
 
+  // App-mode "Use in my plan": add the unreduced (full-retirement-age) annual
+  // benefit to the Plan's passive-income input. Reuses the engine's computed
+  // annualBenefitTodayDollars — the annualized form of the "At full retirement
+  // age" monthly figure shown above — and adds it to whatever passive income is
+  // already there (a household may have several sources), via the same workbook
+  // write the Plan's own input uses. Only offered when retirement-eligible.
+  const writePlanWorkbook = usePlanWorkbookWriter();
+  const ssAnnualBenefit = fullRetirementAgeResult.annualBenefitTodayDollars;
+  const addPlanPassiveIncome = () =>
+    writePlanWorkbook((workbook) => addPassiveIncome(workbook, ssAnnualBenefit)).then(
+      () => undefined
+    );
+
   return (
     <ToolShell
       title="Social Security benefit calculator"
@@ -1182,6 +1198,13 @@ function SocialSecurityCalculator() {
               context={age70Result.retirementEligible ? "largest monthly check" : undefined}
             />
           </div>
+          {fullRetirementAgeResult.retirementEligible ? (
+            <UseInPlanButton
+              label={`Use in my plan · +${formatCurrency(ssAnnualBenefit)}/yr`}
+              confirmation="Added to your plan's passive income"
+              onUse={addPlanPassiveIncome}
+            />
+          ) : null}
           {!baseResult.retirementEligible ? (
             <p className="rounded-2xl border border-[var(--negative)] bg-[var(--negative-bg)] p-5 text-sm font-medium leading-relaxed text-[var(--negative)] shadow-sm">
               Needs 40 Social Security credits before retirement benefits can be estimated.

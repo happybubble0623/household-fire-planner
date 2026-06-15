@@ -15,6 +15,7 @@ import type {
   Phase1ExpenseCategoryType,
   Phase1FireInputs,
   Phase1FireRuleMode,
+  Phase1HealthcareEstimate,
   Phase1IncomeSource,
   Phase1IncomeSourceOwner,
   Phase1IncomeSourceType,
@@ -673,14 +674,16 @@ function SnapshotTile({ label, children }: { label: string; children: React.Reac
 // engine value from the committed result (the same object the detailed results
 // render). When results are stale or not yet calculated, the FIRE-age and
 // progress tiles show a "Calculate to see" affordance instead of a number. The
-// healthcare tile always links to the calculator: no healthcare estimate is
-// persisted in the workbook today, so there is no real number to surface yet.
+// healthcare tile shows the estimate the user captured from the healthcare
+// calculator ("Use in my plan") if one is persisted in the workbook; otherwise
+// it keeps the "Estimate →" CTA linking to the calculator.
 function SnapshotStrip({
   mode,
   result,
   stale,
   currentAge,
   currentFireAssets,
+  healthcareEstimate,
   onCalculate
 }: {
   mode: Phase1FireRuleMode;
@@ -688,6 +691,7 @@ function SnapshotStrip({
   stale: boolean;
   currentAge: number;
   currentFireAssets: number;
+  healthcareEstimate: Phase1HealthcareEstimate | undefined;
   onCalculate: () => void;
 }) {
   const ready = result !== null && !stale;
@@ -772,12 +776,21 @@ function SnapshotStrip({
       </SnapshotTile>
 
       <SnapshotTile label="Pre-65 healthcare">
-        <Link
-          href="/app/fire-path/tools/healthcare"
-          className="text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
-        >
-          Estimate &rarr;
-        </Link>
+        {healthcareEstimate ? (
+          <Link href="/app/fire-path/tools/healthcare" className="block">
+            <p className="text-2xl font-extrabold leading-tight tracking-tight tabular-nums text-gray-900">
+              {formatCurrency(healthcareEstimate.amount)}
+            </p>
+            <p className="mt-0.5 text-xs font-medium text-gray-500">{healthcareEstimate.basis}</p>
+          </Link>
+        ) : (
+          <Link
+            href="/app/fire-path/tools/healthcare"
+            className="text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
+          >
+            Estimate &rarr;
+          </Link>
+        )}
       </SnapshotTile>
     </div>
   );
@@ -1100,6 +1113,7 @@ export function FireStrategyPanel({
             stale={resultsStale}
             currentAge={inputs.currentAge}
             currentFireAssets={inputs.currentFireAssets}
+            healthcareEstimate={workbook.healthcareEstimate}
             onCalculate={recalculateResults}
           />
         </>

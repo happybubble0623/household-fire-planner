@@ -194,6 +194,21 @@ export type Phase1FireResult = {
   principalPreserving: Phase1PrincipalPreservingResult;
 };
 
+// An optional snapshot of the healthcare calculator's result, persisted into the
+// workbook so the Plan snapshot can surface a real number instead of a CTA. It
+// carries the computed value plus a short basis/label describing it (so the
+// reader is self-explanatory) and a capture timestamp. Being optional, its
+// absence is the "no estimate yet" state and it never affects sync for users
+// who haven't run the calculator (a default workbook omits it entirely).
+export type Phase1HealthcareEstimate = {
+  // The calculator's computed figure, in today's-dollar present value.
+  amount: number;
+  // Short human label describing what `amount` represents.
+  basis: string;
+  // ISO timestamp of when the estimate was captured from the calculator.
+  capturedAt: string;
+};
+
 export type Phase1Workbook = {
   id: "phase1-default";
   schemaVersion: "phase1.7";
@@ -204,6 +219,8 @@ export type Phase1Workbook = {
   portfolioCollectionMemberships: Phase1PortfolioCollectionMembership[];
   lastEodRefreshAt?: string;
   lastImportExportStatus?: string;
+  // Optional captured result from the healthcare calculator (Plan snapshot tile).
+  healthcareEstimate?: Phase1HealthcareEstimate;
 };
 
 export type PortfolioImportRowError = {

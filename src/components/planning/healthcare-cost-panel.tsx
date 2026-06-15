@@ -3,6 +3,9 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { InfoPopover } from "@/components/ui/info-popover";
+import { UseInPlanButton } from "@/components/planning/use-in-plan-button";
+import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
+import { applyHealthcareEstimate } from "@/lib/phase1/plan-mappings";
 import { HealthcareCostChart } from "@/components/charts/calculator-charts";
 import {
   CalculateBar,
@@ -308,6 +311,22 @@ export function HealthcareCostPanel() {
   const gate = useCalculateGate(liveInput);
   const committedInput = gate.value;
   const result = useMemo(() => estimateHealthcareCosts(committedInput), [committedInput]);
+
+  // App-mode "Use in my plan": persist the pre-65 (ACA gap) healthcare estimate
+  // into the workbook so the Plan snapshot's "Pre-65 healthcare" tile shows a
+  // real number. Reuses the engine's already-computed present value — the exact
+  // figure displayed in the "Before 65 · ACA gap" card in today's-dollar mode —
+  // no new math.
+  const writePlanWorkbook = usePlanWorkbookWriter();
+  const acaGapPresentValue = result.presentValueAcaCost;
+  const persistHealthcareEstimate = () =>
+    writePlanWorkbook((workbook) =>
+      applyHealthcareEstimate(workbook, {
+        amount: acaGapPresentValue,
+        basis: `Pre-65 ACA gap · ${result.acaYears} yrs · today's $`,
+        capturedAt: new Date().toISOString()
+      })
+    ).then(() => undefined);
 
   const usageOptions: Array<{ value: OopUsageLevel; label: string }> = [
     { value: "low", label: "Low (healthy year)" },
@@ -1079,6 +1098,13 @@ export function HealthcareCostPanel() {
               </div>
             </div>
           </div>
+
+          {/* App-only: push the pre-65 estimate into the Plan snapshot. */}
+          <UseInPlanButton
+            label={`Use in my plan · ${formatCurrency(acaGapPresentValue)}`}
+            confirmation="Pre-65 healthcare added to your plan"
+            onUse={persistHealthcareEstimate}
+          />
 
           {/* Supporting KPI cards */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
