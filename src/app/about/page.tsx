@@ -52,9 +52,11 @@ export default function AboutPage() {
                   scenarios, tweaking assumptions, asking &ldquo;what if?&rdquo;
                 </p>
                 <p>
-                  Two things always tripped me up. Our savings were scattered across a dozen
-                  accounts — brokerage, 401(k)s, IRAs, my spouse&rsquo;s — so I could never see
-                  the whole household picture, let alone plan around it. And so much of the
+                  Two things always tripped me up. The first: our savings were scattered across a
+                  dozen accounts — brokerage, 401(k)s, IRAs, my spouse&rsquo;s. Pulling them into
+                  one view was hard enough, but even once I could see it all, nothing told me when
+                  our household could actually retire early, how we&rsquo;d cover health insurance
+                  before Medicare, or whether the money would last. And so much of the
                   early-retirement world is buried in jargon that makes it hard to even begin.
                 </p>
                 <p>
