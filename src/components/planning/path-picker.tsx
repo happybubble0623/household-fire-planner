@@ -40,7 +40,7 @@ function Result({ which, onReset }: { which: "income" | "preserve" | "drawdown";
         <h3>{s.navLabel}</h3>
         <p className="paths-why">{s.why}</p>
         <div className="paths-resactions">
-          <Link href={s.href} target="_blank" rel="noreferrer" className="paths-resbtn">
+          <Link href={s.href} className="paths-resbtn">
             Start {s.navLabel} →
           </Link>
           <button type="button" className="paths-seeall" onClick={onReset}>

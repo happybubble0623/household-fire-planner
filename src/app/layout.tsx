@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { AppModeProvider } from "@/components/app-mode-provider";
 import { AppLockProvider } from "@/components/app-lock/app-lock-provider";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { APP_MODE_COOKIE } from "@/lib/app-mode";
 import "./globals.css";
 
@@ -59,7 +60,8 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.svg"
-  }
+  },
+  manifest: "/manifest.webmanifest"
 };
 
 // Sitewide Organization + WebSite structured data. Emitted once in the root
@@ -85,6 +87,7 @@ const webSiteJsonLd = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#15803d",
   // Extend the webview under the iOS status bar / home indicator so the native
   // shell can paint edge-to-edge. The safe-area insets this exposes are 0 in
   // normal browsers, so desktop/mobile web are unchanged; only the iOS app and
@@ -122,6 +125,8 @@ export default async function RootLayout({
               children verbatim — no wrapper, no overlay, no native calls. */}
           <AppLockProvider>{children}</AppLockProvider>
         </AppModeProvider>
+        {/* Registers the offline service worker (browser-only, guarded). */}
+        <ServiceWorkerRegister />
         <Analytics />
         {/* GA4 loads only when NEXT_PUBLIC_GA_ID is set in the environment
             (e.g. Vercel). Stays dormant otherwise so builds/deploys are safe

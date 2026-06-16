@@ -303,12 +303,7 @@ export default function WhatIsFirePage() {
                     </Link>
                   ) : (
                     <div key={flavor.name} className={cardClass}>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{flavor.name}</h3>
-                        <span className="rounded-full bg-[var(--soft)] px-2 py-0.5 text-xs font-medium text-gray-500">
-                          Under development
-                        </span>
-                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">{flavor.name}</h3>
                       <p className="mt-2 text-sm leading-relaxed text-gray-600">{flavor.body}</p>
                     </div>
                   )

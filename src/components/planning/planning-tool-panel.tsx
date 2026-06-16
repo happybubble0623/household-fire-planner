@@ -585,8 +585,6 @@ export function RelatedTools({ current }: { current: PlanningTool }) {
           <Link
             key={tool.slug}
             href={tool.href}
-            target="_blank"
-            rel="noreferrer"
             className="group block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
             <span className="block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">

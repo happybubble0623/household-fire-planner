@@ -502,8 +502,25 @@ function PortfolioLabSection({
 
   async function refreshPrices() {
     const symbols = plan.marketPositions.map((position) => position.symbol).join(",");
-    const response = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols)}`);
-    const payload = (await response.json()) as { prices?: FetchedMarketPrice[]; warning?: string };
+    // Live prices need a connection. Offline (native shell with no network, or a
+    // failed request) degrades to a clear notice instead of a broken screen — the
+    // service worker returns a 503 {offline:true} for /api/* when offline.
+    let response: Response;
+    try {
+      response = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols)}`);
+    } catch {
+      setStatus("You're offline — reconnect to refresh prices.");
+      return;
+    }
+    const payload = (await response.json().catch(() => ({}))) as {
+      prices?: FetchedMarketPrice[];
+      warning?: string;
+      offline?: boolean;
+    };
+    if (payload.offline || !response.ok) {
+      setStatus("You're offline — reconnect to refresh prices.");
+      return;
+    }
     const fetchedPrices = payload.prices ?? [];
     const usablePrices = fetchedPrices.filter((price) => price.closePrice !== null).length;
 

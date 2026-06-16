@@ -845,12 +845,24 @@ async function fetchHistorySeries(
       params.set("assetTypes", relevantPairs.join(","));
     }
 
-    const response = await fetch(`/api/prices/history?${params.toString()}`);
-    const payload = (await response.json()) as {
-      series: MonthlySeriesBySymbol;
-      warning: string | null;
+    // Historical prices are network-dependent. A dropped connection (native
+    // shell offline, or the service worker's 503 {offline:true} for /api/*)
+    // surfaces a clear reconnect notice rather than a cryptic failure.
+    let response: Response;
+    try {
+      response = await fetch(`/api/prices/history?${params.toString()}`);
+    } catch {
+      throw new Error("You're offline — reconnect to refresh prices.");
+    }
+    const payload = (await response.json().catch(() => ({}))) as {
+      series?: MonthlySeriesBySymbol;
+      warning?: string | null;
+      offline?: boolean;
     };
 
+    if (payload.offline) {
+      throw new Error("You're offline — reconnect to refresh prices.");
+    }
     if (!response.ok) {
       throw new Error(payload.warning ?? "Could not fetch historical prices.");
     }

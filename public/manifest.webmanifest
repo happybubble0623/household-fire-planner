@@ -1,0 +1,19 @@
+{
+  "name": "Plan My FIRE",
+  "short_name": "Plan My FIRE",
+  "description": "Free FIRE calculators for your whole household — plan your path to financial independence and early retirement.",
+  "start_url": "/app/fire-path/withdrawal-rate",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#15803d",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}

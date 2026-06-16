@@ -327,8 +327,6 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
                 </ul>
                 <Link
                   href={card.href}
-                  target="_blank"
-                  rel="noreferrer"
                   className="paths-btn"
                 >
                   Start this path →
@@ -349,8 +347,6 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
               <Link
                 key={tool.slug}
                 href={toolHref(tool.slug)}
-                target="_blank"
-                rel="noreferrer"
                 className="tool"
               >
                 <div className="ic">{toolIcons[tool.slug]}</div>

@@ -100,33 +100,32 @@ describe("PathToFirePanel", () => {
     ).toBeInTheDocument();
 
     // Each FIRE mode is reachable (from a strategy card and from the nav
-    // dropdown) — every matching link opens the right route in a new tab.
-    const expectNewTabLink = (name: RegExp, href: string) => {
+    // dropdown) — every matching link navigates to the right route in-app (no
+    // new tab / external open, which Apple flags inside the native shell).
+    const expectInAppLink = (name: RegExp, href: string) => {
       const links = screen.getAllByRole("link", { name });
       const match = links.find((link) => link.getAttribute("href") === href);
       expect(match).toBeTruthy();
-      expect(match).toHaveAttribute("target", "_blank");
-      expect(match).toHaveAttribute("rel", "noreferrer");
+      expect(match).not.toHaveAttribute("target");
     };
 
     // Each comparison card has a "Start this path →" link to the right route,
-    // opened in a new tab. (The nav dropdown exposes the same routes too.)
+    // staying in-app. (The nav dropdown exposes the same routes too.)
     const startLinks = screen.getAllByRole("link", { name: /Start this path/i });
     const expectStartLink = (href: string) => {
       const match = startLinks.find((link) => link.getAttribute("href") === href);
       expect(match).toBeTruthy();
-      expect(match).toHaveAttribute("target", "_blank");
-      expect(match).toHaveAttribute("rel", "noreferrer");
+      expect(match).not.toHaveAttribute("target");
     };
     expectStartLink("/app/fire-path/withdrawal-rate");
     expectStartLink("/app/fire-path/principal-preserving");
     expectStartLink("/app/fire-path/income-stream");
 
     // Calculators are reachable from the cards and the nav dropdown.
-    expectNewTabLink(/Social Security/i, "/app/fire-path/tools/social-security");
-    expectNewTabLink(/Mortgage/i, "/app/fire-path/tools/mortgage");
-    expectNewTabLink(/Investment/i, "/app/fire-path/tools/investment");
-    expectNewTabLink(/Healthcare/i, "/app/fire-path/tools/healthcare");
+    expectInAppLink(/Social Security/i, "/app/fire-path/tools/social-security");
+    expectInAppLink(/Mortgage/i, "/app/fire-path/tools/mortgage");
+    expectInAppLink(/Investment/i, "/app/fire-path/tools/investment");
+    expectInAppLink(/Healthcare/i, "/app/fire-path/tools/healthcare");
 
     // The hub no longer renders its own bespoke top nav — site navigation
     // (Strategies / Calculators dropdowns, About, account affordance, and the
@@ -199,8 +198,7 @@ describe("PathToFirePanel", () => {
       expect(utils.getAllByRole("listitem")).toHaveLength(3);
       const start = utils.getByRole("link", { name: /Start this path/i });
       expect(start).toHaveAttribute("href", spec.href);
-      expect(start).toHaveAttribute("target", "_blank");
-      expect(start).toHaveAttribute("rel", "noreferrer");
+      expect(start).not.toHaveAttribute("target");
     }
 
     // No red crosses (✗) — every bullet is an affirmative green check.
