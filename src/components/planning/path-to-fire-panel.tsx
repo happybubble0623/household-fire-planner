@@ -386,6 +386,18 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
               </Link>
             ))}
           </div>
+          {isAppMode ? (
+            <p className="mt-5 text-sm text-gray-600">
+              Looking for more?{" "}
+              <Link
+                href="/app/calculators"
+                className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+                style={{ color: "var(--primary)" }}
+              >
+                Check more calculators.
+              </Link>
+            </p>
+          ) : null}
         </section>
 
         <div className="foot">
