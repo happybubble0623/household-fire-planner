@@ -888,6 +888,7 @@ function MortgageCalculator() {
             label={`Use in my plan · ${formatCurrency(annualHousingCost)}/yr`}
             confirmation="Added as a housing expense in your plan"
             onUse={addPlanHousingExpense}
+            appOnly={false}
           />
           <MortgagePaymentDonut
             principalInterest={result.monthlyPrincipalInterest}

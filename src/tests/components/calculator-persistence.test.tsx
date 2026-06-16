@@ -38,9 +38,9 @@ beforeEach(() => {
   harness.storedWorkbook = null;
 });
 
-describe("calculator persistence (app-only)", () => {
-  it("WEBSITE mode: never hydrates and never writes (no provider = not app mode)", async () => {
-    // A snapshot exists in storage, but the website must ignore it entirely.
+describe("calculator persistence (website + app)", () => {
+  it("WEBSITE mode: hydrates from a saved snapshot and persists edits (no provider)", async () => {
+    // A snapshot exists in storage; the website now restores it like the app.
     harness.storedWorkbook = {
       ...defaultPhase1Workbook,
       calculatorState: {
@@ -64,13 +64,20 @@ describe("calculator persistence (app-only)", () => {
 
     render(<TaxCalculator />);
 
-    // Default value, NOT the stored 222,222 → no hydration on the website.
-    expect(screen.getByLabelText("W-2 wages (salary)")).toHaveValue("100000");
+    // Stored 222,222 is restored on the website too (no AppModeProvider needed).
+    await waitFor(() =>
+      expect(screen.getByLabelText("W-2 wages (salary)")).toHaveValue("222222")
+    );
 
-    // Editing on the website must not persist anything.
+    // Editing on the website persists (debounced) just like the app.
     fireEvent.change(screen.getByLabelText("W-2 wages (salary)"), { target: { value: "133000" } });
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    expect(harness.writes).toHaveLength(0);
+    await waitFor(
+      () => {
+        const last = harness.writes.at(-1) as Phase1Workbook | undefined;
+        expect(last?.calculatorState?.tax?.inputs.w2Wages).toBe(133000);
+      },
+      { timeout: 2000 }
+    );
   });
 
   it("APP mode: hydrates inputs from a saved snapshot on mount", async () => {

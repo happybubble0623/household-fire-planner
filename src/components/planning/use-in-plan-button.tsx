@@ -3,26 +3,32 @@
 import { useState } from "react";
 import { useIsAppMode } from "@/components/app-mode-provider";
 
-// One-tap "Use in my plan" affordance shown ONLY in the Capacitor app. On the
-// website it renders nothing, so calculator pages are unchanged there. The
-// caller supplies an async `onUse` that writes into the persisted workbook (via
-// usePlanWorkbookWriter); this component owns the idle → saving → done UI and a
-// confirmation line so the user sees their result landed in the plan.
+// One-tap "Use in my plan" affordance. By default it's shown ONLY in the
+// Capacitor app (`appOnly`); on the website it renders nothing, so calculator
+// pages are unchanged there. The Mortgage and Tax calculators deliberately
+// opt out via `appOnly={false}` so their plan mappings work on the website too.
+// The caller supplies an async `onUse` that writes into the persisted workbook
+// (via usePlanWorkbookWriter); this component owns the idle → saving → done UI
+// and a confirmation line so the user sees their result landed in the plan.
 export function UseInPlanButton({
   label,
   confirmation,
-  onUse
+  onUse,
+  appOnly = true
 }: {
   // Button text, e.g. "Use in my plan".
   label: string;
   // Confirmation shown after a successful write, e.g. "Added to your plan".
   confirmation: string;
   onUse: () => Promise<void>;
+  // When false, the button also renders on the website (used only by Mortgage
+  // and Tax). Defaults to true, keeping every other caller app-only.
+  appOnly?: boolean;
 }) {
   const isAppMode = useIsAppMode();
   const [state, setState] = useState<"idle" | "saving" | "done" | "error">("idle");
 
-  if (!isAppMode) return null;
+  if (appOnly && !isAppMode) return null;
 
   async function handleClick() {
     setState("saving");

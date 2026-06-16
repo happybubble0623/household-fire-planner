@@ -349,7 +349,10 @@ describe("PathToFirePanel", () => {
     const tools: Array<[RegExp, string]> = [
       [/Social Security benefit calculator/i, "/app/fire-path/tools/social-security"],
       [/Retirement healthcare cost calculator/i, "/app/fire-path/tools/healthcare"],
-      [/Mortgage calculator/i, "/app/fire-path/tools/mortgage"],
+      // Anchored: the strategy panel's expense-category picker now also links to
+      // the Mortgage calculator on the website ("Compute it in the Mortgage
+      // calculator"), so match only the nav-card link, whose name starts here.
+      [/^Mortgage calculator/i, "/app/fire-path/tools/mortgage"],
       [/Investment calculator/i, "/app/fire-path/tools/investment"]
     ];
     for (const [name, href] of tools) {
@@ -389,7 +392,9 @@ describe("PathToFirePanel", () => {
       screen.getByRole("link", { name: /Retirement healthcare cost calculator/i })
     ).toHaveAttribute("href", "/app/fire-path/tools/healthcare");
     expect(
-      screen.getByRole("link", { name: /Mortgage calculator/i })
+      // Anchored to the nav-card link; the picker's "Compute it in the Mortgage
+      // calculator" link now also renders on the website.
+      screen.getByRole("link", { name: /^Mortgage calculator/i })
     ).toHaveAttribute("href", "/app/fire-path/tools/mortgage");
   });
 

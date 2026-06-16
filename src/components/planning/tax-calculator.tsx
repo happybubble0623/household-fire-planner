@@ -389,6 +389,7 @@ export function TaxCalculator() {
             label={`Use in my plan · ${PERCENT_FORMATTER.format(result.effectiveTaxRate)} tax rate`}
             confirmation="Set as your plan's simple effective tax rate"
             onUse={setPlanTaxRate}
+            appOnly={false}
           />
 
           {/* Full line-item breakdown of every component that sums to total tax. */}

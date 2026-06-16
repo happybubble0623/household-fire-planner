@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useIsAppMode } from "@/components/app-mode-provider";
 import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
 import { ensurePhase1Workbook } from "@/lib/storage/phase1-store";
 import { applyCalculatorSnapshot } from "@/lib/phase1/plan-mappings";
@@ -19,24 +18,23 @@ const PERSIST_DEBOUNCE_MS = 600;
 type InputsFor<K extends Phase1CalculatorKey> = NonNullable<Phase1CalculatorState[K]>["inputs"];
 
 /**
- * APP-ONLY calculator persistence. Lets a calculator remember its inputs and a
- * small summary of its result so returning to the tool restores the last
- * session — saved locally (Dexie) and, when signed in, synced to the account via
- * the existing workbook sync.
+ * Calculator persistence. Lets a calculator remember its inputs and a small
+ * summary of its result so returning to the tool restores the last session —
+ * saved locally (Dexie) and, when signed in, synced to the account via the
+ * existing workbook sync. Runs in BOTH website and app mode.
  *
- * Gated entirely on `useIsAppMode()`: on the WEBSITE this is a no-op (no
- * hydration, no writes), so website calculators behave byte-for-byte as before.
+ * SSR-safe: every Dexie read/write happens inside a `useEffect`, so nothing
+ * touches `window`/IndexedDB during server rendering.
  *
- * - On mount (app mode): if the workbook holds a saved snapshot for `toolKey`,
+ * - On mount: if the workbook holds a saved snapshot for `toolKey`,
  *   `applyInputs` rehydrates the calculator's input state. `commitResult` (a
  *   calculator's Calculate-gate `recalculate`) is then fired so the restored
  *   result shows immediately instead of an "Edit mode" prompt.
- * - On change (app mode, debounced): the current inputs + result summary are
- *   written into `calculatorState[toolKey]` through the same workbook writer the
- *   "Use in my plan" buttons use, so it persists to Dexie and rides cloud sync.
- *
- * Hooks are always called (Rules of Hooks); only their effects branch on app
- * mode, so the hook is safe to call unconditionally from every calculator.
+ * - On change (debounced, after hydration): the current inputs + result summary
+ *   are written into `calculatorState[toolKey]` through the same workbook writer
+ *   the "Use in my plan" buttons use, so it persists to Dexie and rides cloud
+ *   sync. The `hydratedRef` guard keeps the calculator's transient default state
+ *   from clobbering a saved snapshot before hydration completes.
  */
 export function useCalculatorPersistence<K extends Phase1CalculatorKey>({
   toolKey,
@@ -51,7 +49,6 @@ export function useCalculatorPersistence<K extends Phase1CalculatorKey>({
   result: Phase1CalculatorResultSummary;
   commitResult?: () => void;
 }): void {
-  const isAppMode = useIsAppMode();
   const writeWorkbook = usePlanWorkbookWriter();
 
   // Refs keep the latest callbacks without re-running the mount-only hydration
@@ -71,9 +68,8 @@ export function useCalculatorPersistence<K extends Phase1CalculatorKey>({
   // render that already reflects the restored inputs (so the gate isn't stale).
   const [committedTick, setCommittedTick] = useState(0);
 
-  // Hydrate once on mount — app mode only.
+  // Hydrate once on mount.
   useEffect(() => {
-    if (!isAppMode) return;
     let cancelled = false;
 
     void (async () => {
@@ -96,7 +92,7 @@ export function useCalculatorPersistence<K extends Phase1CalculatorKey>({
       cancelled = true;
     };
     // toolKey is stable per calculator; intentionally mount-once per tool.
-  }, [isAppMode, toolKey]);
+  }, [toolKey]);
 
   // After a snapshot's inputs are applied, recompute the gated result so the
   // restored figure displays immediately. Runs on the render that already has
@@ -106,14 +102,14 @@ export function useCalculatorPersistence<K extends Phase1CalculatorKey>({
     commitResultRef.current?.();
   }, [committedTick]);
 
-  // Persist on change (app mode, debounced, after hydration). Serializing the
-  // inputs + result gives a stable change signal and lets us skip redundant
-  // writes of identical content.
+  // Persist on change (debounced, after hydration). Serializing the inputs +
+  // result gives a stable change signal and lets us skip redundant writes of
+  // identical content.
   const serialized = JSON.stringify({ inputs, result });
   const lastSerializedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isAppMode || !hydratedRef.current) return;
+    if (!hydratedRef.current) return;
     if (serialized === lastSerializedRef.current) return;
 
     const handle = setTimeout(() => {
@@ -128,5 +124,5 @@ export function useCalculatorPersistence<K extends Phase1CalculatorKey>({
     }, PERSIST_DEBOUNCE_MS);
 
     return () => clearTimeout(handle);
-  }, [isAppMode, toolKey, serialized, inputs, result, writeWorkbook]);
+  }, [toolKey, serialized, inputs, result, writeWorkbook]);
 }

@@ -1352,19 +1352,17 @@ export function FireStrategyPanel({
                 fieldKey="simpleEffectiveTaxRatePercent"
               />
             ) : null}
-            {isAppMode ? (
-              <p className="text-xs leading-relaxed text-gray-500">
-                Keep &ldquo;No tax adjustment&rdquo; for a pre-tax view, or{" "}
-                <Link
-                  href="/app/fire-path/tools/tax"
-                  className="font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
-                >
-                  estimate an effective rate in the Tax calculator
-                </Link>{" "}
-                and send it here. That rate reflects the income scenario you entered —
-                retirement-withdrawal taxes can differ, so treat it as a planning estimate.
-              </p>
-            ) : null}
+            <p className="text-xs leading-relaxed text-gray-500">
+              Keep &ldquo;No tax adjustment&rdquo; for a pre-tax view, or{" "}
+              <Link
+                href="/app/fire-path/tools/tax"
+                className="font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
+              >
+                estimate an effective rate in the Tax calculator
+              </Link>{" "}
+              and send it here. That rate reflects the income scenario you entered —
+              retirement-withdrawal taxes can differ, so treat it as a planning estimate.
+            </p>
           </>
         </InputSectionCard>
 
@@ -1475,7 +1473,7 @@ export function FireStrategyPanel({
                         </option>
                       ))}
                     </select>
-                    {isAppMode && expenseCategoryDraft.type === "housing" ? (
+                    {expenseCategoryDraft.type === "housing" ? (
                       <p className="mt-2 text-xs leading-relaxed text-gray-500">
                         Not sure of the amount?{" "}
                         <Link
