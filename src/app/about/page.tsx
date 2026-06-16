@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { ContactForm } from "@/components/contact/contact-form";
 import { AppShell } from "@/components/layout/app-shell";
 
@@ -95,7 +96,11 @@ export default function AboutPage() {
             </div>
             <p className="mt-6 text-sm leading-relaxed text-gray-500">
               Your message is stored securely and used only to respond to your feedback. It is
-              never shared or used for marketing.
+              never shared or used for marketing. See our{" "}
+              <Link href="/privacy" className="font-medium text-gray-600 hover:underline">
+                Privacy Policy
+              </Link>
+              .
             </p>
           </section>
         </div>
