@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useIsAppMode } from "@/components/app-mode-provider";
+import { APP_MODE_QUERY_PARAM } from "@/lib/app-mode";
 
 // Mobile-first bottom tab bar for the in-app experience. Gated on APP MODE
 // only, so it renders ONLY inside the Capacitor iOS app — never on the website
@@ -123,10 +124,23 @@ export function MobileTabBar() {
     >
       {TABS.map((tab) => {
         const active = tab.isActive(pathname);
+        // Carry the app-mode flag on every tab destination. In a normal browser
+        // a tab tap is a client-side <Link> navigation and app mode persists via
+        // React context, so the flag is a harmless no-op. Inside the Capacitor
+        // iOS WebView, however, a tab tap can resolve to a FULL document load
+        // (the offline service worker mediates navigations), and on a full load
+        // the persisted `pmf_app` cookie set via document.cookie is not reliably
+        // attached to the request — so the server would render WEBSITE mode and
+        // the website header would flash/stick ("redirected to the webpage").
+        // The query flag is the highest-trust signal in detectAppModeClient(),
+        // read before the cookie/localStorage, so the destination stays in app
+        // mode regardless of cookie propagation. App-mode only — this tab bar
+        // never renders on the website, so website URLs are unaffected.
+        const href = `${tab.href}?${APP_MODE_QUERY_PARAM}=1`;
         return (
           <Link
             key={tab.href}
-            href={tab.href}
+            href={href}
             aria-current={active ? "page" : undefined}
             onClick={(event) => {
               // Already on this tab's route → scroll to top instead of a

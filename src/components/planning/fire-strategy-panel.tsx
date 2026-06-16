@@ -608,7 +608,22 @@ function StrategyCalculatorLinks({ excludeInvestment }: { excludeInvestment: boo
               <path d="M6 9l6 6 6-6" />
             </svg>
           </summary>
-          <div className="border-t border-gray-200 px-6 py-5">{grid}</div>
+          <div className="border-t border-gray-200 px-6 py-5">
+            {grid}
+            {/* App-only pointer to the full six-calculator list (this grid shows
+                only the four PLANNING_TOOLS). Gated to app mode — the website
+                grid below never renders it. */}
+            <p className="mt-5 text-sm text-gray-600">
+              Looking for more?{" "}
+              <Link
+                href="/app/calculators"
+                className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+                style={{ color: "var(--primary)" }}
+              >
+                Check more calculators.
+              </Link>
+            </p>
+          </div>
         </details>
       </Card>
     );
