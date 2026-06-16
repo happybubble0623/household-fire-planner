@@ -14,6 +14,7 @@ import {
   MortgagePaymentDonut
 } from "@/components/charts/calculator-charts";
 import { HealthcareCostPanel } from "@/components/planning/healthcare-cost-panel";
+import { CollapsibleSection } from "@/components/planning/collapsible-section";
 import { UseInPlanButton } from "@/components/planning/use-in-plan-button";
 import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
 import { useCalculatorPersistence } from "@/lib/storage/use-calculator-persistence";
@@ -552,54 +553,79 @@ export function PlanningToolPanel({ tool }: { tool: PlanningTool }) {
 // "More planning tools" footer linking to the sibling calculators. Single
 // source of truth is PLANNING_TOOLS, so adding a tool updates every surface.
 export function RelatedTools({ current }: { current: PlanningTool }) {
+  const isAppMode = useIsAppMode();
   const tools = relatedPlanningTools(current);
   if (tools.length === 0) return null;
+
+  // The flagship card + sibling-tool grid are identical in both modes; only the
+  // wrapper differs (see below).
+  const flagshipCard = (
+    <Link
+      href="/app/portfolio-lab"
+      className="group block rounded-2xl border-[1.5px] border-[var(--gold)] bg-[var(--surface)] p-5 shadow-md ring-4 ring-[var(--gold-bg)] transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+    >
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-2.5 py-1 text-[11px] font-bold text-gray-900">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
+          <path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z" />
+        </svg>
+        Our flagship
+      </span>
+      <span className="mt-3 block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
+        Understand Your Portfolio
+      </span>
+      <span className="mt-2 block text-sm leading-relaxed text-gray-500">
+        See every account in one place — your whole household portfolio, with daily prices. Free,
+        no login.
+      </span>
+      <span className="mt-3 inline-block text-[13px] font-semibold text-[var(--primary-hover)]">
+        Open the Portfolio Tracker &rarr;
+      </span>
+    </Link>
+  );
+  const toolsGrid = (
+    <div className="grid gap-4 md:grid-cols-3">
+      {tools.map((tool) => (
+        <Link
+          key={tool.slug}
+          href={tool.href}
+          className="group block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+        >
+          <span className="block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
+            {tool.title}
+          </span>
+          <span className="mt-2 block text-sm leading-relaxed text-gray-500">
+            {tool.description}
+          </span>
+          <span className="mt-3 inline-block text-[13px] font-semibold text-[var(--primary-hover)]">
+            Explore &rarr;
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+
+  // App mode: tuck this footer away as a collapsed-by-default disclosure with the
+  // same heading typography as the "Questions & answers" section (via
+  // CollapsibleSection), so all calculator section titles look consistent. The
+  // website keeps the always-visible nav with its small uppercase eyebrow.
+  if (isAppMode) {
+    return (
+      <CollapsibleSection heading="More planning tools" headingId="more-planning-tools-heading">
+        <div className="space-y-3">
+          {flagshipCard}
+          {toolsGrid}
+        </div>
+      </CollapsibleSection>
+    );
+  }
 
   return (
     <nav aria-label="More planning tools" className="space-y-3">
       <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
         More planning tools
       </h2>
-      <Link
-        href="/app/portfolio-lab"
-        className="group block rounded-2xl border-[1.5px] border-[var(--gold)] bg-[var(--surface)] p-5 shadow-md ring-4 ring-[var(--gold-bg)] transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-      >
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-2.5 py-1 text-[11px] font-bold text-gray-900">
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
-            <path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z" />
-          </svg>
-          Our flagship
-        </span>
-        <span className="mt-3 block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
-          Understand Your Portfolio
-        </span>
-        <span className="mt-2 block text-sm leading-relaxed text-gray-500">
-          See every account in one place — your whole household portfolio, with daily prices. Free,
-          no login.
-        </span>
-        <span className="mt-3 inline-block text-[13px] font-semibold text-[var(--primary-hover)]">
-          Open the Portfolio Tracker &rarr;
-        </span>
-      </Link>
-      <div className="grid gap-4 md:grid-cols-3">
-        {tools.map((tool) => (
-          <Link
-            key={tool.slug}
-            href={tool.href}
-            className="group block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-          >
-            <span className="block text-base font-semibold text-gray-900 transition group-hover:text-[var(--primary)]">
-              {tool.title}
-            </span>
-            <span className="mt-2 block text-sm leading-relaxed text-gray-500">
-              {tool.description}
-            </span>
-            <span className="mt-3 inline-block text-[13px] font-semibold text-[var(--primary-hover)]">
-              Explore &rarr;
-            </span>
-          </Link>
-        ))}
-      </div>
+      {flagshipCard}
+      {toolsGrid}
     </nav>
   );
 }
