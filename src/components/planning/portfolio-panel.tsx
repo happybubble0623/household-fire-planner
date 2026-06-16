@@ -9,6 +9,8 @@ import {
   CalendarClock,
   Cloud,
   Download,
+  Eye,
+  EyeOff,
   Info,
   Layers,
   Pencil,
@@ -22,6 +24,11 @@ import {
 } from "lucide-react";
 import { PortfolioCollectionsPanel } from "@/components/planning/portfolio-collections-panel";
 import { PortfolioBacktestPanel } from "@/components/planning/portfolio-backtest-panel";
+import {
+  PortfolioPrivacyProvider,
+  useMaskCurrency
+} from "@/components/planning/portfolio-privacy";
+import { maskCurrency } from "@/lib/phase1/mask-currency";
 import { AddHoldingForm } from "@/components/planning/add-holding-form";
 import { InfoPopover } from "@/components/ui/info-popover";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
@@ -172,6 +179,12 @@ export function PortfolioPanel({
   );
   const [portfolioTableSearch, setPortfolioTableSearch] = useState("");
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+  // "Hide values" privacy toggle — per-session plain state (NOT persisted or
+  // synced), so it resets to OFF on reload. Drives masking of every dollar
+  // figure across the portfolio tracker on both website and app; percentages,
+  // names, tickers and dates stay visible. Provided to the portfolio tree via
+  // PortfolioPrivacyProvider so nested sub-panels can mask without prop drilling.
+  const [valuesHidden, setValuesHidden] = useState(false);
 
   const scopedPortfolioItems = useMemo(
     () => getAnalyzedPortfolioItems(workbook.portfolioItems, portfolioScope),
@@ -559,6 +572,7 @@ export function PortfolioPanel({
   };
 
   return (
+    <PortfolioPrivacyProvider hidden={valuesHidden}>
     <div className="space-y-6">
       <section className="space-y-5">
         <div className="flex flex-col gap-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
@@ -594,6 +608,23 @@ export function PortfolioPanel({
             </ul>
           </div>
           <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+            {/* Per-session privacy toggle. Default OFF (values shown). Masks
+                every dollar figure across the tracker when ON; resets on
+                reload. Shown on both website and app. */}
+            <button
+              type="button"
+              aria-pressed={valuesHidden}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted)]"
+              onClick={() => setValuesHidden((hidden) => !hidden)}
+              title="Hide every dollar amount on this page. Percentages stay visible. Resets when you reload."
+            >
+              {valuesHidden ? (
+                <EyeOff aria-hidden="true" size={16} />
+              ) : (
+                <Eye aria-hidden="true" size={16} />
+              )}
+              {valuesHidden ? "Show values" : "Hide values"}
+            </button>
             <div className="flex items-center gap-1.5">
               <InfoPopover
                 label="Update today's prices"
@@ -649,7 +680,8 @@ export function PortfolioPanel({
                 <ArrowRight aria-hidden="true" size={16} />
               </Link>
               <span className="text-xs text-[var(--muted-foreground)]">
-                {formatCurrency(portfolioSummary.includedInFire)} marked for FIRE
+                {maskCurrency(formatCurrency(portfolioSummary.includedInFire), valuesHidden)} marked
+                for FIRE
               </span>
             </div>
             {!user ? (
@@ -747,7 +779,7 @@ export function PortfolioPanel({
             >
               <Metric
                 label="Analyzed net worth"
-                value={formatCurrency(analyzedSummary.totalNetBalance)}
+                value={maskCurrency(formatCurrency(analyzedSummary.totalNetBalance), valuesHidden)}
                 note={`${analyzedSummary.itemCount} row${
                   analyzedSummary.itemCount === 1 ? "" : "s"
                 } for ${selectedFocusLabel}`}
@@ -755,18 +787,21 @@ export function PortfolioPanel({
               />
               <Metric
                 label="Assets"
-                value={formatCurrency(analyzedSummary.totalAssets)}
+                value={maskCurrency(formatCurrency(analyzedSummary.totalAssets), valuesHidden)}
                 note="Before liabilities"
               />
               <Metric
                 label="Liabilities"
-                value={formatCurrency(analyzedSummary.totalLiabilities)}
+                value={maskCurrency(
+                  formatCurrency(analyzedSummary.totalLiabilities),
+                  valuesHidden
+                )}
                 note="Debt impact"
                 danger={analyzedSummary.totalLiabilities < 0}
               />
               <Metric
                 label="Included in FIRE"
-                value={formatCurrency(analyzedSummary.includedInFire)}
+                value={maskCurrency(formatCurrency(analyzedSummary.includedInFire), valuesHidden)}
                 note={
                   portfolioScope === "fire"
                     ? "Current scope · primary home excluded"
@@ -1196,7 +1231,7 @@ export function PortfolioPanel({
                       {visibleTableColumnSet.has("unitPrice") ? (
                         <Td>
                           {marketPriced && item.unitPrice !== undefined
-                            ? formatCurrency(item.unitPrice)
+                            ? maskCurrency(formatCurrency(item.unitPrice), valuesHidden)
                             : "--"}
                         </Td>
                       ) : null}
@@ -1209,7 +1244,7 @@ export function PortfolioPanel({
                       ) : null}
                       {visibleTableColumnSet.has("balance") ? (
                         <Td className={balance < 0 ? "text-[var(--negative)]" : undefined}>
-                          {formatCurrency(balance)}
+                          {maskCurrency(formatCurrency(balance), valuesHidden)}
                         </Td>
                       ) : null}
                       {visibleTableColumnSet.has("collections") ? (
@@ -1292,6 +1327,7 @@ export function PortfolioPanel({
         </Link>
       ) : null}
     </div>
+    </PortfolioPrivacyProvider>
   );
 }
 
@@ -1351,6 +1387,8 @@ function PortfolioHoldingCards({
   onEdit: (item: Phase1PortfolioItem) => void;
   onDelete: (item: Phase1PortfolioItem) => void;
 }) {
+  const maskValue = useMaskCurrency();
+
   if (items.length === 0) {
     return (
       <div className="mt-4 rounded-md border border-[var(--border)] px-3 py-6 text-center text-sm text-[var(--muted-foreground)]">
@@ -1397,7 +1435,7 @@ function PortfolioHoldingCards({
                       balance < 0 ? "text-[var(--negative)]" : "text-gray-900"
                     }`}
                   >
-                    {formatCurrency(balance)}
+                    {maskValue(formatCurrency(balance))}
                   </span>
                 </div>
                 {item.symbol ? (
@@ -1480,6 +1518,7 @@ function PortfolioVisualSummary({
   title: string;
   subtitle: string;
 }) {
+  const maskValue = useMaskCurrency();
   const totalVisualValue = segments.reduce((total, segment) => total + segment.visualValue, 0);
 
   return (
@@ -1543,7 +1582,7 @@ function PortfolioVisualSummary({
                   />
                 </div>
                 <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                  {formatCurrency(segment.balance)}
+                  {maskValue(formatCurrency(segment.balance))}
                 </p>
               </div>
             ))
@@ -1569,6 +1608,8 @@ function PortfolioLensBreakdown({
   selectedFocus: string;
   onFocusChange: (focus: string) => void;
 }) {
+  const maskValue = useMaskCurrency();
+
   return (
     <section
       aria-label="Portfolio lens breakdown"
@@ -1627,7 +1668,7 @@ function PortfolioLensBreakdown({
                 />
               </div>
               <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-                {formatCurrency(segment.balance)} across {segment.itemCount} row
+                {maskValue(formatCurrency(segment.balance))} across {segment.itemCount} row
                 {segment.itemCount === 1 ? "" : "s"}
               </p>
             </button>

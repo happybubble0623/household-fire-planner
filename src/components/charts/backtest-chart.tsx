@@ -15,9 +15,13 @@ type BacktestChartRow = { date: string } & Record<string, number | string>;
 type BacktestChartProps = {
   data: BacktestChartRow[];
   lines: BacktestChartLine[];
+  // When true (Portfolio tracker "Hide values" toggle), the dollar Y-axis tick
+  // labels and the tooltip's dollar readout are masked. The line shapes, dates,
+  // and legend are untouched, so the chart still conveys relative performance.
+  hideValues?: boolean;
 };
 
-export function BacktestChart({ data, lines }: BacktestChartProps) {
+export function BacktestChart({ data, lines, hideValues = false }: BacktestChartProps) {
   const isClient = useSyncExternalStore(
     () => () => undefined,
     () => true,
@@ -47,7 +51,9 @@ export function BacktestChart({ data, lines }: BacktestChartProps) {
           />
           <YAxis
             tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-            tickFormatter={(value) => `$${Math.round(Number(value) / 1000)}k`}
+            tickFormatter={(value) =>
+              hideValues ? "••" : `$${Math.round(Number(value) / 1000)}k`
+            }
             width={56}
           />
           <Tooltip
@@ -67,7 +73,7 @@ export function BacktestChart({ data, lines }: BacktestChartProps) {
               letterSpacing: "0.04em"
             }}
             formatter={(value, name) => [
-              `$${Math.round(Number(value ?? 0)).toLocaleString()}`,
+              hideValues ? "••••" : `$${Math.round(Number(value ?? 0)).toLocaleString()}`,
               name
             ]}
             labelFormatter={(value) => `Month: ${value}`}

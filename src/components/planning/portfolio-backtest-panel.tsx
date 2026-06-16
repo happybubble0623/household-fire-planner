@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { FlaskConical, Plus, X } from "lucide-react";
 import { BacktestChart } from "@/components/charts/backtest-chart";
 import type { BacktestChartLine } from "@/components/charts/backtest-chart";
+import {
+  useMaskCurrency,
+  usePortfolioValuesHidden
+} from "@/components/planning/portfolio-privacy";
 import { calculatePortfolioItemBalance, isMarketPricedType } from "@/lib/phase1/portfolio";
 import {
   computeBacktestAnalysis,
@@ -373,6 +377,8 @@ function BacktestResult({
   result: BacktestRunResult;
   benchmarks: string[];
 }) {
+  const maskValue = useMaskCurrency();
+  const valuesHidden = usePortfolioValuesHidden();
   const activeBenchmarks = benchmarks.filter(
     (benchmark) => !result.skippedBenchmarks.includes(benchmark)
   );
@@ -391,11 +397,14 @@ function BacktestResult({
         Window: {result.windowStart} → {result.windowEnd}
         {result.warning ? ` · ${result.warning}` : ""}
       </p>
-      <BacktestChart data={result.chartRows} lines={lines} />
+      <BacktestChart data={result.chartRows} lines={lines} hideValues={valuesHidden} />
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Start value" value={formatCurrency(result.portfolioStats.startValue)} />
-        <Stat label="End value" value={formatCurrency(result.portfolioStats.endValue)} />
+        <Stat
+          label="Start value"
+          value={maskValue(formatCurrency(result.portfolioStats.startValue))}
+        />
+        <Stat label="End value" value={maskValue(formatCurrency(result.portfolioStats.endValue))} />
         <Stat
           label="Total return"
           value={formatPercent(result.portfolioStats.totalReturnPercent)}
@@ -475,6 +484,8 @@ function BacktestResult({
 // rank by DOLLAR contribution; stress ranks by drawdown depth. Hidden when there
 // are too few holdings for a ranking to say anything.
 function QuickAnalysis({ analysis }: { analysis: BacktestAnalysis }) {
+  const maskValue = useMaskCurrency();
+
   if (analysis.topContributors.length < 2) {
     return null;
   }
@@ -490,7 +501,7 @@ function QuickAnalysis({ analysis }: { analysis: BacktestAnalysis }) {
           subtitle="Largest dollar gains"
           holdings={analysis.topContributors}
           metric={(holding) =>
-            `${formatSignedCurrency(holding.dollarChange)} · ${formatPercent(holding.returnPct * 100)}`
+            `${maskValue(formatSignedCurrency(holding.dollarChange))} · ${formatPercent(holding.returnPct * 100)}`
           }
         />
         <AnalysisGroup
@@ -498,7 +509,7 @@ function QuickAnalysis({ analysis }: { analysis: BacktestAnalysis }) {
           subtitle="Largest declines or smallest gains"
           holdings={analysis.biggestDrags}
           metric={(holding) =>
-            `${formatSignedCurrency(holding.dollarChange)} · ${formatPercent(holding.returnPct * 100)}`
+            `${maskValue(formatSignedCurrency(holding.dollarChange))} · ${formatPercent(holding.returnPct * 100)}`
           }
         />
         <AnalysisGroup
