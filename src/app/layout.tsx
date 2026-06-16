@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { AppModeProvider } from "@/components/app-mode-provider";
+import { AppLockProvider } from "@/components/app-lock/app-lock-provider";
 import { APP_MODE_COOKIE } from "@/lib/app-mode";
 import "./globals.css";
 
@@ -116,7 +117,11 @@ export default async function RootLayout({
         />
       </head>
       <body>
-        <AppModeProvider initialIsAppMode={isAppMode}>{children}</AppModeProvider>
+        <AppModeProvider initialIsAppMode={isAppMode}>
+          {/* App-only Face ID lock. On the website (not app mode) it renders
+              children verbatim — no wrapper, no overlay, no native calls. */}
+          <AppLockProvider>{children}</AppLockProvider>
+        </AppModeProvider>
         <Analytics />
         {/* GA4 loads only when NEXT_PUBLIC_GA_ID is set in the environment
             (e.g. Vercel). Stays dormant otherwise so builds/deploys are safe
