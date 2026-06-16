@@ -18,7 +18,10 @@
  * are captured at runtime on the first online visit and served from cache after.
  */
 
-const VERSION = "v1";
+// Bump VERSION on any change to caching behavior: `activate` deletes every cache
+// whose name doesn't match the current version, so a bump purges stale shells
+// (e.g. any document cached before navigations/RSC became network-first).
+const VERSION = "v2";
 const PRECACHE = `pmf-precache-${VERSION}`;
 const RUNTIME = `pmf-runtime-${VERSION}`;
 
@@ -103,7 +106,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (request.mode === "navigate") {
+  // App Router navigations AND their RSC data payloads must come from the
+  // network when online, so a fresh deploy reaches every client immediately and
+  // is never shadowed by a stale cached shell (which could pin OLD app/website
+  // markup or old tab links). Cache is used only as the offline fallback. The
+  // hashed /_next/static assets below stay cache-first — their filenames change
+  // every build, so a cached chunk is never stale for a new deploy.
+  const isRscRequest =
+    request.headers.get("RSC") === "1" || url.searchParams.has("_rsc");
+  if (request.mode === "navigate" || isRscRequest) {
     event.respondWith(networkFirst(request));
     return;
   }

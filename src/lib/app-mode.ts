@@ -16,6 +16,28 @@ export const APP_MODE_COOKIE = "pmf_app";
 export const APP_MODE_STORAGE_KEY = "pmf_app";
 export const APP_MODE_QUERY_PARAM = "pmfApp";
 
+// The Capacitor iOS shell appends this token to the WebView's User-Agent (see
+// `ios.appendUserAgent` in capacitor.config.ts). Unlike the cookie or query
+// flag, the User-Agent rides on EVERY HTTP request the WebView makes — the
+// initial document, every full-page reload, AND every server round-trip — and
+// it is the same in-process value the browser exposes as `navigator.userAgent`.
+// That makes it the one app-mode signal that:
+//   • the SERVER can read on a bare full-load (the root layout can't read the
+//     query param, and WKWebView does not reliably attach the `document.cookie`
+//     cookie to navigation requests), so SSR gates app mode from the first byte
+//     with no website-chrome flash; and
+//   • does not depend on cookie/localStorage persistence (unreliable across
+//     WKWebView navigations) or on the Capacitor bridge being injected.
+// Normal browsers never carry this token, so the website is unaffected.
+export const APP_MODE_USER_AGENT_TAG = "PlanMyFIREApp";
+
+// Works on both the server (pass a request User-Agent header) and the client
+// (pass navigator.userAgent). Pure + side-effect-free so it's safe to import in
+// a Server Component.
+export function isAppModeUserAgent(userAgent: string | null | undefined): boolean {
+  return typeof userAgent === "string" && userAgent.includes(APP_MODE_USER_AGENT_TAG);
+}
+
 type CapacitorGlobal = {
   Capacitor?: { isNativePlatform?: () => boolean };
 };
@@ -31,6 +53,13 @@ export function detectAppModeClient(): boolean {
     if (params.get(APP_MODE_QUERY_PARAM) === "1") return true;
   } catch {
     // Malformed URL — fall through to the other signals.
+  }
+
+  // The native shell's appended User-Agent token is present on every in-app
+  // load (full or client-side), so this re-confirms app mode even when the
+  // query flag, cookie, and localStorage are all absent.
+  if (typeof navigator !== "undefined" && isAppModeUserAgent(navigator.userAgent)) {
+    return true;
   }
 
   const capacitor = (window as unknown as CapacitorGlobal).Capacitor;

@@ -12,6 +12,18 @@ const config: CapacitorConfig = {
   appId: 'com.planmyfi.app',
   appName: 'Plan My FIRE',
   webDir: 'public',
+  ios: {
+    // Append a stable token to the WKWebView User-Agent so the hosted site can
+    // detect APP MODE on the SERVER for every request — including a bare
+    // full-page reload from a bottom-tab tap, where the query flag is gone and
+    // WKWebView does not reliably attach the persisted `pmf_app` cookie. The
+    // server (root layout) keys app mode off this token (see
+    // APP_MODE_USER_AGENT_TAG in src/lib/app-mode.ts), so SSR renders the
+    // in-app chrome from the first byte and never flashes the website header.
+    // Must stay in sync with APP_MODE_USER_AGENT_TAG. Requires `npx cap sync ios`
+    // + a native rebuild to take effect (the UA is baked into the build).
+    appendUserAgent: 'PlanMyFIREApp',
+  },
   server: {
     // Open the app straight into the plan (Portfolio Drawdown strategy) — app
     // users have already converted, so skip the marketing hub. The website's
@@ -20,7 +32,9 @@ const config: CapacitorConfig = {
     // `?pmfApp=1` flags the very first in-app load as APP MODE: the site reads
     // it, persists a `pmf_app=1` cookie + localStorage, and from then on serves
     // the mobile-app redesign (bottom tab bar, hidden header, etc.). Normal
-    // browsers never carry this flag, so the website stays in website mode.
+    // browsers never carry this flag, so the website stays in website mode. The
+    // appended User-Agent token above is the durable server-side signal; this
+    // flag remains as a belt-and-suspenders client signal for the first load.
     url: 'https://www.planmyfi.com/app/fire-path/withdrawal-rate?pmfApp=1',
     cleartext: false,
   },

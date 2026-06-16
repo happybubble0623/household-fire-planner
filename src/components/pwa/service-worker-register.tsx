@@ -13,7 +13,12 @@ export function ServiceWorkerRegister() {
       return;
     }
     const register = () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
+      // `updateViaCache: "none"` makes the browser fetch /sw.js from the network
+      // (bypassing the HTTP cache) on every update check, so a new service
+      // worker — and its cache-busting VERSION bump — is never shadowed by a
+      // cached copy of the script. Combined with skipWaiting + clients.claim in
+      // sw.js, a deploy takes over promptly instead of waiting up to 24h.
+      navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => {
         // Non-fatal — registration can fail (private mode, unsupported). The app
         // still works online; offline support is simply unavailable.
       });

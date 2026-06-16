@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { AppModeProvider } from "@/components/app-mode-provider";
 import { AppLockProvider } from "@/components/app-lock/app-lock-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
-import { APP_MODE_COOKIE } from "@/lib/app-mode";
+import { APP_MODE_COOKIE, isAppModeUserAgent } from "@/lib/app-mode";
 import "./globals.css";
 
 const inter = Inter({
@@ -100,12 +100,23 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Read the persisted app-mode cookie server-side so SSR can gate the mobile
-  // redesign from the first paint (no flash of website chrome inside the app,
-  // and no flash of app chrome on the website). `data-app-mode="1"` on <html>
-  // lets CSS and the AppModeProvider branch consistently. Default (no cookie) =
-  // website mode.
-  const isAppMode = (await cookies()).get(APP_MODE_COOKIE)?.value === "1";
+  // Gate the mobile redesign SERVER-SIDE so SSR matches the WebView from the
+  // first paint (no flash of website chrome inside the app, no flash of app
+  // chrome on the website). Two independent signals, either one is enough:
+  //   1. The native shell's appended User-Agent token — present on EVERY in-app
+  //      request including a bare full-page reload, so a bottom-tab navigation
+  //      that resolves to a full document load still renders app mode instead of
+  //      the website header. This is the durable signal; it needs neither the
+  //      query flag (a layout can't read it) nor the `pmf_app` cookie (WKWebView
+  //      doesn't reliably attach it to navigation requests).
+  //   2. The persisted `pmf_app` cookie — covers normal browsers that opted into
+  //      app mode via the query flag on an earlier load.
+  // `data-app-mode="1"` on <html> lets CSS and the AppModeProvider branch
+  // consistently. A normal website visitor has neither signal → website mode.
+  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+  const isAppMode =
+    isAppModeUserAgent(headerStore.get("user-agent")) ||
+    cookieStore.get(APP_MODE_COOKIE)?.value === "1";
 
   return (
     <html lang="en" className={inter.variable} data-app-mode={isAppMode ? "1" : undefined}>
