@@ -644,6 +644,13 @@ function StrategySwitcher({ mode }: { mode: Phase1FireRuleMode }) {
             role="tab"
             aria-selected={active}
             aria-current={active ? "page" : undefined}
+            // The active chip sits on a green fill and must read white. The
+            // global `a { color: inherit }` reset in globals.css is UNLAYERED,
+            // so it beats Tailwind's `text-white` (which lives in
+            // `@layer utilities`) regardless of class specificity — the chip
+            // rendered dark on device. An inline color outranks the unlayered
+            // rule and is Tailwind-version-independent, so white wins reliably.
+            style={active ? { color: "#ffffff" } : undefined}
             className={cn(
               "flex-1 whitespace-nowrap rounded-xl px-4 py-2.5 text-center text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
               active
@@ -663,9 +670,16 @@ function StrategySwitcher({ mode }: { mode: Phase1FireRuleMode }) {
 // at a glance whether the body is a number, a CTA, or a "calculate" prompt.
 function SnapshotTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">{label}</p>
-      <div className="mt-2">{children}</div>
+    // Equal-height flex column so the three tiles line up. The label area
+    // reserves two lines (min-height) so a 1-line vs 2-line caption never
+    // shifts the value down — every tile's value starts at the same Y. The body
+    // is flex-1 so CTA-only states can vertically center (my-auto) and the
+    // value+sub-line block can top-align consistently across tiles.
+    <div className="flex h-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+      <p className="min-h-[26px] text-[10px] font-semibold uppercase leading-tight tracking-[0.05em] text-gray-500">
+        {label}
+      </p>
+      <div className="mt-2 flex flex-1 flex-col">{children}</div>
     </div>
   );
 }
@@ -738,18 +752,18 @@ function SnapshotStrip({
               <p className="text-2xl font-extrabold leading-tight tracking-tight tabular-nums text-gray-900">
                 {formatNumber(fireAge)}
               </p>
-              {yearsToFi !== null ? (
-                <p className="mt-0.5 text-xs font-medium text-gray-500 tabular-nums">
-                  {formatNumber(yearsToFi)} yrs to FI
-                </p>
-              ) : null}
+              {/* Reserve the sub-line row (min-h) so the value row lines up with
+                  the other tiles even when there is no "yrs to FI" value. */}
+              <p className="mt-0.5 min-h-4 text-xs font-medium text-gray-500 tabular-nums">
+                {yearsToFi !== null ? `${formatNumber(yearsToFi)} yrs to FI` : null}
+              </p>
             </>
           )
         ) : (
           <button
             type="button"
             onClick={onCalculate}
-            className="text-left text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
+            className="my-auto text-left text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
           >
             Calculate to see
           </button>
@@ -762,13 +776,13 @@ function SnapshotStrip({
             <p className="text-2xl font-extrabold leading-tight tracking-tight tabular-nums text-gray-900">
               {formatPercent(Math.max(0, progressPercent) / 100)}
             </p>
-            <p className="mt-0.5 text-xs font-medium text-gray-500">{progressLabel}</p>
+            <p className="mt-0.5 min-h-4 text-xs font-medium text-gray-500">{progressLabel}</p>
           </>
         ) : (
           <button
             type="button"
             onClick={onCalculate}
-            className="text-left text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
+            className="my-auto text-left text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
           >
             Calculate to see
           </button>
@@ -781,12 +795,14 @@ function SnapshotStrip({
             <p className="text-2xl font-extrabold leading-tight tracking-tight tabular-nums text-gray-900">
               {formatCurrency(healthcareEstimate.amount)}
             </p>
-            <p className="mt-0.5 text-xs font-medium text-gray-500">{healthcareEstimate.basis}</p>
+            <p className="mt-0.5 min-h-4 text-xs font-medium text-gray-500">{healthcareEstimate.basis}</p>
           </Link>
         ) : (
+          // No value/sub-line here, so vertically center the CTA (my-auto) to
+          // sit level with the value row on the neighbouring tiles.
           <Link
             href="/app/fire-path/tools/healthcare"
-            className="text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
+            className="my-auto text-sm font-semibold text-[var(--primary-hover)] underline-offset-2 hover:underline"
           >
             Estimate &rarr;
           </Link>
@@ -2031,6 +2047,45 @@ function PrincipalPreservingResults({
   );
 }
 
+// Heading row for the year-by-year projection. On the website the explanatory
+// description (and the per-strategy "how returns are treated" note) sit inline
+// under the heading, unchanged. In app mode that prose is removed from the flow
+// and folded into a tap-to-open info popover beside the heading, so the dense
+// table stays compact on a phone — the text content is identical, just relocated.
+function ProjectionHeading({
+  description,
+  headerNote
+}: {
+  description: string;
+  headerNote?: string;
+}) {
+  const isAppMode = useIsAppMode();
+
+  if (isAppMode) {
+    const popoverContent = headerNote ? `${description} ${headerNote}` : description;
+    return (
+      <div className="flex items-center gap-1.5">
+        <h2 className="text-xl font-semibold tracking-tight text-gray-900">
+          Year-by-year projection
+        </h2>
+        <InfoPopover label="Year-by-year projection" content={popoverContent} />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <h2 className="text-xl font-semibold tracking-tight text-gray-900">Year-by-year projection</h2>
+      <p className="mt-2 text-sm leading-relaxed text-gray-500">{description}</p>
+      {headerNote ? (
+        <p className="mt-2 rounded-xl bg-gray-50 px-3 py-2 text-sm leading-relaxed text-gray-600">
+          {headerNote}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 function ProjectionTable({
   label,
   rows,
@@ -2075,16 +2130,10 @@ function ProjectionTable({
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-gray-200 p-5 sm:p-6">
-        <h2 className="text-xl font-semibold tracking-tight text-gray-900">Year-by-year projection</h2>
-        <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          A compact audit trail for how assets move over time. Currency values are shown in compact
-          form ($k / $M).
-        </p>
-        {headerNote ? (
-          <p className="mt-2 rounded-xl bg-gray-50 px-3 py-2 text-sm leading-relaxed text-gray-600">
-            {headerNote}
-          </p>
-        ) : null}
+        <ProjectionHeading
+          description="A compact audit trail for how assets move over time. Currency values are shown in compact form ($k / $M)."
+          headerNote={headerNote}
+        />
       </div>
       <div className="max-h-[560px] overflow-auto">
         <table
@@ -2271,11 +2320,7 @@ function IncomeStreamProjectionTable({
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-gray-200 p-5 sm:p-6">
-        <h2 className="text-xl font-semibold tracking-tight text-gray-900">Year-by-year projection</h2>
-        <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          A compact audit trail for income-stream coverage. Currency values are shown in compact
-          form ($k / $M).
-        </p>
+        <ProjectionHeading description="A compact audit trail for income-stream coverage. Currency values are shown in compact form ($k / $M)." />
       </div>
       <div className="max-h-[560px] overflow-auto">
         <table
