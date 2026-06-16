@@ -138,3 +138,19 @@ textarea {
 .app-main-safe-top {
   padding-top: env(safe-area-inset-top, 0px);
 }
+
+/* App-mode horizontal clamp (applied to <main> ONLY in app mode, so the website
+   is untouched). Inside the Capacitor WKWebView, a transient horizontal overflow
+   during a re-render — e.g. the global re-render triggered by signing out — can
+   latch the layout viewport (ICB) wider than the device. WKWebView never shrinks
+   it back on its own, so every screen then renders too wide ("not autofit")
+   until a device rotation forces a viewport recompute. All intentionally-wide
+   content (tables, charts) already lives inside its own `overflow-x-auto`
+   scroller, so the page itself is never meant to scroll horizontally; clamping
+   the content column means WKWebView has no overflow to latch onto and the
+   rotation workaround is no longer needed. `clip` (not `hidden`) is used so this
+   does NOT become a scroll container — it leaves vertical scrolling, sticky
+   positioning, and scroll anchoring untouched. */
+.app-main-x-clamp {
+  overflow-x: clip;
+}

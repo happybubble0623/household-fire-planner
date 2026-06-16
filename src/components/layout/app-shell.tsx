@@ -423,7 +423,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           onto the content (the website header that used to carry it is hidden);
           `app-main-safe-bottom` clears the fixed tab bar. Neither is applied on
           the website, so its layout is unchanged. */}
-      <main className={cn(isAppMode && "app-main-safe-top app-main-safe-bottom")}>{children}</main>
+      <main className={cn(isAppMode && "app-main-safe-top app-main-safe-bottom app-main-x-clamp")}>
+        {children}
+      </main>
       {/* Renders only in app mode (self-gated on useIsAppMode). The website —
           desktop AND mobile web — never shows the bottom tab bar. */}
       <MobileTabBar />
