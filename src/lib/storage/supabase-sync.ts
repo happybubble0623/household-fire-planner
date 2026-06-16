@@ -37,9 +37,23 @@ export function getSupabaseClient() {
     return null;
   }
 
+  // Auth is configured to STAY signed in until the user explicitly signs out:
+  //   - persistSession: persist the session to storage (default storage is
+  //     localStorage in the browser — NOT sessionStorage/in-memory). Inside the
+  //     Capacitor iOS WKWebView, localStorage lives in the default persistent
+  //     WKWebsiteDataStore, so it survives app close/relaunch — no native config
+  //     needed. (Nothing here uses sessionStorage or sets persistSession:false.)
+  //   - autoRefreshToken: keep the access token fresh from the refresh token, so
+  //     the session doesn't silently expire while backgrounded; supabase-js also
+  //     refreshes on tab/app foreground. Default is true; set explicitly so this
+  //     "stay signed in" guarantee can't regress on a default change.
+  // The ONLY thing that ends the session is the explicit signOut() in
+  // src/lib/auth/use-session.ts (the Sign out button). The Face ID app-lock only
+  // blurs/inerts the UI — it never calls signOut or clears the token.
   supabaseClient = createClient(url, anonKey, {
     auth: {
       persistSession: true,
+      autoRefreshToken: true,
       detectSessionInUrl: true
     }
   });
