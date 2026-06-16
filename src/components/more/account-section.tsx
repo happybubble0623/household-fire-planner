@@ -61,6 +61,11 @@ export function AccountSection() {
         </p>
         <Link
           href="/login"
+          // The unlayered `a { color: inherit }` reset in globals.css beats
+          // Tailwind's `text-white` (which lives in @layer utilities), so the
+          // label rendered dark on the green fill. An inline color outranks the
+          // unlayered rule (same proven fix as the StrategySwitcher chip).
+          style={{ color: "#ffffff" }}
           className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
         >
           Sign in
