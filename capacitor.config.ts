@@ -25,9 +25,12 @@ const config: CapacitorConfig = {
     appendUserAgent: 'PlanMyFIREApp',
   },
   server: {
-    // Open the app straight into the plan (Portfolio Drawdown strategy) — app
-    // users have already converted, so skip the marketing hub. The website's
-    // own `/` redirect is unchanged; this only affects the native shell.
+    // Always launch on the Plan-tab HOME / hub view (`/app/fire-path`, the
+    // PathToFirePanel overview with the snapshot + strategy cards + "Free
+    // calculators" section) — NOT a specific strategy page. App users land on
+    // the generic plan home every cold start and pick a path from there. The
+    // website's own `/` redirect is unchanged; this only affects the native
+    // shell.
     //
     // `?pmfApp=1` flags the very first in-app load as APP MODE: the site reads
     // it, persists a `pmf_app=1` cookie + localStorage, and from then on serves
@@ -35,7 +38,7 @@ const config: CapacitorConfig = {
     // browsers never carry this flag, so the website stays in website mode. The
     // appended User-Agent token above is the durable server-side signal; this
     // flag remains as a belt-and-suspenders client signal for the first load.
-    url: 'https://www.planmyfi.com/app/fire-path/withdrawal-rate?pmfApp=1',
+    url: 'https://www.planmyfi.com/app/fire-path?pmfApp=1',
     // CRITICAL — keep ALL in-app navigation inside the WebView. Capacitor only
     // treats a top-level navigation as "in-app" if the URL string STARTS WITH
     // the full `server.url` above (path + query included) OR its host matches

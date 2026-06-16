@@ -45,7 +45,7 @@ const isCalculatorsRoute = (p: string) =>
 
 const TABS: Tab[] = [
   {
-    href: "/app/fire-path/withdrawal-rate",
+    href: "/app/fire-path",
     label: "Plan",
     // Trending-up line — "your path / plan".
     icon: () => (
@@ -97,10 +97,10 @@ const TABS: Tab[] = [
   }
 ];
 
-// Re-tapping the tab whose route is ALREADY active scrolls the page back to the
-// top (a familiar mobile-app gesture) instead of re-navigating. The page scrolls
-// on the window in this app, but we also reset <main> in case it ever owns its
-// own scroll, so the gesture is robust to layout changes.
+// Re-tapping the tab while ALREADY on its exact destination route scrolls the
+// page back to the top (a familiar mobile-app gesture) instead of re-navigating.
+// The page scrolls on the window in this app, but we also reset <main> in case it
+// ever owns its own scroll, so the gesture is robust to layout changes.
 function scrollActivePageToTop() {
   if (typeof window === "undefined") return;
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -137,15 +137,22 @@ export function MobileTabBar() {
         // mode regardless of cookie propagation. App-mode only — this tab bar
         // never renders on the website, so website URLs are unaffected.
         const href = `${tab.href}?${APP_MODE_QUERY_PARAM}=1`;
+        // `active` (broad section match) drives the highlight — Plan stays lit
+        // across the hub AND every strategy page. The scroll-vs-navigate gesture
+        // keys off the EXACT destination instead, so tapping Plan from a strategy
+        // page returns to the hub (`/app/fire-path`) rather than just scrolling,
+        // while a tap when already on the hub scrolls to top.
+        const atDestination = pathname === tab.href;
         return (
           <Link
             key={tab.href}
             href={href}
             aria-current={active ? "page" : undefined}
             onClick={(event) => {
-              // Already on this tab's route → scroll to top instead of a
-              // no-op re-navigation. Different tab → let the Link navigate.
-              if (active) {
+              // Already on this tab's exact route → scroll to top instead of a
+              // no-op re-navigation. Otherwise → let the Link navigate (e.g.
+              // Plan from a strategy page goes back to the hub).
+              if (atDestination) {
                 event.preventDefault();
                 scrollActivePageToTop();
               }
