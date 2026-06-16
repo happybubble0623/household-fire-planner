@@ -16,6 +16,7 @@ import {
 import { HealthcareCostPanel } from "@/components/planning/healthcare-cost-panel";
 import { UseInPlanButton } from "@/components/planning/use-in-plan-button";
 import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
+import { useCalculatorPersistence } from "@/lib/storage/use-calculator-persistence";
 import { addHousingExpenseCategory, addPassiveIncome } from "@/lib/phase1/plan-mappings";
 import { relatedPlanningTools, type PlanningTool } from "@/lib/data/planning-tools";
 
@@ -686,6 +687,46 @@ function MortgageCalculator() {
   const gate = useCalculateGate(liveResult);
   const result = gate.value;
 
+  // App-only: remember this calculator's inputs + headline outputs so returning
+  // restores the last session (and syncs across devices when signed in). No-op
+  // on the website.
+  useCalculatorPersistence({
+    toolKey: "mortgage",
+    inputs: {
+      loanAmount,
+      homeValue,
+      annualInterestRatePercent,
+      termYears,
+      startYear,
+      propertyTaxAnnual,
+      homeInsuranceAnnual,
+      pmiAnnualPercent,
+      monthlyHoa,
+      loanType,
+      includeFees
+    },
+    applyInputs: (saved) => {
+      setLoanAmount(saved.loanAmount);
+      setHomeValue(saved.homeValue);
+      setAnnualInterestRatePercent(saved.annualInterestRatePercent);
+      setTermYears(saved.termYears);
+      setStartYear(saved.startYear);
+      setPropertyTaxAnnual(saved.propertyTaxAnnual);
+      setHomeInsuranceAnnual(saved.homeInsuranceAnnual);
+      setPmiAnnualPercent(saved.pmiAnnualPercent);
+      setMonthlyHoa(saved.monthlyHoa);
+      setLoanType(saved.loanType);
+      setIncludeFees(saved.includeFees);
+    },
+    result: {
+      monthlyPayment: result.monthlyPayment,
+      monthlyPrincipalInterest: result.monthlyPrincipalInterest,
+      monthlyTaxesAndFees: result.monthlyTaxesAndFees,
+      totalInterest: result.totalInterest
+    },
+    commitResult: gate.recalculate
+  });
+
   // App-mode "Use in my plan": add this loan's annual housing cost as a
   // housing/mortgage expense in the Plan's optional expense-category list — the
   // same mechanism the strategy panel's "Add Expense Category" writes to. The
@@ -904,6 +945,35 @@ function InvestmentCalculator() {
   const gate = useCalculateGate(liveResult);
   const result = gate.value;
 
+  // App-only: remember inputs + headline outputs (no-op on the website).
+  useCalculatorPersistence({
+    toolKey: "investment",
+    inputs: {
+      startingBalance,
+      contribution,
+      contributionFrequency,
+      contributionTiming,
+      annualReturnPercent,
+      years,
+      feePercent
+    },
+    applyInputs: (saved) => {
+      setStartingBalance(saved.startingBalance);
+      setContribution(saved.contribution);
+      setContributionFrequency(saved.contributionFrequency as ContributionFrequency);
+      setContributionTiming(saved.contributionTiming as ContributionTiming);
+      setAnnualReturnPercent(saved.annualReturnPercent);
+      setYears(saved.years);
+      setFeePercent(saved.feePercent);
+    },
+    result: {
+      endingBalance: result.endingBalance,
+      totalContributions: result.totalContributions,
+      investmentGrowth: result.investmentGrowth
+    },
+    commitResult: gate.recalculate
+  });
+
   return (
     <ToolShell
       title="Investment calculator"
@@ -1074,6 +1144,37 @@ function SocialSecurityCalculator() {
     () => estimateSocialSecurityBenefit({ ...committedInput, claimingAge: 70 }),
     [committedInput]
   );
+
+  // App-only: remember inputs + headline outputs (no-op on the website).
+  useCalculatorPersistence({
+    toolKey: "socialSecurity",
+    inputs: {
+      birthYear,
+      workStartYear,
+      workEndYear,
+      startingAnnualCoveredEarnings,
+      annualEarningsGrowthPercent,
+      annualEarningsOverrides
+    },
+    applyInputs: (saved) => {
+      setBirthYear(saved.birthYear);
+      setWorkStartYear(saved.workStartYear);
+      setWorkEndYear(saved.workEndYear);
+      setStartingAnnualCoveredEarnings(saved.startingAnnualCoveredEarnings);
+      setAnnualEarningsGrowthPercent(saved.annualEarningsGrowthPercent);
+      setAnnualEarningsOverrides(saved.annualEarningsOverrides ?? {});
+    },
+    result: {
+      fullRetirementAge: baseResult.fullRetirementAge,
+      estimatedCredits: baseResult.estimatedCredits,
+      requiredCredits: baseResult.requiredCredits,
+      retirementEligible: baseResult.retirementEligible,
+      monthlyAt62: age62Result.estimatedMonthlyBenefitTodayDollars,
+      monthlyAtFra: fullRetirementAgeResult.estimatedMonthlyBenefitTodayDollars,
+      monthlyAt70: age70Result.estimatedMonthlyBenefitTodayDollars
+    },
+    commitResult: gate.recalculate
+  });
 
   // App-mode "Use in my plan": add the unreduced (full-retirement-age) annual
   // benefit to the Plan's passive-income input. Reuses the engine's computed

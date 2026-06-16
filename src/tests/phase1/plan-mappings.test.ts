@@ -3,6 +3,7 @@ import {
   addHousingExpenseCategory,
   addPassiveIncome,
   applyAnnualExpenses,
+  applyCalculatorSnapshot,
   applyEffectiveTaxRate,
   applyHealthcareEstimate
 } from "@/lib/phase1/plan-mappings";
@@ -12,7 +13,13 @@ import {
   workbookHasData,
   workbooksDiffer
 } from "@/lib/storage/workbook-sync";
-import type { Phase1ExpenseCategory, Phase1HealthcareEstimate } from "@/types/phase1";
+import type {
+  Phase1CalculatorSnapshot,
+  Phase1ExpenseCategory,
+  Phase1HealthcareEstimate,
+  Phase1MortgageCalcInputs,
+  Phase1TaxCalcInputs
+} from "@/types/phase1";
 
 describe("calculator → plan mappings", () => {
   it("Healthcare: stores the captured estimate verbatim, touching nothing else", () => {
@@ -131,5 +138,88 @@ describe("optional healthcareEstimate — workbook field + sync", () => {
     const a = applyHealthcareEstimate(defaultPhase1Workbook, estimate);
     const b = applyHealthcareEstimate(defaultPhase1Workbook, { ...estimate, amount: 200_000 });
     expect(workbooksDiffer(a, b)).toBe(true);
+  });
+});
+
+describe("optional calculatorState — workbook field + sync (app-only persistence)", () => {
+  const taxSnapshot: Phase1CalculatorSnapshot<Phase1TaxCalcInputs> = {
+    inputs: {
+      filingStatus: "single",
+      w2Wages: 142_000,
+      otherOrdinaryIncome: 0,
+      traditionalWithdrawals: 0,
+      pretaxContributions: 0,
+      longTermGains: 0,
+      children: 0,
+      seniors65: 0,
+      stateRatePercent: 5
+    },
+    result: { totalTax: 33_120, afterTaxIncome: 108_880, effectiveTaxRate: 0.2332 },
+    capturedAt: "2026-06-15T00:00:00.000Z"
+  };
+
+  const mortgageSnapshot: Phase1CalculatorSnapshot<Phase1MortgageCalcInputs> = {
+    inputs: {
+      loanAmount: 400_000,
+      homeValue: 500_000,
+      annualInterestRatePercent: 6.25,
+      termYears: 30,
+      startYear: 2026,
+      propertyTaxAnnual: 4_500,
+      homeInsuranceAnnual: 2_400,
+      pmiAnnualPercent: 0.5,
+      monthlyHoa: 0,
+      loanType: "conventional",
+      includeFees: true
+    },
+    result: { monthlyPayment: 3_050, totalInterest: 480_000 },
+    capturedAt: "2026-06-15T00:00:00.000Z"
+  };
+
+  it("stores a snapshot under its tool key, touching nothing else", () => {
+    const next = applyCalculatorSnapshot(defaultPhase1Workbook, "tax", taxSnapshot);
+
+    expect(next.calculatorState?.tax).toEqual(taxSnapshot);
+    expect(next.fireInputs).toEqual(defaultPhase1Workbook.fireInputs);
+    expect(next.portfolioItems).toEqual(defaultPhase1Workbook.portfolioItems);
+  });
+
+  it("preserves other calculators' snapshots when writing one tool's slot", () => {
+    const withTax = applyCalculatorSnapshot(defaultPhase1Workbook, "tax", taxSnapshot);
+    const withBoth = applyCalculatorSnapshot(withTax, "mortgage", mortgageSnapshot);
+
+    expect(withBoth.calculatorState?.tax).toEqual(taxSnapshot);
+    expect(withBoth.calculatorState?.mortgage).toEqual(mortgageSnapshot);
+  });
+
+  it("survives a normalize round-trip (rides the Dexie/sync path)", () => {
+    const withTax = applyCalculatorSnapshot(defaultPhase1Workbook, "tax", taxSnapshot);
+    expect(normalizePhase1Workbook(withTax).calculatorState?.tax).toEqual(taxSnapshot);
+  });
+
+  it("a default workbook (no calculatorState) still counts as empty — sync unaffected", () => {
+    expect(defaultPhase1Workbook.calculatorState).toBeUndefined();
+    expect(workbookHasData(defaultPhase1Workbook)).toBe(false);
+  });
+
+  it("saving a snapshot makes the workbook count as real, differing data", () => {
+    const withTax = applyCalculatorSnapshot(defaultPhase1Workbook, "tax", taxSnapshot);
+    expect(workbookHasData(withTax)).toBe(true);
+    expect(workbooksDiffer(defaultPhase1Workbook, withTax)).toBe(true);
+  });
+
+  it("is order-independent under canonicalization (key-sorted, sync-neutral)", () => {
+    const a = applyCalculatorSnapshot(
+      applyCalculatorSnapshot(defaultPhase1Workbook, "tax", taxSnapshot),
+      "mortgage",
+      mortgageSnapshot
+    );
+    const b = applyCalculatorSnapshot(
+      applyCalculatorSnapshot(defaultPhase1Workbook, "mortgage", mortgageSnapshot),
+      "tax",
+      taxSnapshot
+    );
+    // Same content, different insertion order → identical canonical form.
+    expect(workbooksDiffer(a, b)).toBe(false);
   });
 });

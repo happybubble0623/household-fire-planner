@@ -1,4 +1,6 @@
 import type {
+  Phase1CalculatorKey,
+  Phase1CalculatorState,
   Phase1ExpenseCategory,
   Phase1HealthcareEstimate,
   Phase1Workbook
@@ -66,6 +68,27 @@ export function applyEffectiveTaxRate(
       ...workbook.fireInputs,
       taxMode: "simple",
       simpleEffectiveTaxRatePercent: effectiveTaxRate * 100
+    }
+  };
+}
+
+// Any calculator → its saved snapshot in the workbook's optional calculatorState
+// (APP-ONLY remember-my-inputs persistence). Spreads the workbook and the
+// existing calculatorState, replacing only this tool's slot, so the other five
+// calculators' snapshots are preserved. Pure and testable; the same shape of
+// update the Plan's own inputs make. Storing a snapshot is what first creates the
+// `calculatorState` object, so a default workbook (with none) still counts as
+// empty and sync stays neutral until a calculator is actually used in the app.
+export function applyCalculatorSnapshot<K extends Phase1CalculatorKey>(
+  workbook: Phase1Workbook,
+  toolKey: K,
+  snapshot: NonNullable<Phase1CalculatorState[K]>
+): Phase1Workbook {
+  return {
+    ...workbook,
+    calculatorState: {
+      ...workbook.calculatorState,
+      [toolKey]: snapshot
     }
   };
 }

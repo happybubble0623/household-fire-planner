@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { InfoPopover } from "@/components/ui/info-popover";
 import { UseInPlanButton } from "@/components/planning/use-in-plan-button";
 import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
+import { useCalculatorPersistence } from "@/lib/storage/use-calculator-persistence";
 import { applyAnnualExpenses } from "@/lib/phase1/plan-mappings";
 import {
   CalculateBar,
@@ -174,6 +175,22 @@ export function ExpenseCalculator() {
   const liveResult = useMemo(() => computeExpenseTotals(entries), [entries]);
   const gate = useCalculateGate(liveResult);
   const result = gate.value;
+
+  // App-only: remember inputs + headline outputs (no-op on the website).
+  useCalculatorPersistence({
+    toolKey: "expenses",
+    inputs: { entries },
+    applyInputs: (saved) => {
+      // Merge over the defaults so any new/removed line items stay well-formed
+      // even if an older snapshot is missing keys.
+      setEntries({ ...defaultExpenseEntries, ...(saved.entries as Record<string, ExpenseEntry>) });
+    },
+    result: {
+      totalAnnual: result.totalAnnual,
+      totalMonthly: result.totalMonthly
+    },
+    commitResult: gate.recalculate
+  });
 
   // App-mode "Use in my plan": set the Plan's annual-expenses input to this
   // calculator's computed annual total (the exact "Total annual living expenses"

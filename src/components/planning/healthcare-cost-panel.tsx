@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { InfoPopover } from "@/components/ui/info-popover";
 import { UseInPlanButton } from "@/components/planning/use-in-plan-button";
 import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
+import { useCalculatorPersistence } from "@/lib/storage/use-calculator-persistence";
 import { applyHealthcareEstimate } from "@/lib/phase1/plan-mappings";
 import { HealthcareCostChart } from "@/components/charts/calculator-charts";
 import {
@@ -311,6 +312,96 @@ export function HealthcareCostPanel() {
   const gate = useCalculateGate(liveInput);
   const committedInput = gate.value;
   const result = useMemo(() => estimateHealthcareCosts(committedInput), [committedInput]);
+
+  // App-only: remember inputs + headline outputs so returning restores the last
+  // session (and syncs across devices when signed in). No-op on the website.
+  // Distinct from the "Use in my plan" healthcare estimate below (which writes a
+  // single figure into the Plan snapshot tile) — this restores the calculator's
+  // own input fields.
+  useCalculatorPersistence({
+    toolKey: "healthcare",
+    inputs: {
+      household,
+      currentAge,
+      fireAge,
+      medicareAge,
+      planToAge,
+      displayMode,
+      annualMagi,
+      acaPlanMode,
+      metalTier,
+      regionCost,
+      benchmarkSlcspMonthly,
+      chosenPlanMonthly,
+      acaDeductible,
+      acaOutOfPocketMax,
+      acaUsage,
+      acaCustomOop,
+      acaInflationPercent,
+      medicareCoverage,
+      medigapPlanLetter,
+      medigapMonthly,
+      partDMonthly,
+      advantageMonthly,
+      medicareOutOfPocketMax,
+      medicareUsage,
+      medicareCustomOop,
+      dentalVisionHearing,
+      medicareInflationPercent,
+      generalInflationPercent,
+      hsaBalance,
+      hsaGrowthPercent,
+      hsaStrategy,
+      travelMode,
+      daysAbroadPerYear,
+      travelAnnualPremium
+    },
+    applyInputs: (saved) => {
+      setHousehold(saved.household as HealthcareHousehold);
+      setCurrentAge(saved.currentAge);
+      setFireAge(saved.fireAge);
+      setMedicareAge(saved.medicareAge);
+      setPlanToAge(saved.planToAge);
+      setDisplayMode(saved.displayMode as "today_dollars" | "future_dollars");
+      setAnnualMagi(saved.annualMagi);
+      setAcaPlanMode(saved.acaPlanMode as "estimate" | "exact");
+      setMetalTier(saved.metalTier as MetalTier);
+      setRegionCost(saved.regionCost as RegionCostLevel);
+      setBenchmarkSlcspMonthly(saved.benchmarkSlcspMonthly);
+      setChosenPlanMonthly(saved.chosenPlanMonthly);
+      setAcaDeductible(saved.acaDeductible);
+      setAcaOutOfPocketMax(saved.acaOutOfPocketMax);
+      setAcaUsage(saved.acaUsage as OopUsageLevel);
+      setAcaCustomOop(saved.acaCustomOop);
+      setAcaInflationPercent(saved.acaInflationPercent);
+      setMedicareCoverage(saved.medicareCoverage as MedicareCoverage);
+      setMedigapPlanLetter(saved.medigapPlanLetter);
+      setMedigapMonthly(saved.medigapMonthly);
+      setPartDMonthly(saved.partDMonthly);
+      setAdvantageMonthly(saved.advantageMonthly);
+      setMedicareOutOfPocketMax(saved.medicareOutOfPocketMax);
+      setMedicareUsage(saved.medicareUsage as OopUsageLevel);
+      setMedicareCustomOop(saved.medicareCustomOop);
+      setDentalVisionHearing(saved.dentalVisionHearing);
+      setMedicareInflationPercent(saved.medicareInflationPercent);
+      setGeneralInflationPercent(saved.generalInflationPercent);
+      setHsaBalance(saved.hsaBalance);
+      setHsaGrowthPercent(saved.hsaGrowthPercent);
+      setHsaStrategy(saved.hsaStrategy as HsaStrategy);
+      setTravelMode(saved.travelMode as TravelMode);
+      setDaysAbroadPerYear(saved.daysAbroadPerYear);
+      setTravelAnnualPremium(saved.travelAnnualPremium);
+    },
+    result: {
+      presentValueTotal: result.presentValueTotal,
+      presentValueAcaCost: result.presentValueAcaCost,
+      presentValueMedicareCost: result.presentValueMedicareCost,
+      nominalLifetimeTotal: result.nominalLifetimeTotal,
+      acaYears: result.acaYears,
+      medicareYears: result.medicareYears
+    },
+    commitResult: gate.recalculate
+  });
 
   // App-mode "Use in my plan": persist the pre-65 (ACA gap) healthcare estimate
   // into the workbook so the Plan snapshot's "Pre-65 healthcare" tile shows a

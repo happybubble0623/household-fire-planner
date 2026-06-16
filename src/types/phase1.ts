@@ -209,6 +209,135 @@ export type Phase1HealthcareEstimate = {
   capturedAt: string;
 };
 
+// ---------------------------------------------------------------------------
+// Calculator state (APP-ONLY persistence)
+//
+// Each of the six calculators can remember its INPUTS and a small summary of its
+// OUTPUTS so that returning to the tool restores the last session (and, for
+// signed-in users, across devices via the existing workbook sync). Like
+// `healthcareEstimate`, the whole section is OPTIONAL and absent from the
+// default workbook, so a brand-new/default workbook still has no calculatorState
+// and `workbookHasData(default)` stays false — reconcile + last-write-wins are
+// unaffected. It rides `normalizePhase1Workbook` (spread) and
+// `canonicalizeWorkbook` (key-sorted) with zero sync-code changes. On the
+// WEBSITE the calculators never read or write this (gated on app mode).
+//
+// Input field shapes are kept to JSON primitives (string/number/boolean) plus a
+// year→amount override map, deliberately decoupled from the calculation modules'
+// union types so this core type file has no dependency on them. Each calculator
+// narrows the stored strings back to its own unions on hydration.
+
+export type Phase1SocialSecurityCalcInputs = {
+  birthYear: number;
+  workStartYear: number;
+  workEndYear: number;
+  startingAnnualCoveredEarnings: number;
+  annualEarningsGrowthPercent: number;
+  // Optional year→wage overrides keyed by year (as entered, raw strings).
+  annualEarningsOverrides: Record<string, string>;
+};
+
+export type Phase1HealthcareCalcInputs = {
+  household: string;
+  currentAge: number;
+  fireAge: number;
+  medicareAge: number;
+  planToAge: number;
+  displayMode: string;
+  annualMagi: number;
+  acaPlanMode: string;
+  metalTier: string;
+  regionCost: string;
+  benchmarkSlcspMonthly: number;
+  chosenPlanMonthly: number;
+  acaDeductible: number;
+  acaOutOfPocketMax: number;
+  acaUsage: string;
+  acaCustomOop: number;
+  acaInflationPercent: number;
+  medicareCoverage: string;
+  medigapPlanLetter: string;
+  medigapMonthly: number;
+  partDMonthly: number;
+  advantageMonthly: number;
+  medicareOutOfPocketMax: number;
+  medicareUsage: string;
+  medicareCustomOop: number;
+  dentalVisionHearing: number;
+  medicareInflationPercent: number;
+  generalInflationPercent: number;
+  hsaBalance: number;
+  hsaGrowthPercent: number;
+  hsaStrategy: string;
+  travelMode: string;
+  daysAbroadPerYear: number;
+  travelAnnualPremium: number;
+};
+
+export type Phase1MortgageCalcInputs = {
+  loanAmount: number;
+  homeValue: number;
+  annualInterestRatePercent: number;
+  termYears: number;
+  startYear: number;
+  propertyTaxAnnual: number;
+  homeInsuranceAnnual: number;
+  pmiAnnualPercent: number;
+  monthlyHoa: number;
+  loanType: string;
+  includeFees: boolean;
+};
+
+export type Phase1InvestmentCalcInputs = {
+  startingBalance: number;
+  contribution: number;
+  contributionFrequency: string;
+  contributionTiming: string;
+  annualReturnPercent: number;
+  years: number;
+  feePercent: number;
+};
+
+export type Phase1ExpensesCalcInputs = {
+  // Per-line amount + monthly/annual basis, keyed by expense item id.
+  entries: Record<string, { amount: number; frequency: string }>;
+};
+
+export type Phase1TaxCalcInputs = {
+  filingStatus: string;
+  w2Wages: number;
+  otherOrdinaryIncome: number;
+  traditionalWithdrawals: number;
+  pretaxContributions: number;
+  longTermGains: number;
+  children: number;
+  seniors65: number;
+  stateRatePercent: number;
+};
+
+// A captured calculator session: its input field values (for rehydration) plus a
+// small summary of the displayed output value(s), and a capture timestamp. The
+// result summary holds only JSON-primitive display values — no recomputation is
+// implied; it is whatever the calculator showed when captured.
+export type Phase1CalculatorResultSummary = Record<string, number | string | boolean | null>;
+
+export type Phase1CalculatorSnapshot<TInputs> = {
+  inputs: TInputs;
+  result: Phase1CalculatorResultSummary;
+  capturedAt: string;
+};
+
+export type Phase1CalculatorState = {
+  socialSecurity?: Phase1CalculatorSnapshot<Phase1SocialSecurityCalcInputs>;
+  healthcare?: Phase1CalculatorSnapshot<Phase1HealthcareCalcInputs>;
+  mortgage?: Phase1CalculatorSnapshot<Phase1MortgageCalcInputs>;
+  investment?: Phase1CalculatorSnapshot<Phase1InvestmentCalcInputs>;
+  expenses?: Phase1CalculatorSnapshot<Phase1ExpensesCalcInputs>;
+  tax?: Phase1CalculatorSnapshot<Phase1TaxCalcInputs>;
+};
+
+export type Phase1CalculatorKey = keyof Phase1CalculatorState;
+
 export type Phase1Workbook = {
   id: "phase1-default";
   schemaVersion: "phase1.7";
@@ -221,6 +350,10 @@ export type Phase1Workbook = {
   lastImportExportStatus?: string;
   // Optional captured result from the healthcare calculator (Plan snapshot tile).
   healthcareEstimate?: Phase1HealthcareEstimate;
+  // Optional per-calculator saved inputs + result summaries (app-only). Absent on
+  // a default workbook so it never affects sync for users who haven't used a
+  // calculator in the app.
+  calculatorState?: Phase1CalculatorState;
 };
 
 export type PortfolioImportRowError = {

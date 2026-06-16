@@ -13,6 +13,7 @@ import {
 } from "@/components/planning/planning-tool-panel";
 import { UseInPlanButton } from "@/components/planning/use-in-plan-button";
 import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
+import { useCalculatorPersistence } from "@/lib/storage/use-calculator-persistence";
 import { applyEffectiveTaxRate } from "@/lib/phase1/plan-mappings";
 import { computeTax, type TaxInput } from "@/lib/calculations/tax";
 import type { FilingStatus } from "@/lib/data/tax-2026";
@@ -171,6 +172,40 @@ export function TaxCalculator() {
   const liveResult = useMemo(() => computeTax(input), [input]);
   const gate = useCalculateGate(liveResult);
   const result = gate.value;
+
+  // App-only: remember inputs + headline outputs (no-op on the website).
+  useCalculatorPersistence({
+    toolKey: "tax",
+    inputs: {
+      filingStatus,
+      w2Wages,
+      otherOrdinaryIncome,
+      traditionalWithdrawals,
+      pretaxContributions,
+      longTermGains,
+      children,
+      seniors65,
+      stateRatePercent
+    },
+    applyInputs: (saved) => {
+      setFilingStatus(saved.filingStatus as FilingStatus);
+      setW2Wages(saved.w2Wages);
+      setOtherOrdinaryIncome(saved.otherOrdinaryIncome);
+      setTraditionalWithdrawals(saved.traditionalWithdrawals);
+      setPretaxContributions(saved.pretaxContributions);
+      setLongTermGains(saved.longTermGains);
+      setChildren(saved.children);
+      setSeniors65(saved.seniors65);
+      setStateRatePercent(saved.stateRatePercent);
+    },
+    result: {
+      totalTax: result.totalTax,
+      afterTaxIncome: result.afterTaxIncome,
+      effectiveTaxRate: result.effectiveTaxRate,
+      marginalOrdinaryRate: result.marginalOrdinaryRate
+    },
+    commitResult: gate.recalculate
+  });
 
   // The credit actually applied against tax (nonrefundable, so it can't exceed
   // tax before credits). Keeps the breakdown's arithmetic exact.
