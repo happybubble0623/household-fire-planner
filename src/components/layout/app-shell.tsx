@@ -28,6 +28,23 @@ const TAX_TOOL = {
   title: "Tax calculator"
 };
 
+// Canonical order for the full six-calculator Calculators menu (desktop +
+// mobile). Healthcare and Social Security lead (pulled from PLANNING_TOOLS),
+// then the standalone Tax + Living expense tools, then Investment and Mortgage.
+// This explicit order interleaves the standalone tools with PLANNING_TOOLS, so
+// it can't be expressed as "map PLANNING_TOOLS then append" — and it mirrors the
+// /app/calculators tab so both surfaces stay in sync. PLANNING_TOOLS itself is
+// left untouched (it still drives the hub grid and per-tool footer).
+const planningTool = (slug: string) => PLANNING_TOOLS.find((tool) => tool.slug === slug)!;
+const CALCULATOR_LINKS: Array<{ href: string; title: string }> = [
+  planningTool("healthcare"),
+  planningTool("social-security"),
+  TAX_TOOL,
+  EXPENSES_TOOL,
+  planningTool("investment"),
+  planningTool("mortgage")
+];
+
 // "Learn" dropdown items — beginner-facing content pages. Kept here as the single
 // source so the desktop dropdown and the mobile menu stay in sync.
 const LEARN_LINKS: Array<{ href: string; label: string; blurb: string }> = [
@@ -223,9 +240,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Chevron />
               </button>
               <div className={dropdownClass} role="menu">
-                {PLANNING_TOOLS.map((tool) => (
+                {CALCULATOR_LINKS.map((tool) => (
                   <Link
-                    key={tool.slug}
+                    key={tool.href}
                     href={tool.href}
                     role="menuitem"
                     className={cn(dropdownItemClass, isActive(tool.href) && "bg-[var(--soft)] text-gray-900")}
@@ -234,28 +251,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     {tool.title}
                   </Link>
                 ))}
-                <Link
-                  href={EXPENSES_TOOL.href}
-                  role="menuitem"
-                  className={cn(
-                    dropdownItemClass,
-                    isActive(EXPENSES_TOOL.href) && "bg-[var(--soft)] text-gray-900"
-                  )}
-                  aria-current={isActive(EXPENSES_TOOL.href) ? "page" : undefined}
-                >
-                  {EXPENSES_TOOL.title}
-                </Link>
-                <Link
-                  href={TAX_TOOL.href}
-                  role="menuitem"
-                  className={cn(
-                    dropdownItemClass,
-                    isActive(TAX_TOOL.href) && "bg-[var(--soft)] text-gray-900"
-                  )}
-                  aria-current={isActive(TAX_TOOL.href) ? "page" : undefined}
-                >
-                  {TAX_TOOL.title}
-                </Link>
               </div>
             </div>
 
@@ -374,9 +369,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className="h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 group-open:rotate-180"
                 />
               </summary>
-              {PLANNING_TOOLS.map((tool) => (
+              {CALCULATOR_LINKS.map((tool) => (
                 <Link
-                  key={tool.slug}
+                  key={tool.href}
                   href={tool.href}
                   className={cn(
                     mobileLinkClass,
@@ -387,20 +382,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {tool.title}
                 </Link>
               ))}
-              <Link
-                href={EXPENSES_TOOL.href}
-                className={cn(mobileLinkClass, isActive(EXPENSES_TOOL.href) && navItemActiveClass)}
-                aria-current={isActive(EXPENSES_TOOL.href) ? "page" : undefined}
-              >
-                {EXPENSES_TOOL.title}
-              </Link>
-              <Link
-                href={TAX_TOOL.href}
-                className={cn(mobileLinkClass, isActive(TAX_TOOL.href) && navItemActiveClass)}
-                aria-current={isActive(TAX_TOOL.href) ? "page" : undefined}
-              >
-                {TAX_TOOL.title}
-              </Link>
             </details>
             <details className="group">
               <summary className={mobileSummaryClass}>

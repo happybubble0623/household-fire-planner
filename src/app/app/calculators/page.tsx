@@ -18,18 +18,18 @@ const find = (slug: string) => PLANNING_TOOLS.find((tool) => tool.slug === slug)
 const CALCULATORS: Array<{ href: string; title: string; description: string }> = [
   find("healthcare"),
   find("social-security"),
-  find("mortgage"),
-  find("investment"),
+  {
+    href: "/app/fire-path/tools/tax",
+    title: "Tax calculator",
+    description: "Estimate federal income tax on your retirement withdrawals and income."
+  },
   {
     href: "/app/fire-path/tools/expenses",
     title: "Living expense calculator",
     description: "Build a realistic annual spending number to anchor your FIRE target."
   },
-  {
-    href: "/app/fire-path/tools/tax",
-    title: "Tax calculator",
-    description: "Estimate federal income tax on your retirement withdrawals and income."
-  }
+  find("investment"),
+  find("mortgage")
 ];
 
 export default function CalculatorsPage() {
