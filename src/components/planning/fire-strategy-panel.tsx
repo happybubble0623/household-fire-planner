@@ -856,8 +856,16 @@ function InputSectionCard({ title, children }: { title: string; children: React.
 
 // In app mode, the wide year-by-year table is tucked behind a "See full
 // projection" disclosure (the chart above stays visible). On the website it
-// renders inline exactly as before.
-function MobileProjectionDisclosure({ children }: { children: React.ReactNode }) {
+// renders inline exactly as before. In app mode the toggle itself acts as the
+// projection heading, so it carries the info popover (the inner table is asked
+// to drop its own "Year-by-year projection" heading to avoid a duplicate row).
+function MobileProjectionDisclosure({
+  infoContent,
+  children
+}: {
+  infoContent: string;
+  children: React.ReactNode;
+}) {
   const isAppMode = useIsAppMode();
 
   if (!isAppMode) return <>{children}</>;
@@ -865,7 +873,20 @@ function MobileProjectionDisclosure({ children }: { children: React.ReactNode })
   return (
     <details className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 text-base font-semibold text-gray-900 [&::-webkit-details-marker]:hidden">
-        See year-by-year full projection
+        <span className="flex items-center gap-1.5">
+          See year-by-year full projection
+          {/* The popover button lives inside the summary, so swallow its click
+              to stop it toggling the disclosure when the user taps the icon. */}
+          <span
+            onClick={(event) => {
+              event.stopPropagation();
+              event.preventDefault();
+            }}
+            className="inline-flex"
+          >
+            <InfoPopover label="Year-by-year projection" content={infoContent} />
+          </span>
+        </span>
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -1858,7 +1879,10 @@ export function FireStrategyPanel({
 }
 
 function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["fireResult"]>["withdrawalRate"] }) {
+  const isAppMode = useIsAppMode();
   const progress = getWithdrawalProgressPercent(result);
+  const projectionHeaderNote =
+    "How returns are treated here: Investment return is your full growth — price gains plus dividends and interest — shown in its own column. Income never includes investment returns: before FIRE it is the savings you add, after FIRE it is your passive/guaranteed income.";
   const fireAge = result.estimatedFireAge === null ? "Not reached" : formatNumber(result.estimatedFireAge);
   const fireYear = result.estimatedFireYear === null ? "Not reached" : String(result.estimatedFireYear);
   const impliedWithdrawalRate =
@@ -1894,14 +1918,17 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
           fireAge={result.estimatedFireAge}
         />
       </section>
-      <MobileProjectionDisclosure>
+      <MobileProjectionDisclosure
+        infoContent={projectionPopoverContent(PROJECTION_TABLE_DESCRIPTION, projectionHeaderNote)}
+      >
       <ProjectionTable
         label="Portfolio Drawdown FIRE projection"
         rows={result.projectionRows}
+        hideHeading={isAppMode}
         incomeLabel="Income"
         incomeHelp={termHelp["Income / savings"]}
         investmentReturnLabel="Investment return"
-        headerNote="How returns are treated here: Investment return is your full growth — price gains plus dividends and interest — shown in its own column. Income never includes investment returns: before FIRE it is the savings you add, after FIRE it is your passive/guaranteed income."
+        headerNote={projectionHeaderNote}
         showCashFlow={false}
         showInvestmentReturn
         showAnnualIncome
@@ -1921,6 +1948,7 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
 }
 
 function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps["fireResult"]>["incomeStream"] }) {
+  const isAppMode = useIsAppMode();
   const progress = getIncomeProgressPercent(result);
 
   return (
@@ -1945,10 +1973,11 @@ function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps[
         value={progress}
         note={`${formatPercent(result.incomeCoverageRatio)} of annual expenses`}
       />
-      <MobileProjectionDisclosure>
+      <MobileProjectionDisclosure infoContent={INCOME_STREAM_PROJECTION_DESCRIPTION}>
       <IncomeStreamProjectionTable
         label="Income Stream FIRE projection"
         rows={result.projectionRows}
+        hideHeading={isAppMode}
         auditNotes={[
           "Income Stream FIRE ignores portfolio return and current assets.",
           "Before the Income Stream FIRE age, expenses and income-stream coverage are not tested.",
@@ -1968,7 +1997,10 @@ function PrincipalPreservingResults({
   result: NonNullable<Phase1PanelProps["fireResult"]>["principalPreserving"];
   currentFireAssets: number;
 }) {
+  const isAppMode = useIsAppMode();
   const progress = getPrincipalProgressPercent(result, currentFireAssets);
+  const projectionHeaderNote =
+    "How returns are treated here: your total return is split in two. Appreciation (unspent) is price growth that stays invested and grows the principal you keep. Cash yield is dividends and interest — before FIRE it is reinvested (still shown in its own column), after FIRE it is spendable and counted inside Spendable income.";
   const fireAge =
     result.estimatedFireAge === null ? "Not reached" : formatNumber(result.estimatedFireAge);
   const fireYear =
@@ -2019,14 +2051,17 @@ function PrincipalPreservingResults({
           Try a higher savings rate, lower expenses, more income, or a higher cash-generating return.
         </div>
       )}
-      <MobileProjectionDisclosure>
+      <MobileProjectionDisclosure
+        infoContent={projectionPopoverContent(PROJECTION_TABLE_DESCRIPTION, projectionHeaderNote)}
+      >
       <ProjectionTable
         label="Principal-Preserving FIRE projection"
         rows={result.projectionRows}
+        hideHeading={isAppMode}
         incomeLabel="Spendable income (incl. yield)"
         investmentReturnLabel="Appreciation (unspent)"
         cashGeneratingReturnLabel="Cash yield"
-        headerNote="How returns are treated here: your total return is split in two. Appreciation (unspent) is price growth that stays invested and grows the principal you keep. Cash yield is dividends and interest — before FIRE it is reinvested (still shown in its own column), after FIRE it is spendable and counted inside Spendable income."
+        headerNote={projectionHeaderNote}
         showCashFlow={false}
         showInvestmentReturn
         showAnnualIncome
@@ -2047,6 +2082,20 @@ function PrincipalPreservingResults({
   );
 }
 
+// Standing descriptions for the two projection tables. Defined at module scope
+// so the inline heading popover (web) and the "See year-by-year full
+// projection" toggle popover (app) reference the EXACT same text with no drift.
+const PROJECTION_TABLE_DESCRIPTION =
+  "A compact audit trail for how assets move over time. Currency values are shown in compact form ($k / $M).";
+const INCOME_STREAM_PROJECTION_DESCRIPTION =
+  "A compact audit trail for income-stream coverage. Currency values are shown in compact form ($k / $M).";
+
+// Composes the year-by-year projection popover text from the table description
+// and the optional per-strategy "how returns are treated here…" note.
+function projectionPopoverContent(description: string, headerNote?: string) {
+  return headerNote ? `${description} ${headerNote}` : description;
+}
+
 // Heading row for the year-by-year projection. The explanatory prose (the
 // "compact audit trail…" description and the per-strategy "how returns are
 // treated here…" note) is no longer rendered inline on EITHER platform. It now
@@ -2060,7 +2109,7 @@ function ProjectionHeading({
   description: string;
   headerNote?: string;
 }) {
-  const popoverContent = headerNote ? `${description} ${headerNote}` : description;
+  const popoverContent = projectionPopoverContent(description, headerNote);
 
   return (
     <div className="flex items-center gap-1.5">
@@ -2091,6 +2140,7 @@ function ProjectionTable({
   showPrincipalFloor = false,
   showFireGap = true,
   highlightDip = false,
+  hideHeading = false,
   auditNotes
 }: {
   label: string;
@@ -2111,16 +2161,19 @@ function ProjectionTable({
   showPrincipalFloor?: boolean;
   showFireGap?: boolean;
   highlightDip?: boolean;
+  // App mode renders this table inside the "See year-by-year full projection"
+  // disclosure, whose toggle already serves as the heading + info popover, so
+  // the table drops its own heading to avoid a duplicate row.
+  hideHeading?: boolean;
   auditNotes: string[];
 }) {
   return (
     <Card className="overflow-hidden">
-      <div className="border-b border-gray-200 p-5 sm:p-6">
-        <ProjectionHeading
-          description="A compact audit trail for how assets move over time. Currency values are shown in compact form ($k / $M)."
-          headerNote={headerNote}
-        />
-      </div>
+      {hideHeading ? null : (
+        <div className="border-b border-gray-200 p-5 sm:p-6">
+          <ProjectionHeading description={PROJECTION_TABLE_DESCRIPTION} headerNote={headerNote} />
+        </div>
+      )}
       <div className="max-h-[560px] overflow-auto">
         <table
           aria-label={label}
@@ -2297,17 +2350,23 @@ function ProjectionTable({
 function IncomeStreamProjectionTable({
   label,
   rows,
+  hideHeading = false,
   auditNotes
 }: {
   label: string;
   rows: Phase1ProjectionRow[];
+  // See ProjectionTable.hideHeading — app mode lets the disclosure toggle act as
+  // the heading, so this table omits its own to avoid a duplicate row.
+  hideHeading?: boolean;
   auditNotes: string[];
 }) {
   return (
     <Card className="overflow-hidden">
-      <div className="border-b border-gray-200 p-5 sm:p-6">
-        <ProjectionHeading description="A compact audit trail for income-stream coverage. Currency values are shown in compact form ($k / $M)." />
-      </div>
+      {hideHeading ? null : (
+        <div className="border-b border-gray-200 p-5 sm:p-6">
+          <ProjectionHeading description={INCOME_STREAM_PROJECTION_DESCRIPTION} />
+        </div>
+      )}
       <div className="max-h-[560px] overflow-auto">
         <table
           aria-label={label}
