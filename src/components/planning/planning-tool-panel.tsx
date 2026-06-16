@@ -19,6 +19,7 @@ import { usePlanWorkbookWriter } from "@/lib/storage/use-plan-writer";
 import { useCalculatorPersistence } from "@/lib/storage/use-calculator-persistence";
 import { addHousingExpenseCategory, addPassiveIncome } from "@/lib/phase1/plan-mappings";
 import { relatedPlanningTools, type PlanningTool } from "@/lib/data/planning-tools";
+import { useIsAppMode } from "@/components/app-mode-provider";
 
 export type { PlanningTool };
 
@@ -910,6 +911,7 @@ function MortgageCalculator() {
 }
 
 function InvestmentCalculator() {
+  const isAppMode = useIsAppMode();
   const [startingBalance, setStartingBalance] = useState(100_000);
   const [contribution, setContribution] = useState(2_000);
   const [contributionFrequency, setContributionFrequency] =
@@ -1070,6 +1072,31 @@ function InvestmentCalculator() {
         </div>
       </div>
       <InvestmentChart data={result.schedule} />
+      {/* "Explore more calculators" pointer below the investment calculator.
+          App mode points at the in-app Calculators tab; the website sends people
+          to the Early Retirement Guide's calculators section (#pieces). */}
+      {isAppMode ? (
+        <p className="mt-5 text-sm text-gray-600">
+          Looking for more?{" "}
+          <Link
+            href="/app/calculators"
+            className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+            style={{ color: "var(--primary)" }}
+          >
+            Check the Calculators tab.
+          </Link>
+        </p>
+      ) : (
+        <p className="mt-5 text-sm text-gray-600">
+          <Link
+            href="/early-retirement-guide#pieces"
+            className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+            style={{ color: "var(--primary)" }}
+          >
+            Explore more calculators →
+          </Link>
+        </p>
+      )}
     </ToolShell>
   );
 }

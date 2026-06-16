@@ -666,6 +666,7 @@ export function PortfolioPanel({
               <Link
                 href="/app/portfolio-lab/add"
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
+                style={{ color: "#fff" }}
               >
                 <Plus aria-hidden="true" size={18} />
                 Add holdings
@@ -1320,6 +1321,7 @@ export function PortfolioPanel({
           className="fixed right-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition hover:brightness-110"
           style={{
             backgroundColor: "#15803d",
+            color: "#fff",
             bottom: "calc(4rem + env(safe-area-inset-bottom, 0px) + 1rem)"
           }}
         >

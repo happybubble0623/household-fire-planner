@@ -54,6 +54,43 @@ const toolBlurbs: Record<PlanningTool, { label: string; blurb: string }> = {
   investment: { label: "Investment", blurb: "Growth from contributions." }
 };
 
+// Home-hub "#calculators" grid ONLY: a LOCAL override of which calculator cards
+// show here. We swap the Mortgage card for the 2026 Tax calculator WITHOUT
+// touching the global PLANNING_TOOLS list (which still drives the nav dropdown
+// and every other surface). Each card is self-contained so it doesn't lean on
+// the PlanningTool-keyed icon/blurb maps for the tax entry.
+type HomeCalculatorCard = { href: string; icon: ReactNode; label: string; blurb: string };
+
+const taxIcon = (
+  <svg
+    width="18"
+    height="18"
+    fill="none"
+    stroke="#15803d"
+    strokeWidth="2"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 2h10v14H4zM7 6h4M7 9h4M7 12h2" />
+  </svg>
+);
+
+const homeCalculatorCards: HomeCalculatorCard[] = PLANNING_TOOLS.map((tool) =>
+  tool.slug === "mortgage"
+    ? {
+        href: "/app/fire-path/tools/tax",
+        icon: taxIcon,
+        label: "2026 Tax calculator",
+        blurb: "Federal income tax estimate."
+      }
+    : {
+        href: tool.href,
+        icon: toolIcons[tool.slug],
+        label: toolBlurbs[tool.slug].label,
+        blurb: toolBlurbs[tool.slug].blurb
+      }
+);
+
 const auroraCss = `
 .aurora-home{--g700:#166534;--g600:#15803d;--g500:#16a34a;--g400:#34c77e;--g300:#6ee0a0;--g100:#d1fadf;--g50:#ecfdf3;--gold:#f5b301;--gold6:#b07d00;--gold50:#fff8e6;--gold100:#fdecbf;--n900:#101410;--n800:#2c2b27;--n700:#3c423b;--n600:#5c5b53;--n500:#6b7167;--n300:#cdd1c9;--n200:#e7e9e3;--surface:#ffffff;--shadow-sm:0 1px 2px rgba(28,27,24,.06),0 1px 3px rgba(28,27,24,.05);--shadow-md:0 6px 16px rgba(28,27,24,.08);--bg:#ffffff;--soft:#f7f8f5;position:relative;background:#fbfdfb;color:var(--n700);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-feature-settings:"tnum" 1;-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh;scroll-behavior:smooth}
 .aurora-home .tnum{font-variant-numeric:tabular-nums}
@@ -191,8 +228,6 @@ const auroraCss = `
 
 export function PathToFirePanel({ status }: Phase1PanelProps) {
   const isAppMode = useIsAppMode();
-  const toolHref = (slug: PlanningTool) =>
-    PLANNING_TOOLS.find((tool) => tool.slug === slug)?.href ?? "/app/fire-path";
 
   return (
     <div className="aurora-home">
@@ -343,15 +378,11 @@ export function PathToFirePanel({ status }: Phase1PanelProps) {
             feed each result straight back into your numbers.
           </p>
           <div className="grid4">
-            {PLANNING_TOOLS.map((tool) => (
-              <Link
-                key={tool.slug}
-                href={toolHref(tool.slug)}
-                className="tool"
-              >
-                <div className="ic">{toolIcons[tool.slug]}</div>
-                <h4>{toolBlurbs[tool.slug].label}</h4>
-                <p>{toolBlurbs[tool.slug].blurb}</p>
+            {homeCalculatorCards.map((card) => (
+              <Link key={card.href} href={card.href} className="tool">
+                <div className="ic">{card.icon}</div>
+                <h4>{card.label}</h4>
+                <p>{card.blurb}</p>
               </Link>
             ))}
           </div>

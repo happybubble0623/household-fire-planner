@@ -121,9 +121,11 @@ describe("PathToFirePanel", () => {
     expectStartLink("/app/fire-path/principal-preserving");
     expectStartLink("/app/fire-path/income-stream");
 
-    // Calculators are reachable from the cards and the nav dropdown.
+    // Calculators are reachable from the cards and the nav dropdown. The home
+    // hub grid uses a local override that swaps Mortgage for the Tax calculator
+    // (the global PLANNING_TOOLS list — and thus the nav dropdown — is unchanged).
     expectInAppLink(/Social Security/i, "/app/fire-path/tools/social-security");
-    expectInAppLink(/Mortgage/i, "/app/fire-path/tools/mortgage");
+    expectInAppLink(/Tax/i, "/app/fire-path/tools/tax");
     expectInAppLink(/Investment/i, "/app/fire-path/tools/investment");
     expectInAppLink(/Healthcare/i, "/app/fire-path/tools/healthcare");
 

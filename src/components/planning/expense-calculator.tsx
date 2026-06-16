@@ -158,20 +158,6 @@ export function ExpenseCalculator() {
     });
   };
 
-  // Convenience: flip every row to one basis at once. Converts amounts the same
-  // way the per-item toggle does, so totals are unchanged.
-  const setAllFrequencies = (frequency: ItemFrequency) => {
-    setEntries((previous) =>
-      Object.fromEntries(
-        Object.entries(previous).map(([id, entry]) => {
-          if (entry.frequency === frequency) return [id, entry];
-          const factor = frequency === "annual" ? 12 : 1 / 12;
-          return [id, { amount: Math.round(entry.amount * factor), frequency }];
-        })
-      )
-    );
-  };
-
   const liveResult = useMemo(() => computeExpenseTotals(entries), [entries]);
   const gate = useCalculateGate(liveResult);
   const result = gate.value;
@@ -222,27 +208,6 @@ export function ExpenseCalculator() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <Card className="grid gap-5 p-6 sm:p-7">
-          {/* Convenience control — per-item toggles remain the source of truth. */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-sm font-medium text-gray-800">Set every line to</span>
-            <div
-              role="group"
-              aria-label="Set all lines to monthly or annual"
-              className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 shadow-sm"
-            >
-              {(["monthly", "annual"] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setAllFrequencies(option)}
-                  className="min-h-9 rounded-lg px-4 text-sm font-medium text-gray-500 transition hover:bg-white hover:text-gray-900"
-                >
-                  {option === "monthly" ? "Monthly" : "Annual"}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {EXPENSE_GROUPS.map((group) => {
             const subtotal = result.groups.find((entry) => entry.id === group.id);
             const liveSubtotal = liveResult.groups.find((entry) => entry.id === group.id);

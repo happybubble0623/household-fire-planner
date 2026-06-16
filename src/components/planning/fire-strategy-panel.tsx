@@ -865,7 +865,7 @@ function MobileProjectionDisclosure({ children }: { children: React.ReactNode })
   return (
     <details className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 text-base font-semibold text-gray-900 [&::-webkit-details-marker]:hidden">
-        See full projection
+        See year-by-year full projection
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -2047,11 +2047,12 @@ function PrincipalPreservingResults({
   );
 }
 
-// Heading row for the year-by-year projection. On the website the explanatory
-// description (and the per-strategy "how returns are treated" note) sit inline
-// under the heading, unchanged. In app mode that prose is removed from the flow
-// and folded into a tap-to-open info popover beside the heading, so the dense
-// table stays compact on a phone — the text content is identical, just relocated.
+// Heading row for the year-by-year projection. The explanatory prose (the
+// "compact audit trail…" description and the per-strategy "how returns are
+// treated here…" note) is no longer rendered inline on EITHER platform. It now
+// lives in a tap-to-open info popover beside the heading on BOTH website and
+// app, so the dense table stays compact — the text content is identical, just
+// relocated into the popover.
 function ProjectionHeading({
   description,
   headerNote
@@ -2059,30 +2060,15 @@ function ProjectionHeading({
   description: string;
   headerNote?: string;
 }) {
-  const isAppMode = useIsAppMode();
-
-  if (isAppMode) {
-    const popoverContent = headerNote ? `${description} ${headerNote}` : description;
-    return (
-      <div className="flex items-center gap-1.5">
-        <h2 className="text-xl font-semibold tracking-tight text-gray-900">
-          Year-by-year projection
-        </h2>
-        <InfoPopover label="Year-by-year projection" content={popoverContent} />
-      </div>
-    );
-  }
+  const popoverContent = headerNote ? `${description} ${headerNote}` : description;
 
   return (
-    <>
-      <h2 className="text-xl font-semibold tracking-tight text-gray-900">Year-by-year projection</h2>
-      <p className="mt-2 text-sm leading-relaxed text-gray-500">{description}</p>
-      {headerNote ? (
-        <p className="mt-2 rounded-xl bg-gray-50 px-3 py-2 text-sm leading-relaxed text-gray-600">
-          {headerNote}
-        </p>
-      ) : null}
-    </>
+    <div className="flex items-center gap-1.5">
+      <h2 className="text-xl font-semibold tracking-tight text-gray-900">
+        Year-by-year projection
+      </h2>
+      <InfoPopover label="Year-by-year projection" content={popoverContent} />
+    </div>
   );
 }
 
