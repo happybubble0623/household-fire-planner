@@ -45,13 +45,7 @@ const isCalculatorsRoute = (p: string) =>
 
 const TABS: Tab[] = [
   {
-    // The Plan tab goes to the SPECIFIC plan (the strategy workspace), NOT the
-    // hub. The hub (/app/fire-path) is only the COLD-LAUNCH landing (set via
-    // server.url); during a session, tapping Plan takes the user INTO the plan.
-    // Because `isActive` below is broad, Plan stays lit on the hub too, and the
-    // exact-destination scroll gesture (see render) means tapping Plan from the
-    // hub navigates here rather than scrolling.
-    href: "/app/fire-path/withdrawal-rate",
+    href: "/app/fire-path",
     label: "Plan",
     // Trending-up line — "your path / plan".
     icon: () => (
@@ -145,10 +139,9 @@ export function MobileTabBar() {
         const href = `${tab.href}?${APP_MODE_QUERY_PARAM}=1`;
         // `active` (broad section match) drives the highlight — Plan stays lit
         // across the hub AND every strategy page. The scroll-vs-navigate gesture
-        // keys off the EXACT destination instead: tapping Plan from the cold-
-        // launch hub (/app/fire-path) navigates INTO the specific plan
-        // (/app/fire-path/withdrawal-rate); only a re-tap while already ON that
-        // plan scrolls to top (so the user stays on the plan).
+        // keys off the EXACT destination instead, so tapping Plan from a strategy
+        // page returns to the hub (`/app/fire-path`) rather than just scrolling,
+        // while a tap when already on the hub scrolls to top.
         const atDestination = pathname === tab.href;
         return (
           <Link
