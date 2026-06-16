@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
+import { shareElementAsImage } from "@/lib/share-projection";
 import type { Phase1PanelProps } from "@/components/planning/phase1-workspace";
 import { useIsAppMode } from "@/components/app-mode-provider";
 import { StrategyCashFlowChart } from "@/components/charts/calculator-charts";
@@ -861,14 +862,37 @@ function InputSectionCard({ title, children }: { title: string; children: React.
 // to drop its own "Year-by-year projection" heading to avoid a duplicate row).
 function MobileProjectionDisclosure({
   infoContent,
+  shareFileName,
+  shareTitle,
   children
 }: {
   infoContent: string;
+  // Base file name (no extension) for the exported PNG, e.g. "portfolio-drawdown-fire".
+  shareFileName: string;
+  // Title shown on the native share sheet for this strategy's projection.
+  shareTitle: string;
   children: React.ReactNode;
 }) {
   const isAppMode = useIsAppMode();
+  // Wraps the rendered projection table so we can capture it as an image. Only
+  // ever read inside the native share path (which is itself app-only).
+  const tableRef = useRef<HTMLDivElement>(null);
+  const [sharing, setSharing] = useState(false);
 
   if (!isAppMode) return <>{children}</>;
+
+  const handleShare = async () => {
+    if (sharing) return;
+    const el = tableRef.current;
+    if (!el) return;
+    setSharing(true);
+    try {
+      // No-ops on web/SSR; renders + opens the iOS share sheet inside the app.
+      await shareElementAsImage(el, shareFileName, shareTitle);
+    } finally {
+      setSharing(false);
+    }
+  };
 
   return (
     <details className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -900,7 +924,34 @@ function MobileProjectionDisclosure({
           <path d="M6 9l6 6 6-6" />
         </svg>
       </summary>
-      <div className="border-t border-gray-200 p-3">{children}</div>
+      <div className="border-t border-gray-200 p-3">
+        <div className="mb-3 flex justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleShare}
+            disabled={sharing}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+              className="h-4 w-4"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7" />
+              <path d="M12 16V4" />
+              <path d="M8 8l4-4 4 4" />
+            </svg>
+            {sharing ? "Preparing…" : "Share as image"}
+          </Button>
+        </div>
+        <div ref={tableRef}>{children}</div>
+      </div>
     </details>
   );
 }
@@ -1920,6 +1971,8 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
       </section>
       <MobileProjectionDisclosure
         infoContent={projectionPopoverContent(PROJECTION_TABLE_DESCRIPTION, projectionHeaderNote)}
+        shareFileName="portfolio-drawdown-fire-projection"
+        shareTitle="Portfolio Drawdown FIRE projection"
       >
       <ProjectionTable
         label="Portfolio Drawdown FIRE projection"
@@ -1973,7 +2026,11 @@ function IncomeStreamResults({ result }: { result: NonNullable<Phase1PanelProps[
         value={progress}
         note={`${formatPercent(result.incomeCoverageRatio)} of annual expenses`}
       />
-      <MobileProjectionDisclosure infoContent={INCOME_STREAM_PROJECTION_DESCRIPTION}>
+      <MobileProjectionDisclosure
+        infoContent={INCOME_STREAM_PROJECTION_DESCRIPTION}
+        shareFileName="income-stream-fire-projection"
+        shareTitle="Income Stream FIRE projection"
+      >
       <IncomeStreamProjectionTable
         label="Income Stream FIRE projection"
         rows={result.projectionRows}
@@ -2053,6 +2110,8 @@ function PrincipalPreservingResults({
       )}
       <MobileProjectionDisclosure
         infoContent={projectionPopoverContent(PROJECTION_TABLE_DESCRIPTION, projectionHeaderNote)}
+        shareFileName="principal-preserving-fire-projection"
+        shareTitle="Principal-Preserving FIRE projection"
       >
       <ProjectionTable
         label="Principal-Preserving FIRE projection"
