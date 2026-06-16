@@ -36,6 +36,17 @@ const config: CapacitorConfig = {
     // appended User-Agent token above is the durable server-side signal; this
     // flag remains as a belt-and-suspenders client signal for the first load.
     url: 'https://www.planmyfi.com/app/fire-path/withdrawal-rate?pmfApp=1',
+    // CRITICAL — keep ALL in-app navigation inside the WebView. Capacitor only
+    // treats a top-level navigation as "in-app" if the URL string STARTS WITH
+    // the full `server.url` above (path + query included) OR its host matches
+    // `allowNavigation` (see WebViewDelegationHandler.decidePolicyFor). Because
+    // `server.url` carries a deep launch path, a full-document navigation to a
+    // DIFFERENT path (e.g. tapping the Calculators tab → /app/calculators) fails
+    // the prefix test and Capacitor hands it to Safari, ejecting the user from
+    // the app. Allowing the host(s) makes the host match win first, so every
+    // same-site navigation — any path, with or without the query — stays in the
+    // WebView. Apex + wildcard cover the www→apex 308 and any future subdomain.
+    allowNavigation: ['planmyfi.com', '*.planmyfi.com'],
     cleartext: false,
   },
 };
