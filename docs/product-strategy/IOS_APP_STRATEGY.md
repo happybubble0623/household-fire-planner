@@ -2,6 +2,8 @@
 
 *Created: 2026-06-14 · Last updated: 2026-06-14*
 
+> **Implementation reference:** for how app mode is detected/gated, the Capacitor native-shell navigation gotchas (incl. the "tabs open Safari" fix), the current `capacitor.config.ts` config of record, the navigation/IA decisions, and the deploy-vs-rebuild model, see [IOS_APP_MODE_AND_NAV.md](./IOS_APP_MODE_AND_NAV.md).
+
 ## TL;DR
 Build the iOS app by **reusing the existing web codebase + the portable TypeScript calculation engine**, wrapped with **Capacitor**, plus a few genuinely native features so it clears App Store Guideline 4.2 ("minimum functionality" — bare website wrappers get rejected). Position iOS differently from web: **web acquires and plans; iOS retains and tracks.**
 
