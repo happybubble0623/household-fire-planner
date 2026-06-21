@@ -10,6 +10,7 @@ const routes: Array<{ path: string; priority: number }> = [
   { path: "/what-is-fire", priority: 0.7 },
   { path: "/fire-glossary", priority: 0.6 },
   { path: "/app/fire-path/withdrawal-rate", priority: 0.8 },
+  { path: "/app/fire-path/coast-fire", priority: 0.8 },
   { path: "/app/fire-path/principal-preserving", priority: 0.8 },
   { path: "/app/fire-path/income-stream", priority: 0.8 },
   { path: "/app/fire-path/tools/mortgage", priority: 0.7 },

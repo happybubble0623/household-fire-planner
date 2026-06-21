@@ -204,6 +204,7 @@ const auroraCss = `
 .aurora-home .paths-fallback{margin-top:16px;display:flex;align-items:center;gap:9px;font-size:13px;color:var(--n600);background:var(--gold50);border:1px solid var(--gold100);border-radius:11px;padding:11px 14px}
 
 .aurora-home .paths-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch;margin-top:32px}
+.aurora-home .paths-grid.four{grid-template-columns:repeat(2,1fr)}
 .aurora-home .paths-card{background:var(--surface);border:1px solid var(--n200);border-radius:18px;box-shadow:var(--shadow-sm);padding:24px 22px 22px;display:flex;flex-direction:column;position:relative;transition:.18s}
 .aurora-home .paths-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
 .aurora-home .paths-card.featured{border-color:var(--gold);border-width:1.5px;box-shadow:0 0 0 4px var(--gold50),var(--shadow-md)}
@@ -222,7 +223,7 @@ const auroraCss = `
 @media(max-width:880px){
 .aurora-home .htitle{font-size:40px}
 .aurora-home .grid3,.aurora-home .grid4,.aurora-home .stripe,.aurora-home .kpis{grid-template-columns:1fr}
-.aurora-home .paths-grid{grid-template-columns:1fr;gap:16px}
+.aurora-home .paths-grid,.aurora-home .paths-grid.four{grid-template-columns:1fr;gap:16px}
 .aurora-home .paths h2{font-size:27px}
 .aurora-home .paths-helpbtn{width:100%;justify-content:center}
 .aurora-home .paths-opts{flex-direction:column}
@@ -324,7 +325,7 @@ export function FireHubStatic({
               <div className="l">Built-in calculators</div>
             </div>
             <div className="stat">
-              <div className="n tnum">3</div>
+              <div className="n tnum">4</div>
               <div className="l">FIRE strategies</div>
             </div>
             <div className="stat">
@@ -335,7 +336,15 @@ export function FireHubStatic({
         ) : null}
 
         <section className="sec paths" id="strategies">
-          <h2>Three paths to reach early retirement</h2>
+          {/* The app's cold-launch hub keeps the original "Three paths" landing
+              intact; the website (public "/" homepage and website /app/fire-path)
+              surfaces the fourth (Coast) path in both the heading and the grid.
+              App-mode landing is left exactly as it was. */}
+          <h2>
+            {isAppMode
+              ? "Three paths to reach early retirement"
+              : "Four paths to reach early retirement"}
+          </h2>
           <p className="sub">
             Each path is a different way to fund the years after work. Pick the one that sounds
             like you — you can switch anytime.
@@ -344,8 +353,11 @@ export function FireHubStatic({
             <PathPicker />
           </div>
 
-          <div className="paths-grid">
-            {FIRE_STRATEGY_CARDS.map((card) => (
+          <div className={isAppMode ? "paths-grid" : "paths-grid four"}>
+            {(isAppMode
+              ? FIRE_STRATEGY_CARDS.filter((card) => card.href !== "/app/fire-path/coast-fire")
+              : FIRE_STRATEGY_CARDS
+            ).map((card) => (
               <div
                 key={card.href}
                 className={card.featured ? "paths-card featured" : "paths-card"}

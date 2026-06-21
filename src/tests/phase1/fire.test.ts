@@ -21,6 +21,7 @@ const baseInputs: Phase1FireInputs = {
   expectedCashGeneratingReturnPercent: 2,
   inflationRatePercent: 3,
   withdrawalRatePercent: 4,
+  coastRetirementAge: 65,
   taxMode: "simple",
   simpleEffectiveTaxRatePercent: 10
 };
@@ -1422,6 +1423,166 @@ describe("calculatePhase1Fire", () => {
         lifeExpectancy: 90.5
       })
     ).toThrow("Current age and life expectancy must be whole years.");
+  });
+});
+
+describe("Coast FIRE", () => {
+  it("reports reached-coast when current assets already coast to the retirement target", () => {
+    const result = calculatePhase1Fire({
+      ...baseInputs,
+      fireRuleMode: "coast_fire",
+      currentAge: 35,
+      lifeExpectancy: 90,
+      coastRetirementAge: 65,
+      currentFireAssets: 200_000,
+      annualExpenses: 40_000,
+      expensesInflationAdjusted: false,
+      annualPassiveGuaranteedIncome: 0,
+      annualSavingsBeforeFire: 0,
+      expectedAnnualPortfolioReturnPercent: 7,
+      inflationRatePercent: 0,
+      withdrawalRatePercent: 4,
+      taxMode: "none"
+    } as Phase1FireInputs);
+
+    const coast = result.coastFire;
+    // 40,000 / 4% = a 1,000,000 FIRE number at the retirement age.
+    expect(coast.fireNumberAtRetirement).toBeCloseTo(1_000_000, 2);
+    // Coast number today = 1,000,000 / 1.07^30 ≈ 131,367.
+    expect(coast.coastNumber).toBeCloseTo(1_000_000 / Math.pow(1.07, 30), 2);
+    expect(coast.reachedCoast).toBe(true);
+    expect(coast.coastAge).toBe(35);
+    expect(coast.estimatedYearsToCoast).toBe(0);
+    // 200,000 compounded at 7% for 30 years lands well above the target.
+    expect(coast.projectedAssetsAtRetirement).toBeCloseTo(200_000 * Math.pow(1.07, 30), 2);
+    expect(coast.surplusOrShortfallAtRetirement).toBeGreaterThan(0);
+    // Rows run from the current age through the retirement age inclusively.
+    expect(coast.projectionRows).toHaveLength(31);
+    expect(coast.projectionRows[0].age).toBe(35);
+    expect(coast.projectionRows[coast.projectionRows.length - 1].age).toBe(65);
+    expect(coast.projectionRows[coast.projectionRows.length - 1].endingAssets).toBeCloseTo(
+      200_000 * Math.pow(1.07, 30),
+      2
+    );
+  });
+
+  it("reports not-reached when even saving through the retirement age never reaches the target", () => {
+    const result = calculatePhase1Fire({
+      ...baseInputs,
+      fireRuleMode: "coast_fire",
+      currentAge: 50,
+      lifeExpectancy: 90,
+      coastRetirementAge: 65,
+      currentFireAssets: 100_000,
+      annualExpenses: 100_000,
+      expensesInflationAdjusted: false,
+      annualPassiveGuaranteedIncome: 0,
+      annualSavingsBeforeFire: 10_000,
+      expectedAnnualPortfolioReturnPercent: 0,
+      inflationRatePercent: 0,
+      withdrawalRatePercent: 4,
+      taxMode: "none"
+    } as Phase1FireInputs);
+
+    const coast = result.coastFire;
+    // 100,000 / 4% = 2,500,000 target; with 0% return the coast number equals it.
+    expect(coast.fireNumberAtRetirement).toBeCloseTo(2_500_000, 2);
+    expect(coast.coastNumber).toBeCloseTo(2_500_000, 2);
+    expect(coast.reachedCoast).toBe(false);
+    expect(coast.coastAge).toBeNull();
+    expect(coast.coastYear).toBeNull();
+    expect(coast.estimatedYearsToCoast).toBe(15);
+    expect(coast.surplusOrShortfallAtRetirement).toBeLessThan(0);
+  });
+
+  it("finds a future coast age when continued saving raises assets enough to coast", () => {
+    const result = calculatePhase1Fire({
+      ...baseInputs,
+      fireRuleMode: "coast_fire",
+      currentAge: 30,
+      lifeExpectancy: 90,
+      coastRetirementAge: 65,
+      currentFireAssets: 50_000,
+      annualExpenses: 40_000,
+      expensesInflationAdjusted: false,
+      annualPassiveGuaranteedIncome: 0,
+      annualSavingsBeforeFire: 10_000,
+      expectedAnnualPortfolioReturnPercent: 7,
+      inflationRatePercent: 0,
+      withdrawalRatePercent: 4,
+      taxMode: "none"
+    } as Phase1FireInputs);
+
+    const coast = result.coastFire;
+    expect(coast.fireNumberAtRetirement).toBeCloseTo(1_000_000, 2);
+    // Not coasting yet on today's assets alone, but continued saving gets there
+    // before the retirement age, so a finite future coast age exists.
+    expect(coast.reachedCoast).toBe(false);
+    expect(coast.coastAge).not.toBeNull();
+    expect(coast.coastAge!).toBeGreaterThan(30);
+    expect(coast.coastAge!).toBeLessThan(65);
+    expect(coast.estimatedYearsToCoast).toBe(coast.coastAge! - 30);
+    expect(coast.coastYear).toBe(new Date().getFullYear() + coast.estimatedYearsToCoast);
+  });
+
+  it("subtracts passive income and grosses up simple tax in the retirement FIRE number", () => {
+    const result = calculatePhase1Fire({
+      ...baseInputs,
+      fireRuleMode: "coast_fire",
+      currentAge: 40,
+      lifeExpectancy: 90,
+      coastRetirementAge: 65,
+      currentFireAssets: 100_000,
+      annualExpenses: 80_000,
+      expensesInflationAdjusted: false,
+      annualPassiveGuaranteedIncome: 30_000,
+      passiveGuaranteedIncomeInflationAdjusted: false,
+      annualSavingsBeforeFire: 0,
+      expectedAnnualPortfolioReturnPercent: 5,
+      inflationRatePercent: 0,
+      withdrawalRatePercent: 4,
+      taxMode: "simple",
+      simpleEffectiveTaxRatePercent: 20
+    } as Phase1FireInputs);
+
+    // Gap = 80,000 − 30,000 = 50,000; grossed up at 20% → 62,500; / 4% = 1,562,500.
+    expect(result.coastFire.fireNumberAtRetirement).toBeCloseTo(1_562_500, 2);
+  });
+
+  it("validates the coast retirement age and withdrawal rate in coast mode", () => {
+    expect(() =>
+      calculatePhase1Fire({
+        ...baseInputs,
+        fireRuleMode: "coast_fire",
+        currentAge: 60,
+        coastRetirementAge: 55
+      } as Phase1FireInputs)
+    ).toThrow("Coast retirement age must be greater than current age.");
+
+    expect(() =>
+      calculatePhase1Fire({
+        ...baseInputs,
+        fireRuleMode: "coast_fire",
+        coastRetirementAge: 95,
+        lifeExpectancy: 90
+      } as Phase1FireInputs)
+    ).toThrow("Coast retirement age must be less than or equal to life expectancy.");
+
+    expect(() =>
+      calculatePhase1Fire({
+        ...baseInputs,
+        fireRuleMode: "coast_fire",
+        coastRetirementAge: 65,
+        withdrawalRatePercent: 0
+      } as Phase1FireInputs)
+    ).toThrow("Withdrawal rate must be greater than 0.");
+
+    expect(() =>
+      calculatePhase1Fire({
+        ...baseInputs,
+        coastRetirementAge: 65.5
+      } as Phase1FireInputs)
+    ).toThrow("Coast retirement age must be a whole year.");
   });
 });
 

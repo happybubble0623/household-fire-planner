@@ -52,7 +52,7 @@ export const FIRE_GLOSSARY: GlossaryTerm[] = [
     term: "Coast FIRE",
     definition:
       "The point where you have already invested enough that, even if you never save another dollar, your existing savings should grow on their own to fund a normal-age retirement. After reaching it you only need to earn enough to cover today's bills — you can \"coast\" because the long-term retirement saving is already done.",
-    link: { href: "/what-is-fire#flavors", label: "FIRE flavors explained" }
+    link: { href: "/app/fire-path/coast-fire", label: "Coast FIRE calculator" }
   },
   {
     id: "drawdown",

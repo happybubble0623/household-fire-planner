@@ -1,4 +1,5 @@
 import type {
+  Phase1CoastFireResult,
   Phase1ExpenseCategory,
   Phase1FireInputs,
   Phase1FireResult,
@@ -16,7 +17,8 @@ export function calculatePhase1Fire(inputs: Phase1FireInputs): Phase1FireResult 
     mode: inputs.fireRuleMode,
     withdrawalRate: calculateWithdrawalRateFire(inputs),
     incomeStream: calculateIncomeStreamFire(inputs),
-    principalPreserving: calculatePrincipalPreservingFire(inputs)
+    principalPreserving: calculatePrincipalPreservingFire(inputs),
+    coastFire: calculateCoastFire(inputs)
   };
 }
 
@@ -60,7 +62,8 @@ export function validatePhase1FireInputs(inputs: Phase1FireInputs) {
     "expectedAnnualPortfolioReturnPercent",
     "expectedCashGeneratingReturnPercent",
     "inflationRatePercent",
-    "simpleEffectiveTaxRatePercent"
+    "simpleEffectiveTaxRatePercent",
+    "coastRetirementAge"
   ];
 
   for (const field of nonNegativeFiniteFields) {
@@ -86,8 +89,24 @@ export function validatePhase1FireInputs(inputs: Phase1FireInputs) {
     throw new Error("Passive Income FIRE age must be a whole year.");
   }
 
+  if (!Number.isInteger(inputs.coastRetirementAge)) {
+    throw new Error("Coast retirement age must be a whole year.");
+  }
+
   if (inputs.currentAge >= inputs.lifeExpectancy) {
     throw new Error("Current age must be less than life expectancy.");
+  }
+
+  if (inputs.fireRuleMode === "coast_fire") {
+    if (inputs.coastRetirementAge <= inputs.currentAge) {
+      throw new Error("Coast retirement age must be greater than current age.");
+    }
+    if (inputs.coastRetirementAge > inputs.lifeExpectancy) {
+      throw new Error("Coast retirement age must be less than or equal to life expectancy.");
+    }
+    if (inputs.withdrawalRatePercent <= 0) {
+      throw new Error("Withdrawal rate must be greater than 0.");
+    }
   }
 
   if (
@@ -275,6 +294,115 @@ function calculatePrincipalPreservingFire(
     endingAssetsAtLifeExpectancy: lastProjectionRow?.endingAssets ?? assetsAtFire,
     projectionRows
   };
+}
+
+// Coast FIRE. Current invested assets, with NO further contributions, grow at
+// the expected return to a "FIRE number" by a traditional retirement age. The
+// FIRE number reuses the same portfolio-funded spending gap and tax gross-up as
+// the other modes, capitalized at the withdrawal rule (4% by default => 25x).
+function calculateCoastFire(inputs: Phase1FireInputs): Phase1CoastFireResult {
+  const retirementAge = inputs.coastRetirementAge;
+  const annualReturn = inputs.expectedAnnualPortfolioReturnPercent / 100;
+  const withdrawalRate = inputs.withdrawalRatePercent / 100;
+  const yearsToRetirement = Math.max(0, retirementAge - inputs.currentAge);
+
+  // FIRE number at the retirement age: the tax-adjusted, inflation-grown
+  // portfolio-funded spending gap there, capitalized at the withdrawal rule.
+  const spendingGapAtRetirement = Math.max(
+    0,
+    calculateExpensesForYear(inputs, yearsToRetirement) -
+      calculatePassiveIncomeForYear(inputs, yearsToRetirement)
+  );
+  const taxAdjustedGapAtRetirement = calculateTaxAdjustedGap(inputs, spendingGapAtRetirement);
+  const fireNumberAtRetirement =
+    withdrawalRate > 0
+      ? taxAdjustedGapAtRetirement / withdrawalRate
+      : Number.POSITIVE_INFINITY;
+
+  // The coast number TODAY: present value of the retirement target discounted by
+  // the expected return over the coasting horizon. current assets >= this means
+  // today's portfolio alone (no further saving) grows into the target.
+  const coastNumber =
+    yearsToRetirement === 0
+      ? fireNumberAtRetirement
+      : fireNumberAtRetirement / Math.pow(1 + annualReturn, yearsToRetirement);
+
+  // Where today's assets land at the retirement age with no further saving.
+  const projectedAssetsAtRetirement =
+    inputs.currentFireAssets * Math.pow(1 + annualReturn, yearsToRetirement);
+
+  // Earliest age the saver can stop contributing and still coast to the target:
+  // accumulate WITH savings up to a candidate age, then grow returns-only from
+  // there to the retirement age. The first qualifying age is the coast age.
+  let coastAge: number | null = null;
+  for (let age = inputs.currentAge; age <= retirementAge; age += 1) {
+    const assetsAtCandidate = projectAssetsBeforeFire(inputs, age - inputs.currentAge);
+    const coastedToRetirement =
+      assetsAtCandidate * Math.pow(1 + annualReturn, retirementAge - age);
+    if (coastedToRetirement + 0.000001 >= fireNumberAtRetirement) {
+      coastAge = age;
+      break;
+    }
+  }
+
+  const reachedCoast = inputs.currentFireAssets + 0.000001 >= coastNumber;
+  const estimatedYearsToCoast =
+    coastAge === null ? yearsToRetirement : Math.max(0, coastAge - inputs.currentAge);
+
+  return {
+    fireNumberAtRetirement,
+    coastNumber,
+    retirementAge,
+    reachedCoast,
+    coastAge,
+    coastYear: coastAge === null ? null : getProjectionStartYear() + (coastAge - inputs.currentAge),
+    estimatedYearsToCoast,
+    projectedAssetsAtRetirement,
+    surplusOrShortfallAtRetirement: projectedAssetsAtRetirement - fireNumberAtRetirement,
+    withdrawalRatePercent: inputs.withdrawalRatePercent,
+    projectionRows: buildCoastFireProjectionRows(inputs, fireNumberAtRetirement)
+  };
+}
+
+// Year-by-year coast trajectory: today's assets growing returns-only (no further
+// contributions) from the current age to the retirement age, against the fixed
+// FIRE-number target. Demonstrates whether the portfolio coasts to the target.
+function buildCoastFireProjectionRows(
+  inputs: Phase1FireInputs,
+  fireNumberAtRetirement: number
+): Phase1ProjectionRow[] {
+  const annualReturn = inputs.expectedAnnualPortfolioReturnPercent / 100;
+  const retirementAge = inputs.coastRetirementAge;
+  const rows: Phase1ProjectionRow[] = [];
+  const projectionStartYear = getProjectionStartYear();
+  let assets = inputs.currentFireAssets;
+
+  for (let age = inputs.currentAge; age <= retirementAge; age += 1) {
+    const year = age - inputs.currentAge;
+    const startingAssets = assets;
+    const beforeRetirement = age < retirementAge;
+    // Coast assumption: no contributions. The only inflow is investment growth,
+    // shown until the retirement age (the final row is the value "at" retirement).
+    const investmentReturn = beforeRetirement ? startingAssets * annualReturn : 0;
+    const endingAssets = startingAssets + investmentReturn;
+
+    rows.push({
+      year,
+      calendarYear: projectionStartYear + year,
+      age,
+      startingAssets,
+      cashFlow: 0,
+      investmentReturn,
+      fireTarget: fireNumberAtRetirement,
+      fireGap: Math.max(0, fireNumberAtRetirement - endingAssets),
+      endingAssets,
+      depleted: false
+    });
+
+    assets = endingAssets;
+  }
+
+  return rows;
 }
 
 // Finds the earliest age at which the user can stop saving, set the projected

@@ -96,7 +96,7 @@ describe("PathToFirePanel", () => {
       })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Three paths to reach early retirement" })
+      screen.getByRole("heading", { name: "Four paths to reach early retirement" })
     ).toBeInTheDocument();
 
     // Each FIRE mode is reachable (from a strategy card and from the nav
@@ -118,6 +118,7 @@ describe("PathToFirePanel", () => {
       expect(match).not.toHaveAttribute("target");
     };
     expectStartLink("/app/fire-path/withdrawal-rate");
+    expectStartLink("/app/fire-path/coast-fire");
     expectStartLink("/app/fire-path/principal-preserving");
     expectStartLink("/app/fire-path/income-stream");
 
@@ -153,10 +154,10 @@ describe("PathToFirePanel", () => {
     expect(screen.queryByLabelText("Current age")).not.toBeInTheDocument();
   });
 
-  it("renders the three FIRE comparison cards with FIRE names, tags, plain-language ideas, three green bullets, and Start links", () => {
+  it("renders the four FIRE comparison cards with FIRE names, tags, plain-language ideas, three green bullets, and Start links", () => {
     render(<PathToFirePanelHarness />);
 
-    // All three cards carry the full "FIRE" name as a heading.
+    // All four cards carry the full "FIRE" name as a heading.
     const cardSpecs: Array<{ name: string; tag: string; idea: string; href: string; bullets: string[] }> = [
       {
         name: "Portfolio Drawdown FIRE",
@@ -164,6 +165,17 @@ describe("PathToFirePanel", () => {
         idea: "Build up your savings, then spend them down gradually.",
         href: "/app/fire-path/withdrawal-rate",
         bullets: ["Simplest, most common", "Works with index funds", "Spend savings gradually"]
+      },
+      {
+        name: "Coast FIRE",
+        tag: "Let it grow",
+        idea: "Save enough now, then stop — your investments grow on their own to a normal-age retirement.",
+        href: "/app/fire-path/coast-fire",
+        bullets: [
+          "Stop saving for retirement",
+          "Just cover today's expenses",
+          "Best if you start young"
+        ]
       },
       {
         name: "Principal-Preserving FIRE",
@@ -217,7 +229,7 @@ describe("PathToFirePanel", () => {
     render(<PathToFirePanelHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: /Help me choose/i }));
-    expect(screen.getByText(/Question 1 of 2/i)).toBeInTheDocument();
+    expect(screen.getByText(/Question 1 of 3/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Yes, most of them/i }));
 
     const result = screen.getByRole("status");
@@ -235,7 +247,7 @@ describe("PathToFirePanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Help me choose/i }));
     fireEvent.click(screen.getByRole("button", { name: /No \/ not really/i }));
-    expect(screen.getByText(/Question 2 of 2/i)).toBeInTheDocument();
+    expect(screen.getByText(/Question 2 of 3/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Yes, keep it intact/i }));
 
     expect(
@@ -243,7 +255,21 @@ describe("PathToFirePanel", () => {
     ).toHaveAttribute("href", "/app/fire-path/principal-preserving");
   });
 
-  it("Help me choose: Q1 'No' then Q2 'No' recommends Portfolio Drawdown FIRE, with Back and reset working", () => {
+  it("Help me choose: Q1 'No', Q2 'No', then Q3 'Yes' recommends Coast FIRE", () => {
+    render(<PathToFirePanelHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Help me choose/i }));
+    fireEvent.click(screen.getByRole("button", { name: /No \/ not really/i }));
+    fireEvent.click(screen.getByRole("button", { name: /No, spending it is fine/i }));
+    expect(screen.getByText(/Question 3 of 3/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Yes, let it coast/i }));
+
+    expect(
+      screen.getByRole("link", { name: /Start Coast FIRE/i })
+    ).toHaveAttribute("href", "/app/fire-path/coast-fire");
+  });
+
+  it("Help me choose: Q1 'No', Q2 'No', Q3 'No' recommends Portfolio Drawdown FIRE, with Back and reset working", () => {
     render(<PathToFirePanelHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: /Help me choose/i }));
@@ -251,11 +277,12 @@ describe("PathToFirePanel", () => {
 
     // Back returns to Q1.
     fireEvent.click(screen.getByRole("button", { name: /^Back$/i }));
-    expect(screen.getByText(/Question 1 of 2/i)).toBeInTheDocument();
+    expect(screen.getByText(/Question 1 of 3/i)).toBeInTheDocument();
 
     // Walk to the drawdown result.
     fireEvent.click(screen.getByRole("button", { name: /No \/ not really/i }));
     fireEvent.click(screen.getByRole("button", { name: /No, spending it is fine/i }));
+    fireEvent.click(screen.getByRole("button", { name: /No, I’ll keep building/i }));
 
     const resultLink = screen.getByRole("link", { name: /Start Portfolio Drawdown FIRE/i });
     expect(resultLink).toHaveAttribute("href", "/app/fire-path/withdrawal-rate");
@@ -266,7 +293,7 @@ describe("PathToFirePanel", () => {
 
     // "See all three again" resets back to Q1.
     fireEvent.click(screen.getByRole("button", { name: /See all three again/i }));
-    expect(screen.getByText(/Question 1 of 2/i)).toBeInTheDocument();
+    expect(screen.getByText(/Question 1 of 3/i)).toBeInTheDocument();
   });
 
   it("shows compact portfolio drawdown summary cards, progress, info icons, and audit table", () => {

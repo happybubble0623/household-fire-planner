@@ -56,7 +56,12 @@ export function normalizePhase1Workbook(workbook: Phase1Workbook): Phase1Workboo
 
 function normalizeFireRuleMode(mode: unknown): Phase1FireRuleMode {
   if (mode === "income_only") return "income_stream";
-  if (mode === "income_stream" || mode === "principal_preserving" || mode === "withdrawal_rate") {
+  if (
+    mode === "income_stream" ||
+    mode === "principal_preserving" ||
+    mode === "withdrawal_rate" ||
+    mode === "coast_fire"
+  ) {
     return mode;
   }
 

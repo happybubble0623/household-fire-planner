@@ -1,5 +1,6 @@
-// Server-rendered FAQ content for the three FIRE strategy pages
-// (/app/fire-path/income-stream, /principal-preserving, /withdrawal-rate).
+// Server-rendered FAQ content for the four FIRE strategy pages
+// (/app/fire-path/income-stream, /principal-preserving, /withdrawal-rate,
+// /coast-fire).
 //
 // Framework-free (no "use client") so each strategy route's server component can
 // render the Q&A in the initial HTML — crawlers and "People Also Ask" see the
@@ -69,6 +70,36 @@ export const principalPreservingFaq: FaqItem[] = [
     question: "What return or yield should I assume?",
     answer:
       "Use a realistic, conservative figure for what your investments pay out each year, and remember that inflation slowly raises your spending over time. This calculator lets you set your own yield and expenses so you can see the earliest age your earnings cover your costs without touching principal — then stress-test it with lower numbers."
+  }
+];
+
+// Coast FIRE — invest enough early that, with no further saving, your portfolio
+// grows on its own to fund a traditional-age retirement.
+export const coastFireFaq: FaqItem[] = [
+  {
+    question: "What is Coast FIRE in plain terms?",
+    answer:
+      "Coast FIRE is the point where you have already invested enough that, even if you never save another dollar for retirement, your existing investments should grow on their own to fund a normal-age retirement — say at 65. Once you reach it, you only need to earn enough to cover today's living costs. You can stop saving for the future and \"coast\" because the long-term retirement saving is already done."
+  },
+  {
+    question: "How does this calculator work out my Coast FIRE number?",
+    answer:
+      "It first works out your FIRE number at the retirement age you choose — your inflation-adjusted yearly spending that a portfolio must cover, divided by your withdrawal rate (the 4% rule by default, which is the same as 25× your spending). It then discounts that target back to today using your expected return, so the coast number is simply: what you would need invested right now for it to grow into the target by your retirement age with no further contributions."
+  },
+  {
+    question: "What return and withdrawal rate should I use?",
+    answer:
+      "Both are editable. The defaults are a 7%-style long-run return assumption and the 4% rule, but you can set your own. A lower return or a more cautious (lower) withdrawal rate both raise the amount you need invested today, so it is worth stress-testing with conservative numbers. Remember the return here is a long-run average — real markets vary year to year."
+  },
+  {
+    question: "Who is Coast FIRE best for?",
+    answer:
+      "People who front-loaded their saving — often by investing heavily in their 20s or 30s — and now want the freedom to take a lower-paying job, go part-time, switch careers, or take time off, without falling behind on retirement. The earlier you reach your coast number, the more years of compounding do the work for you."
+  },
+  {
+    question: "How is Coast FIRE different from the other strategies?",
+    answer:
+      "Portfolio Drawdown finds the earliest age you could fully retire and live off your savings. Coast FIRE instead finds the age you can stop adding to retirement savings while still working to cover today's bills — your investments keep growing untouched toward a later, traditional retirement. It usually comes much earlier than full FIRE, which is the appeal. You can compare all four paths here."
   }
 ];
 

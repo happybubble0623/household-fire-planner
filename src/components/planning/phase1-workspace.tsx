@@ -29,7 +29,7 @@ import { WorkbookConflictDialog } from "@/components/planning/workbook-conflict-
 
 type Phase1WorkspaceProps = {
   activeTab: "fire" | "portfolio";
-  fireView?: "home" | "withdrawal" | "income" | "principal";
+  fireView?: "home" | "withdrawal" | "income" | "principal" | "coast";
   // Sub-screen within the portfolio tab. "overview" is the full tracker;
   // "add" is the dedicated Add Holdings page.
   portfolioView?: "overview" | "add";
@@ -382,6 +382,9 @@ export function Phase1Workspace({
         ) : null}
         {activeTab === "fire" && fireView === "principal" ? (
           <FireStrategyPanel {...panelProps} mode="principal_preserving" />
+        ) : null}
+        {activeTab === "fire" && fireView === "coast" ? (
+          <FireStrategyPanel {...panelProps} mode="coast_fire" />
         ) : null}
         {activeTab === "portfolio" && portfolioView === "add" ? (
           <AddHoldingPanel {...panelProps} />

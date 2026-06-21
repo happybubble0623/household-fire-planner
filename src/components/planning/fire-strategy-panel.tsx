@@ -12,6 +12,7 @@ import { InfoPopover } from "@/components/ui/info-popover";
 import { cn } from "@/lib/utils";
 import { PLANNING_TOOLS } from "@/lib/data/planning-tools";
 import type {
+  Phase1CoastFireResult,
   Phase1ExpenseCategory,
   Phase1ExpenseCategoryType,
   Phase1FireInputs,
@@ -96,17 +97,18 @@ function formatPercent(value: number) {
   return percentFormatter.format(value);
 }
 
-// The three FIRE strategy models, in featured order (Portfolio Drawdown first).
-// Each entry maps to its existing standalone route so the switcher is just
-// navigation between the intact, separately-indexed pages.
+// The four FIRE strategy models, in featured order (Portfolio Drawdown first,
+// then Coast). Each entry maps to its existing standalone route so the switcher
+// is just navigation between the intact, separately-indexed pages.
 const STRATEGY_TABS: { mode: Phase1FireRuleMode; label: string; href: string }[] = [
   { mode: "withdrawal_rate", label: "Portfolio Drawdown", href: "/app/fire-path/withdrawal-rate" },
-  { mode: "income_stream", label: "Income Stream", href: "/app/fire-path/income-stream" },
+  { mode: "coast_fire", label: "Coast", href: "/app/fire-path/coast-fire" },
   {
     mode: "principal_preserving",
     label: "Principal-Preserving",
     href: "/app/fire-path/principal-preserving"
-  }
+  },
+  { mode: "income_stream", label: "Income Stream", href: "/app/fire-path/income-stream" }
 ];
 
 // Progress-to-FIRE percentages. Extracted so the snapshot strip and the detailed
@@ -132,6 +134,12 @@ function getIncomeProgressPercent(result: Phase1IncomeStreamResult) {
   return result.incomeCoverageRatio * 100;
 }
 
+function getCoastProgressPercent(result: Phase1CoastFireResult, currentFireAssets: number) {
+  return result.coastNumber <= 0
+    ? 100
+    : Math.min(100, (currentFireAssets / result.coastNumber) * 100);
+}
+
 type NumericFireInputKey = {
   [Key in keyof Phase1FireInputs]: Phase1FireInputs[Key] extends number ? Key : never;
 }[keyof Phase1FireInputs];
@@ -148,6 +156,7 @@ const fireFieldLabels: Record<NumericFireInputKey, string> = {
   expectedCashGeneratingReturnPercent: "Expected cash-generating investment return",
   inflationRatePercent: "Inflation rate",
   withdrawalRatePercent: "Withdrawal rate",
+  coastRetirementAge: "Retirement age",
   simpleEffectiveTaxRatePercent: "Simple effective tax rate",
   homeSaleAge: "Home sale age",
   homeSaleProceeds: "Net home sale proceeds"
@@ -158,6 +167,12 @@ const termHelp: Record<string, string> = {
   "FIRE year": "The calendar year when the successful portfolio drawdown plan begins.",
   "Assets at FIRE": "Projected FIRE assets at the start of the first retirement drawdown year.",
   "Implied withdrawal rate": "The first-year portfolio draw divided by assets at FIRE. It is an output, not an input.",
+  "Coast FIRE age": "The earliest age you can stop adding to retirement savings and still let today's investments grow on their own to the FIRE number by your retirement age. Keep covering today's costs, but the long-term saving is done. It is an output, not an input.",
+  "Coast number today": "The amount you'd need invested right now so that, with no further saving, it grows to your retirement FIRE number by your retirement age. Reaching it means you can coast.",
+  "Projected at retirement": "Where today's invested assets land at your retirement age if you never add another dollar — just compounding at your expected return.",
+  "FIRE number at retirement": "The portfolio you'll need at your retirement age: your inflation-adjusted spending gap there, divided by your withdrawal rate (the 4% rule means 25× the gap).",
+  "Surplus at retirement": "Your projected assets at retirement minus the FIRE number you'll need there. A surplus means today's assets already coast past the target.",
+  "Shortfall at retirement": "Your projected assets at retirement minus the FIRE number you'll need there. A shortfall means today's assets alone don't reach the target by retirement.",
   "Income coverage ratio": "Passive or guaranteed income divided by annual expenses.",
   "Annual surplus": "Your spendable income for this FIRE mode minus your annual retirement expenses, when income comes out ahead.",
   "Annual shortfall": "Your spendable income for this FIRE mode minus your annual retirement expenses, when there's a gap you'd need to cover.",
@@ -209,6 +224,8 @@ const termHelp: Record<string, string> = {
   "Expected appreciation return": "The non-cash part of your expected return: price growth only, excluding the cash-generating yield below. Before FIRE, total growth is this appreciation plus the cash-generating return. After FIRE, appreciation is not spent or counted toward covering expenses, so enter the remaining return here. Example: if your total return is 10% and your cash-generating return is 3%, enter 7% here.",
   "Expected cash-generating investment return": "The annual cash yield from dividends, interest, and distributions, as a percent of assets. This is the part of return you can use after FIRE. It is not unrealized appreciation; your total expected return is this plus the appreciation return above.",
   "Inflation rate": "The annual increase applied to future expenses.",
+  "Withdrawal rate": "The share of your portfolio you'd draw each year in retirement. The well-known 4% rule is the default — lower it for a more cautious target. Coast FIRE turns this into your retirement FIRE number (spending gap ÷ withdrawal rate).",
+  "Retirement age": "The traditional age you plan to actually retire. Coast FIRE checks whether your current investments can grow on their own to fund retirement by this age, with no further saving.",
   "Tax mode": "Simple mode assumes you pay tax on the money you spend, so it grosses up your spending by the rate (you need expenses ÷ (1 − rate) before tax). A blunt estimate — it taxes all income equally.",
   "Simple effective tax rate": "A blended tax assumption used to estimate pre-tax withdrawals."
 };
@@ -282,6 +299,9 @@ function getFriendlyFireError(error: string | null) {
   if (error === "Passive Income FIRE age must be less than or equal to life expectancy.") {
     return error;
   }
+  if (error === "Coast retirement age must be a whole year.") return error;
+  if (error === "Coast retirement age must be greater than current age.") return error;
+  if (error === "Coast retirement age must be less than or equal to life expectancy.") return error;
   if (error === "Withdrawal rate must be greater than 0.") return error;
   if (error === "Simple effective tax rate must be less than 100%.") {
     return "Simple effective tax rate must be less than 100%.";
@@ -306,6 +326,14 @@ function getInvalidFireFields(error: string | null) {
     error === "Passive Income FIRE age must be less than or equal to life expectancy."
   ) {
     return new Set<NumericFireInputKey>(["currentAge", "lifeExpectancy", "passiveIncomeFireAge"]);
+  }
+
+  if (
+    error === "Coast retirement age must be a whole year." ||
+    error === "Coast retirement age must be greater than current age." ||
+    error === "Coast retirement age must be less than or equal to life expectancy."
+  ) {
+    return new Set<NumericFireInputKey>(["coastRetirementAge", "currentAge", "lifeExpectancy"]);
   }
 
   if (error === "Withdrawal rate must be greater than 0.") {
@@ -739,6 +767,10 @@ function SnapshotStrip({
       fireAge = result.principalPreserving.estimatedFireAge;
       yearsToFi = fireAge === null ? null : result.principalPreserving.estimatedYearsToFire;
       progressPercent = getPrincipalProgressPercent(result.principalPreserving, currentFireAssets);
+    } else if (mode === "coast_fire") {
+      fireAge = result.coastFire.coastAge;
+      yearsToFi = fireAge === null ? null : result.coastFire.estimatedYearsToCoast;
+      progressPercent = getCoastProgressPercent(result.coastFire, currentFireAssets);
     } else {
       fireAge = result.incomeStream.estimatedFireAge;
       // Income Stream has no engine "years to FI" field; derive it from the
@@ -753,7 +785,9 @@ function SnapshotStrip({
       ? "of annual expenses"
       : mode === "principal_preserving"
         ? "of principal floor"
-        : "of FIRE target";
+        : mode === "coast_fire"
+          ? "of coast number"
+          : "of FIRE target";
 
   return (
     <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -983,6 +1017,7 @@ export function FireStrategyPanel({
   const isWithdrawalRateMode = mode === "withdrawal_rate";
   const isIncomeStreamMode = mode === "income_stream";
   const isPrincipalPreservingMode = mode === "principal_preserving";
+  const isCoastFireMode = mode === "coast_fire";
   // Results only update when the user clicks Calculate. Until then, editing
   // inputs marks the shown results as stale (edit mode).
   const isAppMode = useIsAppMode();
@@ -994,6 +1029,7 @@ export function FireStrategyPanel({
   const withdrawalResult = committedResult?.withdrawalRate;
   const incomeStreamResult = committedResult?.incomeStream;
   const principalPreservingResult = committedResult?.principalPreserving;
+  const coastFireResult = committedResult?.coastFire;
 
   function recalculateResults() {
     setCommittedResult(fireResult);
@@ -1166,14 +1202,18 @@ export function FireStrategyPanel({
 
   const title = isWithdrawalRateMode
     ? "Portfolio Drawdown FIRE"
-    : isPrincipalPreservingMode
-      ? "Principal-Preserving FIRE"
-      : "Income Stream FIRE";
+    : isCoastFireMode
+      ? "Coast FIRE"
+      : isPrincipalPreservingMode
+        ? "Principal-Preserving FIRE"
+        : "Income Stream FIRE";
   const intro = isWithdrawalRateMode
     ? "Find the earliest age where household assets can stop receiving savings, begin portfolio draws, and last through life expectancy."
-    : isPrincipalPreservingMode
-      ? "Find the earliest age where income streams plus cash-generating investment return can cover expenses while keeping assets at or above the FIRE-age principal floor through life expectancy."
-      : "Check whether recurring income streams can cover retirement expenses from your chosen FIRE age.";
+    : isCoastFireMode
+      ? "Find the earliest age you can stop saving for retirement and let today's investments grow on their own — with no further contributions — to fund a traditional-age retirement."
+      : isPrincipalPreservingMode
+        ? "Find the earliest age where income streams plus cash-generating investment return can cover expenses while keeping assets at or above the FIRE-age principal floor through life expectancy."
+        : "Check whether recurring income streams can cover retirement expenses from your chosen FIRE age.";
   const plannedFireAgeLabel = isPrincipalPreservingMode
     ? "Principal-Preserving FIRE age"
     : "Income Stream FIRE age";
@@ -1253,14 +1293,22 @@ export function FireStrategyPanel({
                 onChange={updateFireInput}
                 fieldKey="passiveIncomeFireAge"
               />
-            ) : (
-              isPrincipalPreservingMode ? (
-                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-relaxed text-gray-500">
-                  Principal-Preserving FIRE finds the earliest age for you. Add savings, returns,
-                  and income below, then read the earliest age in the results.
-                </div>
-              ) : null
-            )}
+            ) : isCoastFireMode ? (
+              <NumberField
+                id="fire-coast-retirement-age"
+                label="Retirement age"
+                value={inputs.coastRetirementAge}
+                step={1}
+                invalid={invalidFireFields.has("coastRetirementAge")}
+                onChange={updateFireInput}
+                fieldKey="coastRetirementAge"
+              />
+            ) : isPrincipalPreservingMode ? (
+              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-relaxed text-gray-500">
+                Principal-Preserving FIRE finds the earliest age for you. Add savings, returns,
+                and income below, then read the earliest age in the results.
+              </div>
+            ) : null}
           </>
         </InputSectionCard>
 
@@ -1418,6 +1466,25 @@ export function FireStrategyPanel({
               <p className="text-xs leading-relaxed text-gray-500">
                 Total return = appreciation you keep + yield you can spend without selling. Enter them
                 separately above.
+              </p>
+            ) : null}
+            {isCoastFireMode ? (
+              <NumberField
+                id="fire-withdrawal-rate"
+                label="Withdrawal rate"
+                value={inputs.withdrawalRatePercent}
+                step={0.1}
+                suffix="%"
+                invalid={invalidFireFields.has("withdrawalRatePercent")}
+                onChange={updateFireInput}
+                fieldKey="withdrawalRatePercent"
+              />
+            ) : null}
+            {isCoastFireMode ? (
+              <p className="text-xs leading-relaxed text-gray-500">
+                Your retirement FIRE number is your spending gap at the retirement age divided by this
+                rate — the 4% rule means 25× that gap. Today&rsquo;s assets then grow at the return
+                above toward that number.
               </p>
             ) : null}
             <NumberField
@@ -1924,6 +1991,10 @@ export function FireStrategyPanel({
         <WithdrawalResults result={withdrawalResult} />
       ) : null}
 
+      {isCoastFireMode && coastFireResult ? (
+        <CoastFireResults result={coastFireResult} currentFireAssets={inputs.currentFireAssets} />
+      ) : null}
+
       {isIncomeStreamMode && incomeStreamResult ? (
         <IncomeStreamResults result={incomeStreamResult} />
       ) : null}
@@ -2008,6 +2079,99 @@ function WithdrawalResults({ result }: { result: NonNullable<Phase1PanelProps["f
           "Each year your assets earn the Investment return (total return), then you cover spending. Before FIRE, Income is what you add; after FIRE it is your passive/guaranteed income.",
           "Assets withdrawn is what you sell to cover the spending your income didn't, grossed up for simple tax when enabled. It is 0 when income already covers expenses — so your investment returns keep compounding and the balance grows.",
           "Expenses shows your retirement spending (grossed up for simple tax when enabled). Ending assets = starting + investment return − assets withdrawn (+ any home-sale proceeds)."
+        ]}
+      />
+      </MobileProjectionDisclosure>
+    </section>
+  );
+}
+
+function CoastFireResults({
+  result,
+  currentFireAssets
+}: {
+  result: NonNullable<Phase1PanelProps["fireResult"]>["coastFire"];
+  currentFireAssets: number;
+}) {
+  const isAppMode = useIsAppMode();
+  const progress = getCoastProgressPercent(result, currentFireAssets);
+  const projectionHeaderNote =
+    "Coast assumes no further contributions: today's assets simply compound at your expected return until the retirement age. Investment return is that year's growth; FIRE target is the number you're growing toward; FIRE gap is how far the year's ending assets are below it.";
+  const coastAge = result.coastAge === null ? "Not reached" : formatNumber(result.coastAge);
+  const coastYear = result.coastYear === null ? "Not reached" : String(result.coastYear);
+
+  return (
+    <section className="space-y-5">
+      <ProgressBar
+        label="Progress to Coast FIRE"
+        value={progress}
+        note={`${formatPercent(Math.max(0, progress) / 100)} of the coast number (${formatCurrency(result.coastNumber)} needed today)`}
+      />
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <ResultCard
+          label="Coast FIRE age"
+          value={coastAge}
+          tone={result.coastAge === null ? "warning" : "success"}
+        />
+        <ResultCard
+          label="Coast number today"
+          value={formatCurrency(result.coastNumber)}
+        />
+        <ResultCard
+          label="Projected at retirement"
+          value={formatCurrency(result.projectedAssetsAtRetirement)}
+        />
+        <ResultCard
+          label={result.surplusOrShortfallAtRetirement < 0 ? "Shortfall at retirement" : "Surplus at retirement"}
+          value={formatSignedCurrency(result.surplusOrShortfallAtRetirement)}
+          tone={result.surplusOrShortfallAtRetirement < 0 ? "warning" : "success"}
+        />
+      </div>
+      <p className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-sm leading-relaxed text-gray-600 shadow-sm">
+        {result.reachedCoast ? (
+          <>
+            You&rsquo;ve reached Coast FIRE. With no further retirement saving, your{" "}
+            {formatCurrency(currentFireAssets)} should grow to about{" "}
+            {formatCurrency(result.projectedAssetsAtRetirement)} by age {result.retirementAge} — at or
+            above the {formatCurrency(result.fireNumberAtRetirement)} FIRE number you&rsquo;d need then.
+            You only need to cover today&rsquo;s costs from here.
+          </>
+        ) : result.coastAge === null ? (
+          <>
+            Not reached under current assumptions: even saving through age {result.retirementAge},
+            today&rsquo;s plan doesn&rsquo;t grow to the {formatCurrency(result.fireNumberAtRetirement)}{" "}
+            FIRE number needed then. Try a higher savings rate, lower expenses, a higher return, or a
+            later retirement age.
+          </>
+        ) : (
+          <>
+            Keep saving until age {formatNumber(result.coastAge)} ({formatNumber(result.estimatedYearsToCoast)}{" "}
+            {result.estimatedYearsToCoast === 1 ? "year" : "years"} from now). At that point your
+            invested assets can grow on their own to the {formatCurrency(result.fireNumberAtRetirement)}{" "}
+            FIRE number by age {result.retirementAge}, and you can stop adding to retirement savings.
+          </>
+        )}
+      </p>
+      <MobileProjectionDisclosure
+        infoContent={projectionPopoverContent(PROJECTION_TABLE_DESCRIPTION, projectionHeaderNote)}
+        shareFileName="coast-fire-projection"
+        shareTitle="Coast FIRE projection"
+      >
+      <ProjectionTable
+        label="Coast FIRE projection"
+        rows={result.projectionRows}
+        hideHeading={isAppMode}
+        investmentReturnLabel="Investment return"
+        headerNote={projectionHeaderNote}
+        showCashFlow={false}
+        showInvestmentReturn
+        showFireTarget
+        showFireGap
+        auditNotes={[
+          "Coast FIRE finds the earliest age you can stop adding to retirement savings and still let today's investments grow on their own to the FIRE number by your retirement age. Only liquid investments count — your home is excluded.",
+          "The FIRE number at retirement is your inflation-adjusted spending gap there (expenses minus passive/guaranteed income, grossed up for simple tax when enabled) divided by your withdrawal rate — the 4% rule means 25× that gap.",
+          "The coast number today is that retirement target discounted back at your expected return. Reaching it means your current assets alone, with no further saving, grow into the target.",
+          "The projection compounds today's assets at your expected return each year to the retirement age, with no contributions. Ending assets vs. the FIRE target shows whether you coast there."
         ]}
       />
       </MobileProjectionDisclosure>

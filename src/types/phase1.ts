@@ -10,7 +10,11 @@ export type Phase1AssetType =
   | "liability"
   | "other_asset";
 
-export type Phase1FireRuleMode = "withdrawal_rate" | "income_stream" | "principal_preserving";
+export type Phase1FireRuleMode =
+  | "withdrawal_rate"
+  | "income_stream"
+  | "principal_preserving"
+  | "coast_fire";
 export type Phase1TaxMode = "none" | "simple";
 export type Phase1PriceStatus = "manual" | "refreshed" | "unsupported" | "failed";
 export type Phase1IncomeSourceType =
@@ -108,6 +112,10 @@ export type Phase1FireInputs = {
   expectedCashGeneratingReturnPercent: number;
   inflationRatePercent: number;
   withdrawalRatePercent: number;
+  // Coast FIRE: the traditional retirement age the current portfolio must grow
+  // into (with no further contributions) to fund retirement. Only used by the
+  // coast_fire mode; ignored by the other three.
+  coastRetirementAge: number;
   taxMode: Phase1TaxMode;
   simpleEffectiveTaxRatePercent: number;
   // One-time home/real-estate sale added to liquid FIRE assets at the given age.
@@ -187,11 +195,39 @@ export type Phase1PrincipalPreservingResult = {
   projectionRows: Phase1ProjectionRow[];
 };
 
+// Coast FIRE: the point where current invested assets, with NO further
+// contributions, will grow to the FIRE number by a traditional retirement age.
+export type Phase1CoastFireResult = {
+  // The FIRE number at the chosen retirement age (the tax-adjusted, inflation-
+  // grown portfolio-funded spending gap at that age, capitalized at the
+  // withdrawal rule — the 4% rule by default, i.e. 25x the gap).
+  fireNumberAtRetirement: number;
+  // The coast number TODAY: the present value of fireNumberAtRetirement
+  // discounted by the expected return over the years to retirement. Reaching it
+  // means current assets alone (no further saving) grow into the target.
+  coastNumber: number;
+  retirementAge: number;
+  // Whether current assets already suffice to coast to the target.
+  reachedCoast: boolean;
+  // The earliest age the saver can stop contributing and still coast to the
+  // target (accumulating with savings until then, returns-only afterwards).
+  // null when even saving through the retirement age never reaches the target.
+  coastAge: number | null;
+  coastYear: number | null;
+  estimatedYearsToCoast: number;
+  // Where today's assets land at the retirement age with no further saving.
+  projectedAssetsAtRetirement: number;
+  surplusOrShortfallAtRetirement: number;
+  withdrawalRatePercent: number;
+  projectionRows: Phase1ProjectionRow[];
+};
+
 export type Phase1FireResult = {
   mode: Phase1FireRuleMode;
   withdrawalRate: Phase1WithdrawalRateResult;
   incomeStream: Phase1IncomeStreamResult;
   principalPreserving: Phase1PrincipalPreservingResult;
+  coastFire: Phase1CoastFireResult;
 };
 
 // An optional snapshot of the healthcare calculator's result, persisted into the

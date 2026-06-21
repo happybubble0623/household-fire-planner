@@ -23,6 +23,7 @@ export const defaultPhase1Workbook: Phase1Workbook = {
     expectedCashGeneratingReturnPercent: 3,
     inflationRatePercent: 3,
     withdrawalRatePercent: 4,
+    coastRetirementAge: 65,
     taxMode: "none",
     simpleEffectiveTaxRatePercent: 0,
     homeSaleAge: 0,

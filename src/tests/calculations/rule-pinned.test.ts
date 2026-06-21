@@ -341,7 +341,7 @@ describe("FIRE engines — rule-pinned", () => {
       useExpenseCategoriesOverride: false, expenseCategories: [], annualPassiveGuaranteedIncome: 0,
       passiveGuaranteedIncomeInflationAdjusted: true, useIncomeSourcesOverride: false, incomeSources: [],
       annualSavingsBeforeFire: 50_000, expectedAnnualPortfolioReturnPercent: 0, expectedCashGeneratingReturnPercent: 2,
-      inflationRatePercent: 0, withdrawalRatePercent: 5, taxMode: "none", simpleEffectiveTaxRatePercent: 10
+      inflationRatePercent: 0, withdrawalRatePercent: 5, coastRetirementAge: 65, taxMode: "none", simpleEffectiveTaxRatePercent: 10
     };
     const r = calculatePhase1Fire(inputs).withdrawalRate;
     expect(r.estimatedFireAge).toBe(68);
