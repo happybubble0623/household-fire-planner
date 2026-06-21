@@ -5,7 +5,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 // Public, crawlable routes. App pages are client-rendered workspaces but still
 // carry server-side titles/descriptions, so they're listed for discovery.
 const routes: Array<{ path: string; priority: number }> = [
-  { path: "/app/fire-path", priority: 1 },
+  { path: "/", priority: 1 },
   { path: "/early-retirement-guide", priority: 0.8 },
   { path: "/what-is-fire", priority: 0.7 },
   { path: "/fire-glossary", priority: 0.6 },
