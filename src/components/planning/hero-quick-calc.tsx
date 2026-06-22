@@ -39,6 +39,27 @@ const PencilIcon = () => (
   </svg>
 );
 
+// Self-contained info icon (circle + "i"). Drawn as an SVG so it always renders
+// — a single 11px text glyph in a muted color was rendering effectively blank on
+// the glass card.
+const InfoIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    width="18"
+    height="18"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 16v-4" />
+    <path d="M12 8h.01" />
+  </svg>
+);
+
 export function HeroQuickCalc() {
   const [age, setAge] = useState("35");
   const [spending, setSpending] = useState("60000");
@@ -138,20 +159,15 @@ export function HeroQuickCalc() {
           title="Assumes a 7%/yr real (after-inflation) return, the 4% rule (FIRE number = 25x expenses), and credits your current savings' compounding to your FIRE age."
           style={{
             display: "inline-flex",
-            width: 18,
-            height: 18,
-            borderRadius: "50%",
-            border: "1px solid #cdd1c9",
-            color: "#6b7167",
-            fontSize: 11,
-            fontWeight: 700,
             alignItems: "center",
             justifyContent: "center",
+            lineHeight: 1,
+            color: "#525851",
             cursor: "help",
             flex: "none"
           }}
         >
-          i
+          <InfoIcon />
         </span>
       </div>
 
