@@ -320,29 +320,6 @@ export function FireHubStatic({
       </section>
 
       <div className="wrap">
-        {/* Trust stat stripe — website only. In app mode the marketing hub is
-            dropped (the app opens straight into the plan), so this is hidden. */}
-        {!isAppMode ? (
-          <div className="stripe">
-            <div className="stat">
-              <div className="n tnum">$0</div>
-              <div className="l">Free, no login</div>
-            </div>
-            <div className="stat">
-              <div className="n tnum">6</div>
-              <div className="l">Built-in calculators</div>
-            </div>
-            <div className="stat">
-              <div className="n tnum">4</div>
-              <div className="l">FIRE strategies</div>
-            </div>
-            <div className="stat">
-              <div className="n tnum">100%</div>
-              <div className="l">Local &amp; private</div>
-            </div>
-          </div>
-        ) : null}
-
         <section className="sec paths" id="strategies">
           {/* The app's cold-launch hub keeps the original "Three paths" landing
               intact; the website (public "/" homepage and website /app/fire-path)
