@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // Homepage hero quick-calc — deliberately simple and FIXED (7% real return, 4%
 // rule, Coast-style progress). Replaces the static "Sample" card so a visitor
@@ -66,6 +66,24 @@ export function HeroQuickCalc() {
   const [investments, setInvestments] = useState("200000");
   const [savings, setSavings] = useState("30000");
   const [focused, setFocused] = useState<string | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
+  const infoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showInfo) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowInfo(false);
+    };
+    const onDown = (e: PointerEvent) => {
+      if (infoRef.current && !infoRef.current.contains(e.target as Node)) setShowInfo(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [showInfo]);
 
   const out = useMemo(() => {
     const a = num(age);
@@ -154,21 +172,62 @@ export function HeroQuickCalc() {
         <span style={{ fontSize: 12.5, fontWeight: 700, color: "#101410" }}>
           Get your quick FIRE number
         </span>
-        <span
-          aria-label="Assumes a 7%/yr real (after-inflation) return, the 4% rule (FIRE number = 25x expenses), and credits your current savings' compounding to your FIRE age."
-          title="Assumes a 7%/yr real (after-inflation) return, the 4% rule (FIRE number = 25x expenses), and credits your current savings' compounding to your FIRE age."
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            lineHeight: 1,
-            color: "#525851",
-            cursor: "help",
-            flex: "none"
-          }}
-        >
-          <InfoIcon />
-        </span>
+        <div ref={infoRef} style={{ position: "relative", flex: "none" }}>
+          <button
+            type="button"
+            aria-label="How this is estimated"
+            aria-expanded={showInfo}
+            onClick={() => setShowInfo((v) => !v)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              lineHeight: 1,
+              color: "#525851",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer"
+            }}
+          >
+            <InfoIcon />
+          </button>
+          {showInfo ? (
+            <div
+              role="dialog"
+              aria-label="How this is estimated"
+              style={{
+                position: "absolute",
+                right: 0,
+                top: 26,
+                width: 262,
+                zIndex: 20,
+                background: "#fff",
+                border: "1px solid #e7e9e3",
+                borderRadius: 12,
+                boxShadow: "0 12px 28px rgba(16,40,24,0.16)",
+                padding: "12px 14px",
+                fontSize: 12,
+                lineHeight: 1.5,
+                color: "#3c423b",
+                textAlign: "left"
+              }}
+            >
+              <strong style={{ display: "block", color: "#101410", marginBottom: 6 }}>
+                How this is estimated
+              </strong>
+              <div>
+                • <b>FIRE number</b> — annual spending × 25 (the 4% rule).
+              </div>
+              <div>
+                • <b>FIRE age</b> — when 7%/yr growth (after inflation) plus your savings reach it.
+              </div>
+              <div>
+                • <b>Progress</b> — how far your current savings alone grow toward it by then.
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div
@@ -185,7 +244,7 @@ export function HeroQuickCalc() {
         {field("qc-save", "Saved / year ($)", savings, setSavings)}
       </div>
 
-      <div className="kpis" style={{ marginTop: 12 }}>
+      <div className="kpis" style={{ marginTop: 12, textAlign: "center" }}>
         <div className="kpi">
           <div className="l">Your FIRE number</div>
           <div className="n tnum">{usd(out.fireNumber)}</div>
@@ -202,7 +261,7 @@ export function HeroQuickCalc() {
         </div>
       </div>
 
-      <p style={{ fontSize: 11, color: "#6b7167", padding: "10px 14px 12px", margin: 0 }}>
+      <p style={{ fontSize: 11, color: "#6b7167", padding: "10px 14px 12px", margin: 0, textAlign: "center" }}>
         Assumes 7%/yr real return · 4% rule · current savings compounded to your FIRE age.
       </p>
     </div>
