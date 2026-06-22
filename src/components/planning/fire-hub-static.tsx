@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { PathPicker } from "@/components/planning/path-picker";
+import { HeroQuickCalc } from "@/components/planning/hero-quick-calc";
 import { FIRE_STRATEGY_CARDS } from "@/lib/data/fire-strategies";
 import { PLANNING_TOOLS, type PlanningTool } from "@/lib/data/planning-tools";
 
@@ -287,26 +288,33 @@ export function FireHubStatic({
                 Read the beginner&rsquo;s guide →
               </Link>
             </p>
-            <div className="glass floatkpi">
-              <div className="sampletag">Sample</div>
-              <div className="kpis">
-                <div className="kpi">
-                  <div className="l">Projected FIRE age</div>
-                  <div className="n tnum">52</div>
-                  <div className="d">▲ 3 yrs earlier</div>
-                </div>
-                <div className="kpi">
-                  <div className="l">Lifetime healthcare</div>
-                  <div className="n tnum">$440k</div>
-                  <div className="d">pre-65 + Medicare</div>
-                </div>
-                <div className="kpi">
-                  <div className="l">Accounts consolidated</div>
-                  <div className="n tnum">14</div>
-                  <div className="d">across 2 people</div>
+            {/* Website (isAppMode === false): a LIVE quick-calculator running the
+                real engine, replacing the old static Sample card. The app's
+                cold-launch hub keeps the original Sample card byte-for-byte. */}
+            {isAppMode ? (
+              <div className="glass floatkpi">
+                <div className="sampletag">Sample</div>
+                <div className="kpis">
+                  <div className="kpi">
+                    <div className="l">Projected FIRE age</div>
+                    <div className="n tnum">52</div>
+                    <div className="d">▲ 3 yrs earlier</div>
+                  </div>
+                  <div className="kpi">
+                    <div className="l">Lifetime healthcare</div>
+                    <div className="n tnum">$440k</div>
+                    <div className="d">pre-65 + Medicare</div>
+                  </div>
+                  <div className="kpi">
+                    <div className="l">Accounts consolidated</div>
+                    <div className="n tnum">14</div>
+                    <div className="d">across 2 people</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <HeroQuickCalc />
+            )}
           </div>
         </div>
       </section>
