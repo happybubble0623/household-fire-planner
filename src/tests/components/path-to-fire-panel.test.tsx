@@ -140,8 +140,9 @@ describe("PathToFirePanel", () => {
     expect(screen.queryByRole("link", { name: "About" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Sign in" })).not.toBeInTheDocument();
 
-    // "Map your path" scrolls to the three-strategy section on this page.
-    expect(screen.getByRole("link", { name: /Map your path/i })).toHaveAttribute(
+    // The website primary CTA ("See your full plan ↓") scrolls to the
+    // strategy section on this page.
+    expect(screen.getByRole("link", { name: /See your full plan/i })).toHaveAttribute(
       "href",
       "#strategies"
     );

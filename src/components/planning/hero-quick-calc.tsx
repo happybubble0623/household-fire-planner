@@ -111,7 +111,7 @@ export function HeroQuickCalc() {
               cursor: "text"
             }}
           />
-          <span style={{ position: "absolute", right: 9, top: 12, color: "#9aa29a" }}>
+          <span style={{ position: "absolute", right: 9, top: 12, color: "#15803d" }}>
             <PencilIcon />
           </span>
         </div>
@@ -153,21 +153,6 @@ export function HeroQuickCalc() {
         >
           i
         </span>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "6px 14px 0",
-          fontSize: 12,
-          fontWeight: 600,
-          color: "#15803d"
-        }}
-      >
-        <PencilIcon />
-        Sample numbers — edit any field to make it yours.
       </div>
 
       <div

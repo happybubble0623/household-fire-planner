@@ -270,50 +270,76 @@ export function FireHubStatic({
               <span className="hbadge">No login</span>
               <span className="hbadge">Daily portfolio tracking</span>
             </div>
-            <div className="cta">
-              <Link href="/app/portfolio-lab" className="btn gold lg">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-                  <path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z" />
-                </svg>
-                Track your whole portfolio
-              </Link>
-              <a href="#strategies" className="btn p lg">
-                Map your path →
-              </a>
-            </div>
-            <p className="hgloss">
-              New to <strong>FIRE</strong>? It just means{" "}
-              <strong>Financial Independence, Retire Early</strong>.{" "}
-              <Link href="/early-retirement-guide" style={{ color: "var(--g700)", fontWeight: 600 }}>
-                Read the beginner&rsquo;s guide →
-              </Link>
-            </p>
-            {/* Website (isAppMode === false): a LIVE quick-calculator running the
-                real engine, replacing the old static Sample card. The app's
-                cold-launch hub keeps the original Sample card byte-for-byte. */}
+            {/* App cold-launch hub (isAppMode === true): the ORIGINAL hero
+                sequence is preserved byte-for-byte — CTA row, FIRE gloss, then
+                the static Sample card. */}
             {isAppMode ? (
-              <div className="glass floatkpi">
-                <div className="sampletag">Sample</div>
-                <div className="kpis">
-                  <div className="kpi">
-                    <div className="l">Projected FIRE age</div>
-                    <div className="n tnum">52</div>
-                    <div className="d">▲ 3 yrs earlier</div>
-                  </div>
-                  <div className="kpi">
-                    <div className="l">Lifetime healthcare</div>
-                    <div className="n tnum">$440k</div>
-                    <div className="d">pre-65 + Medicare</div>
-                  </div>
-                  <div className="kpi">
-                    <div className="l">Accounts consolidated</div>
-                    <div className="n tnum">14</div>
-                    <div className="d">across 2 people</div>
+              <>
+                <div className="cta">
+                  <Link href="/app/portfolio-lab" className="btn gold lg">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z" />
+                    </svg>
+                    Track your whole portfolio
+                  </Link>
+                  <a href="#strategies" className="btn p lg">
+                    Map your path →
+                  </a>
+                </div>
+                <p className="hgloss">
+                  New to <strong>FIRE</strong>? It just means{" "}
+                  <strong>Financial Independence, Retire Early</strong>.{" "}
+                  <Link href="/early-retirement-guide" style={{ color: "var(--g700)", fontWeight: 600 }}>
+                    Read the beginner&rsquo;s guide →
+                  </Link>
+                </p>
+                <div className="glass floatkpi">
+                  <div className="sampletag">Sample</div>
+                  <div className="kpis">
+                    <div className="kpi">
+                      <div className="l">Projected FIRE age</div>
+                      <div className="n tnum">52</div>
+                      <div className="d">▲ 3 yrs earlier</div>
+                    </div>
+                    <div className="kpi">
+                      <div className="l">Lifetime healthcare</div>
+                      <div className="n tnum">$440k</div>
+                      <div className="d">pre-65 + Medicare</div>
+                    </div>
+                    <div className="kpi">
+                      <div className="l">Accounts consolidated</div>
+                      <div className="n tnum">14</div>
+                      <div className="d">across 2 people</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
             ) : (
-              <HeroQuickCalc />
+              /* Website ("/" homepage + website /app/fire-path): the LIVE
+                 quick-calc sits directly beneath the three badges, followed by
+                 the primary "See your full plan ↓" CTA (scrolls to strategies),
+                 the gold portfolio CTA, then the FIRE gloss. */
+              <>
+                <HeroQuickCalc />
+                <div className="cta">
+                  <a href="#strategies" className="btn p lg">
+                    See your full plan ↓
+                  </a>
+                  <Link href="/app/portfolio-lab" className="btn gold lg">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2l2.6 6.6L21 9.2l-5 4.6L17.4 21 12 17.3 6.6 21 8 13.8l-5-4.6 6.4-.6z" />
+                    </svg>
+                    Track your whole portfolio
+                  </Link>
+                </div>
+                <p className="hgloss">
+                  New to <strong>FIRE</strong>? It just means{" "}
+                  <strong>Financial Independence, Retire Early</strong>.{" "}
+                  <Link href="/early-retirement-guide" style={{ color: "var(--g700)", fontWeight: 600 }}>
+                    Read the beginner&rsquo;s guide →
+                  </Link>
+                </p>
+              </>
             )}
           </div>
         </div>
