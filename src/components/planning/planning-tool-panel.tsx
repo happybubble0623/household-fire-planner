@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { estimateSocialSecurityBenefit } from "@/lib/calculations/social-security";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { useCalculatorPersistence } from "@/lib/storage/use-calculator-persisten
 import { addHousingExpenseCategory, addPassiveIncome } from "@/lib/phase1/plan-mappings";
 import { relatedPlanningTools, type PlanningTool } from "@/lib/data/planning-tools";
 import { useIsAppMode } from "@/components/app-mode-provider";
+import { trackToolUse } from "@/lib/analytics";
 
 export type { PlanningTool };
 
@@ -544,6 +545,9 @@ function formatSocialSecurityBenefit(result: ReturnType<typeof estimateSocialSec
 }
 
 export function PlanningToolPanel({ tool }: { tool: PlanningTool }) {
+  useEffect(() => {
+    trackToolUse(tool);
+  }, [tool]);
   if (tool === "mortgage") return <MortgageCalculator />;
   if (tool === "investment") return <InvestmentCalculator />;
   if (tool === "healthcare") return <HealthcareCostPanel />;

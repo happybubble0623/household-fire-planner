@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Phase1Workspace } from "@/components/planning/phase1-workspace";
 import { StrategyFaqSection } from "@/components/planning/strategy-faq-section";
 import { withdrawalRateFaq } from "@/lib/data/fire-strategy-faq";
+import { ToolUseTracker } from "@/components/analytics/tool-use-tracker";
 
 export const metadata: Metadata = {
   title: "Portfolio Drawdown FIRE Calculator",
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 export default function WithdrawalRateFirePage() {
   return (
     <>
+      <ToolUseTracker toolName="fire_drawdown" />
       <Phase1Workspace activeTab="fire" fireView="withdrawal" />
       <StrategyFaqSection
         heading="Portfolio Drawdown FIRE — questions & answers"

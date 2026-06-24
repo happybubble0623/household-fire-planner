@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ExpenseCalculator } from "@/components/planning/expense-calculator";
+import { ToolUseTracker } from "@/components/analytics/tool-use-tracker";
 import { FaqAccordion } from "@/components/planning/faq-accordion";
 import { ToolGuideSections } from "@/components/planning/tool-guide-sections";
 import { CollapsibleSection } from "@/components/planning/collapsible-section";
@@ -49,6 +50,7 @@ export default function ExpensesToolPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
 
+      <ToolUseTracker toolName="expenses" />
       <ExpenseCalculator />
 
       {/* Server-rendered SEO content: unique intro + a real Q&A section. This is

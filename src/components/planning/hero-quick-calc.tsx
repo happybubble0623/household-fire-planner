@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { trackToolUse } from "@/lib/analytics";
 
 // Homepage hero quick-calc — deliberately simple and FIXED (7% real return, 4%
 // rule, Coast-style progress). Replaces the static "Sample" card so a visitor
@@ -68,6 +69,7 @@ export function HeroQuickCalc() {
   const [focused, setFocused] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const infoRef = useRef<HTMLDivElement>(null);
+  const usedRef = useRef(false);
 
   useEffect(() => {
     if (!showInfo) return;
@@ -130,7 +132,13 @@ export function HeroQuickCalc() {
             type="text"
             inputMode="numeric"
             value={value}
-            onChange={(e) => set(e.target.value)}
+            onChange={(e) => {
+              if (!usedRef.current) {
+                usedRef.current = true;
+                trackToolUse("quick_calculator");
+              }
+              set(e.target.value);
+            }}
             onFocus={() => setFocused(id)}
             onBlur={() => setFocused(null)}
             style={{

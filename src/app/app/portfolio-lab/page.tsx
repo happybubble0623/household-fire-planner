@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Phase1Workspace } from "@/components/planning/phase1-workspace";
+import { ToolUseTracker } from "@/components/analytics/tool-use-tracker";
 
 export const metadata: Metadata = {
   title: "Understand Your Portfolio",
@@ -9,5 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function PortfolioLabPage() {
-  return <Phase1Workspace activeTab="portfolio" />;
+  return (
+    <>
+      <ToolUseTracker toolName="portfolio_lab" />
+      <Phase1Workspace activeTab="portfolio" />
+    </>
+  );
 }
